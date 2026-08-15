@@ -995,6 +995,7 @@ const CONTACTO_CAT={
   sala:    {label:"Salas",     sing:"Sala",     color:"#D9A87F"},
   promotor:{label:"Promotores",sing:"Promotor", color:"#7FB2D9"},
   fiesta:  {label:"Fiestas",   sing:"Fiesta",   color:"#D97FA8"},
+  fiestas_mayores:{label:"Fiestas mayores",sing:"Fiesta mayor",color:"#D97F7F"},
   festival:{label:"Festivales",sing:"Festival", color:"#7FD9A8"},
   evento:  {label:"Eventos",   sing:"Evento",   color:"#7FD9D9"},
   agencia: {label:"Agencias",  sing:"Agencia",  color:"#A87FD9"},
@@ -1012,7 +1013,7 @@ const TEMA_ROLES=["Producción","Composición","Letra","Voz","Mezcla","Máster",
 const TEMA_ENLACE_TIPOS=["Máster","Maqueta","Portada","Promo","Stems","Contrato","Otro"];
 
 /* Las que pueden contratar un show: salen en el desplegable del formulario */
-const CONTRATANTE_CAT=["sala","promotor","fiesta","festival","evento"];
+const CONTRATANTE_CAT=["sala","promotor","fiesta","fiestas_mayores","festival","evento"];
 const ESTADO_REL={
   sin_contactar:{label:"Sin contactar",color:"#7C818C"},
   contactado:{label:"Contactado",color:"#6B8FE8"},
@@ -6028,7 +6029,7 @@ function tienePlantilla(clienteId){
 /* La línea grande de arriba es el nombre del evento. Cuando el contratante es una
    fiesta, un festival o un evento, ese ES el nombre; si es una sala o un promotor
    a secas, no hay evento que poner y la línea se queda fuera de la hoja. */
-const CAT_EVENTO=["fiesta","festival","evento"];
+const CAT_EVENTO=["fiesta","fiestas_mayores","festival","evento"];
 function nombreEvento(s){
   const ids=[s.promotorId].concat(colabsDe(s));
   const nom=ids.map(id=>DB.promotores.find(p=>p.id===id))
