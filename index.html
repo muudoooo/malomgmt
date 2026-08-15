@@ -52,8 +52,8 @@ a{color:var(--artist)}
 .brand{padding:20px 20px 18px;border-bottom:1px solid var(--rule)}
 /* Redondo, como pidió Malo. El recorte va con object-fit para que no se
    deforme sea cuadrado o rectangular el PNG que tenga puesto. */
-.brand-logo{height:68px;width:68px;display:block;border-radius:50%;object-fit:cover;
-  background:var(--ink);border:1px solid var(--rule-2)}
+.brand-logo{height:96px;width:96px;display:block;border-radius:50%;object-fit:contain;
+  padding:4px;background:var(--ink);border:1px solid var(--rule-2)}
 .brand .tag{margin-top:8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute-2);line-height:1.6}
 .brand .tag b{color:var(--mute);font-weight:500}
 nav{padding:14px 10px;flex:1}
@@ -86,8 +86,9 @@ nav button.on .k{color:var(--malo)}
 #topActions > *{min-width:0;flex:0 0 auto}
 .topbar h2{white-space:nowrap}
 /* El logo de la barra de arriba: solo existe en el teléfono */
-.brand-btn{display:none;flex:0 0 auto;width:36px;height:36px;border-radius:50%;
-  border:1px solid var(--rule-2);background:var(--ink) center/72% no-repeat;padding:0}
+.brand-btn{display:none;flex:0 0 auto;width:46px;height:46px;border-radius:50%;
+  border:1px solid var(--rule-2);background:var(--ink) center/78% no-repeat;padding:0;
+  background-size:78% auto}
 .brand-btn:hover,.brand-btn:focus-visible{border-color:var(--mute-2)}
 .brand-btn:focus-visible{outline:2px solid var(--malo);outline-offset:2px}
 /* Panel de apartados */
