@@ -561,16 +561,6 @@ select option,select optgroup{background:#1B1E24;color:#E9E7E2}
 .kv dt{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute-2);align-self:center}
 .kv dd{color:var(--bone);word-break:break-word}
 .ava{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-family:var(--mono);font-weight:600;letter-spacing:-.02em;width:26px;height:26px;font-size:10px}
-/* Pasos del montaje de WhatsApp */
-.wa-pasos{display:flex;flex-direction:column;gap:9px}
-.wa-paso{display:flex;gap:11px;align-items:flex-start;padding:10px 12px;border:1px solid var(--rule);
-  border-radius:7px;background:var(--panel-2)}
-.wa-paso.ok{border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
-.wa-paso .n{flex:0 0 22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:10.5px;background:var(--panel-3);color:var(--mute)}
-.wa-paso.ok .n{background:var(--ok);color:#0E0F12;font-weight:700}
-.wa-paso .t{font-size:13px;font-weight:500;color:var(--bone);margin-bottom:3px}
-
 /* Filas del archivo de temas: enlaces y reparto */
 .enl-row{display:grid;grid-template-columns:130px minmax(0,1fr) 30px;gap:8px;margin-bottom:8px;align-items:center}
 .spl-cab,.spl-row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 92px 30px;gap:8px;align-items:center}
@@ -1062,7 +1052,7 @@ const DOW=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
 
 function blank(){return {version:6,miembros:{},localidades:{},creado:new Date().toISOString(),empresa:{nombre:"MALO",logo:""},
   clientes:[],promotores:[],shows:[],eventos:[],producciones:[],suscriptores:[],contexto:[],mensajes:[],tareas:[],
-  temas:[],mensajesWa:[],
+  temas:[],
   subcategorias:JSON.parse(JSON.stringify(SUBCAT_DEFAULT)),generos:GENERO_DEFAULT.slice()}}
 let DB=blank();
 
@@ -1271,8 +1261,6 @@ const TABLE_MAP={
     fechaEnvio:"fecha_envio",fechaSalida:"fecha_salida",sello:"sello",isrc:"isrc",
     bpm:"bpm",tonalidad:"tonalidad",generos:"generos",enlaces:"enlaces",splits:"splits",
     notas:"notas",origen:"origen",creadoEn:"creado_en"},
-  mensajesWa:{id:"id",telefono:"telefono",nombre:"nombre",clienteId:"cliente_id",promotorId:"promotor_id",
-    direccion:"direccion",texto:"texto",tipo:"tipo",estado:"estado",waId:"wa_id",creadoEn:"creado_en"},
   tareas:{id:"id",texto:"texto",hecha:"hecha",prioridad:"prioridad",asignadoA:"asignado_a",
     clienteId:"cliente_id",promotorId:"promotor_id",telefono:"telefono",email:"email",
     vence:"vence",creadoPor:"creado_por",hechaEn:"hecha_en"},
@@ -1364,7 +1352,7 @@ function normalizaEntidad(tabla,o){
   return o;
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,mwa]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -1379,8 +1367,7 @@ async function loadRemote(){
     sb.from("generos").select("nombre"),
     /* Sonda: si la columna no existe, Postgres devuelve error y no rompe nada */
     sb.from("clientes").select("ruta_plantilla").limit(1),
-    sb.from("temas").select("*"),
-    sb.from("mensajes_wa").select("*").order("creado_en",{ascending:false}).limit(400)
+    sb.from("temas").select("*")
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -1402,9 +1389,6 @@ async function loadRemote(){
   DB.sinTemas=!!tem.error;
   DB.temas=DB.sinTemas?[]:(tem.data||[]).map(r=>normalizaEntidad("temas",fromRow("temas",r)));
   if(DB.sinTemas)console.warn("Tabla «temas» no disponible:",tem.error.message);
-  DB.sinWa=!!mwa.error;
-  DB.mensajesWa=DB.sinWa?[]:(mwa.data||[]).map(r=>normalizaEntidad("mensajesWa",fromRow("mensajesWa",r)));
-  if(DB.sinWa)console.warn("Tabla «mensajes_wa» no disponible:",mwa.error.message);
   DB.googleAuth=ga.data&&ga.data.email?{email:ga.data.email,conectadoEn:ga.data.conectado_en}:null;
   DB.contexto=(ctx.data||[]).map(r=>fromRow("contexto",r));
   DB.mensajes=(msj.data||[]).map(r=>fromRow("mensajes",r));
@@ -1482,7 +1466,7 @@ function migrate(d){
   delete o.artistas;
   o.promotores=d.promotores||[];o.shows=d.shows||[];o.eventos=d.eventos||[];o.producciones=d.producciones||[];
   o.suscriptores=d.suscriptores||[];o.contexto=d.contexto||[];o.mensajes=d.mensajes||[];o.tareas=d.tareas||[];
-  o.temas=d.temas||[];o.mensajesWa=d.mensajesWa||[];
+  o.temas=d.temas||[];
   o.temas.forEach(t=>normalizaEntidad("temas",t));
   o.version=6;
   o.empresa=Object.assign({nombre:"MALO",logo:""},d.empresa||{});
@@ -1593,7 +1577,7 @@ function exportCSV(){
 }
 let rtTimer=null;
 function subscribeRealtime(){
-  ["clientes","promotores","shows","eventos","producciones","subcategorias","empresa","suscriptores","contexto","mensajes","tareas","localidades","generos","temas","mensajes_wa"].forEach(t=>{
+  ["clientes","promotores","shows","eventos","producciones","subcategorias","empresa","suscriptores","contexto","mensajes","tareas","localidades","generos","temas"].forEach(t=>{
     sb.channel("rt-"+t).on("postgres_changes",{event:"*",schema:"public",table:t},()=>{
       clearTimeout(rtTimer);
       rtTimer=setTimeout(async()=>{ if(saving)return; await loadRemote(); render(); },500);
@@ -2921,179 +2905,59 @@ function saveTema(isNew){
 
 
 /* ════════ WHATSAPP ════════
-   Este apartado NO manda mensajes todavía: para eso hacen falta dos funciones
-   Edge (wa-webhook y wa-enviar), una cuenta de Meta Business y un número nuevo.
-   Lo que sí hace es guardar la configuración que no es secreta, decir con
-   claridad qué falta, y tener la bandeja lista para cuando el webhook exista.
-   NINGÚN token vive aquí: van en los secretos de Supabase, no en el HTML. */
-function waCfg(){
-  const a=(DB.empresa&&DB.empresa.ajustes)||{};
-  return Object.assign({numero:"",idNumero:"",idCuenta:"",activo:false,notas:""},a.whatsapp||{});
-}
-function guardaWaCfg(c){
-  DB.empresa=DB.empresa||{nombre:"MALO",logo:""};
-  DB.empresa.ajustes=Object.assign({},DB.empresa.ajustes||{},{whatsapp:c});
-  touch();
-}
-/* El número de WhatsApp de una ficha, en formato internacional y para mostrar.
-   El enlace lo sigue montando waLink(), que ya existía y trabaja con telLimpio(). */
+   Aquí no se automatiza nada ni se habla con la API de Meta: esto es una
+   agenda. Dice quién tiene número y abre el chat para que escribas tú.
+   waLink() es lo que pinta además los botones verdes del resto de la app. */
+
+/* El número de una ficha, en formato internacional y listo para mostrar. */
 function waNumero(x){
   const n=telLimpio((x&&(x.whatsapp||x.telefono))||"");
   return n?"+"+n:"";
 }
 function waChat(x,texto){return waLink((x&&(x.whatsapp||x.telefono))||"",texto)}
-/* Lo que hay que tener montado, en orden. Lo que se puede comprobar desde aquí
-   se comprueba; lo que no, se marca como manual y lo confirma Malo. */
-function waPasos(){
-  const c=waCfg();
-  return [
-    {k:"numero",t:"Un número nuevo, distinto del tuyo",
-     d:"El número que pasa a la API deja de funcionar en la app normal de WhatsApp. Hace falta una SIM o un número virtual aparte.",
-     ok:!!c.numero,manual:true},
-    {k:"meta",t:"Cuenta de Meta Business verificada",
-     d:"Business Manager con el negocio verificado y la app de WhatsApp creada. Es papeleo, no código.",
-     ok:!!c.idCuenta,manual:true},
-    {k:"secretos",t:"Token y secreto del webhook en Supabase",
-     d:"En Supabase → Settings → Edge Functions → Secrets: WA_TOKEN y WA_VERIFY. No se guardan en la app.",
-     ok:false,manual:true},
-    {k:"webhook",t:"Función wa-webhook desplegada",
-     d:"Recibe los mensajes y los guarda en la tabla mensajes_wa. Sin esto la bandeja no se llena.",
-     ok:!DB.sinWa&&(DB.mensajesWa||[]).length>0},
-    {k:"enviar",t:"Función wa-enviar y plantillas aprobadas",
-     d:"Para avisar de la hoja de ruta o de la liquidación hace falta plantilla aprobada por Meta. Responder a quien te escribe, no.",
-     ok:false,manual:true}
-  ];
-}
 
 function viewWhatsapp(el,ta){
-  const c=waCfg();
-  const msgs=(DB.mensajesWa||[]).slice()
-    .sort((a,b)=>String(b.creadoEn||"").localeCompare(String(a.creadoEn||"")));
-  const pasos=waPasos();
-  const hechos=pasos.filter(p=>p.ok).length;
   ta.innerHTML="";
-  document.getElementById("viewSub").textContent=msgs.length?`${msgs.length} mensajes`:"";
-
-  /* Con quién hablas por WhatsApp: contactos y clientes que tienen número */
   const conNumero=[
     ...DB.clientes.map(x=>({tipo:"cliente",id:x.id,nombre:x.nombre||x.nombreReal,num:waNumero(x)})),
-    ...DB.promotores.map(x=>({tipo:"promotor",id:x.id,nombre:x.nombre,num:waNumero(x)}))
-  ].filter(x=>x.num);
+    ...DB.promotores.map(x=>({tipo:"contacto",id:x.id,nombre:x.nombre,num:waNumero(x)}))
+  ].filter(x=>x.num)
+   .sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es"));
+  const nCli=conNumero.filter(x=>x.tipo==="cliente").length;
+  const nCon=conNumero.length-nCli;
+  document.getElementById("viewSub").textContent=conNumero.length?`${conNumero.length} con número`:"";
 
   el.innerHTML=`
-  ${DB.sinWa?`<div class="card" style="border-color:rgba(224,72,77,.4)"><div class="body">
-    <strong style="color:var(--alert)">Falta ejecutar el SQL de WhatsApp.</strong>
-    <div class="tiny dim" style="margin-top:5px">La tabla <code>mensajes_wa</code> no existe todavía, así que la bandeja
-    no puede guardar nada. Ejecuta <code>08-temas-y-whatsapp.sql</code> en Supabase.</div></div></div>`:""}
-
   <div class="strip" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
-    <div class="cell"><div class="lab">Montaje</div><div class="val ${hechos===pasos.length?"v-ok":"v-warn"}">${hechos}/${pasos.length}</div>
-      <div class="note">Pasos completados</div></div>
-    <div class="cell"><div class="lab">Mensajes guardados</div><div class="val">${msgs.length}</div>
-      <div class="note">${DB.sinWa?"sin tabla":"entrantes y salientes"}</div></div>
     <div class="cell"><div class="lab">Fichas con número</div><div class="val v-artist">${conNumero.length}</div>
-      <div class="note">Clientes y contactos</div></div>
-    <div class="cell"><div class="lab">Coste de responder</div><div class="val v-ok">0 €</div>
-      <div class="note">Dentro de 24 h de que te escriban</div></div>
+      <div class="note">Se abre el chat de un clic</div></div>
+    <div class="cell"><div class="lab">Clientes</div><div class="val">${nCli}</div>
+      <div class="note">De ${DB.clientes.length}</div></div>
+    <div class="cell"><div class="lab">Contactos</div><div class="val">${nCon}</div>
+      <div class="note">De ${DB.promotores.length}</div></div>
   </div>
 
-  <div class="card"><header><h3>Qué falta para que funcione</h3><div class="spacer"></div>
-    <span class="pill ${hechos===pasos.length?"ok":"warn"}">${hechos===pasos.length?"listo":"sin conectar"}</span></header>
-    <div class="body">
-      <p style="color:var(--mute);font-size:12.5px;margin-bottom:16px">
-        Los mensajes van por la <strong style="color:var(--bone)">API oficial de Meta</strong>. Las librerías que
-        se conectan haciéndose pasar por WhatsApp Web son más rápidas de montar y van contra las condiciones de uso:
-        pueden bloquearte el número, y si es el de la agencia te quedas sin la herramienta con la que trabajas.</p>
-      <div class="wa-pasos">
-        ${pasos.map((p,i)=>`<div class="wa-paso ${p.ok?"ok":""}">
-          <span class="n">${p.ok?"✓":i+1}</span>
-          <div style="min-width:0">
-            <div class="t">${esc(p.t)}${p.manual&&!p.ok?`<span class="dim tiny" style="margin-left:7px">a mano</span>`:""}</div>
-            <div class="tiny dim">${esc(p.d)}</div>
-          </div></div>`).join("")}
-      </div>
-    </div></div>
+  <div class="card"><header><h3>Escribir por WhatsApp</h3><div class="spacer"></div>
+    <span class="dim tiny">orden alfabético</span></header><div class="body flush">
+    ${conNumero.length?`<table><tbody>
+      ${conNumero.map(x=>`<tr>
+        <td class="strong">${esc(x.nombre||"—")}<div class="dim tiny">${x.tipo}</div></td>
+        <td class="tiny dim" style="font-family:var(--mono);white-space:nowrap">${esc(x.num)}</td>
+        <td style="width:1%"><a class="red-link" href="${esc(waLink(x.num,""))}" target="_blank" rel="noopener">Abrir chat</a></td>
+      </tr>`).join("")}
+    </tbody></table>`
+    :`<div class="empty"><p>Ninguna ficha tiene teléfono todavía.<br>
+      <span class="dim tiny">Los números salen del campo Teléfono de clientes y contactos.</span></p></div>`}
+  </div></div>
 
-  <div class="grid2">
-    <div class="card" style="margin:0"><header><h3>Configuración</h3></header><div class="body">
-      <div class="fgrid">
-        <div class="f s6"><label>Número de WhatsApp Business</label>
-          <input id="wa_num" value="${esc(c.numero)}" placeholder="+34 600 000 000">
-          <span class="hint">El nuevo, no el tuyo de siempre.</span></div>
-        <div class="f s6"><label>Phone number ID</label>
-          <input id="wa_idnum" value="${esc(c.idNumero)}" placeholder="1234567890">
-          <span class="hint">Lo da Meta al añadir el número.</span></div>
-        <div class="f s6"><label>WhatsApp Business Account ID</label>
-          <input id="wa_idcta" value="${esc(c.idCuenta)}" placeholder="1234567890"></div>
-        <div class="f s6"><label>Estado</label><select id="wa_activo">
-          <option value="0" ${c.activo?"":"selected"}>Sin conectar</option>
-          <option value="1" ${c.activo?"selected":""}>Conectado</option></select>
-          <span class="hint">Márcalo cuando el webhook responda.</span></div>
-        <div class="f s12"><label>Notas del montaje</label>
-          <textarea id="wa_notas" style="min-height:70px" placeholder="Qué queda, con quién hablaste en Meta, número de la SIM…">${esc(c.notas)}</textarea></div>
-        <div class="f s12" style="flex-direction:row;gap:9px;align-items:center">
-          <button class="btn primary sm" id="wa_guardar">Guardar configuración</button>
-          <span class="hint" style="flex:1">Aquí no se guarda ningún token: los secretos van en Supabase.</span></div>
-      </div>
-      <div class="notebox" style="margin-top:14px;font-size:12px">
-        <strong style="color:var(--bone)">Lo que cuesta cada mensaje en España</strong><br>
-        Responder dentro de 24 h: <strong style="color:var(--ok)">gratis y sin tope</strong><br>
-        Aviso de utilidad (hoja de ruta lista, liquidación enviada): ~0,017 €<br>
-        Marketing y contacto en frío: ~0,051 € · exige consentimiento previo
-      </div>
-    </div></div>
-
-    <div>
-      <div class="card"><header><h3>Escribir por WhatsApp</h3><div class="spacer"></div>
-        <span class="dim tiny">${conNumero.length} con número</span></header><div class="body flush">
-        ${conNumero.length?`<table><tbody>
-          ${conNumero.slice(0,18).map(x=>`<tr>
-            <td class="strong">${esc(x.nombre||"—")}<div class="dim tiny">${x.tipo}</div></td>
-            <td class="tiny dim" style="font-family:var(--mono);white-space:nowrap">${esc(x.num)}</td>
-            <td style="width:1%"><a class="red-link" href="${esc(waChat(x))}" target="_blank" rel="noopener">Abrir chat</a></td>
-          </tr>`).join("")}
-        </tbody></table>
-        ${conNumero.length>18?`<p class="hint" style="padding:11px 16px">Y ${conNumero.length-18} más. Se ven todos en Clientes y Contactos.</p>`:""}`
-        :`<div class="empty"><p>Ninguna ficha tiene teléfono todavía.<br>
-          <span class="dim tiny">Los números se cogen del campo Teléfono de clientes y contactos.</span></p></div>`}
-      </div></div>
-
-      <div class="card"><header><h3>Lo que NO automatizaría</h3></header><div class="body">
-        <p style="color:var(--mute);font-size:12.5px;margin:0">
-          <strong style="color:var(--bone)">El contacto en frío con promotores.</strong> Es categoría marketing,
-          exige consentimiento previo, y convertir los avisos del mapa de frío en mensajes masivos es exactamente
-          lo que Meta penaliza: si te marcan como no deseado te bajan la calidad del número y te limitan cuántos
-          puedes mandar.<br><br>
-          Y al margen de las reglas: el booking se cierra porque conoces a alguien, no porque llegue una plantilla.
-          <strong style="color:var(--bone)">Que la app te diga a quién escribir; escribe tú.</strong></p>
-      </div></div>
-    </div>
-  </div>
-
-  <div class="card"><header><h3>Bandeja</h3><div class="spacer"></div>
-    ${msgs.length?`<span class="dim tiny">Lo último arriba</span>`:""}</header><div class="body flush">
-    ${msgs.length?`<table><thead><tr><th>Cuándo</th><th>Quién</th><th></th><th>Mensaje</th></tr></thead>
-    <tbody>${msgs.slice(0,60).map(m=>{
-      const entra=m.direccion!=="saliente";
-      const quien=m.clienteId?nomCliente(m.clienteId):(m.promotorId?nomPromotor(m.promotorId):(m.nombre||m.telefono||"—"));
-      return `<tr>
-        <td class="tiny dim" style="white-space:nowrap;font-family:var(--mono)">${esc(String(m.creadoEn||"").slice(0,16).replace("T"," "))}</td>
-        <td class="strong">${esc(quien)}${m.telefono?`<div class="dim tiny" style="font-family:var(--mono)">${esc(m.telefono)}</div>`:""}</td>
-        <td style="width:1%"><span class="pill" style="padding:2px 7px;font-size:9px;border-color:${entra?"var(--ok)":"var(--rule-2)"};color:${entra?"var(--ok)":"var(--mute)"}">${entra?"entra":"sale"}</span></td>
-        <td>${esc(recorta(String(m.texto||""),160))}</td></tr>`}).join("")}</tbody></table>`
-    :`<div class="empty"><p><strong>La bandeja está vacía.</strong><br>
-      Se llenará cuando <code>wa-webhook</code> esté desplegada y alguien escriba al número.<br>
-      <span class="dim tiny">Un webhook que solo recibe y guarda no puede romper nada y no cuesta dinero:
-      es por donde yo empezaría.</span></p></div>`}
+  <div class="card"><header><h3>Por qué no se manda solo</h3></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;margin:0">
+      El contacto en frío con promotores es categoría marketing para Meta: exige consentimiento
+      previo, y convertir los avisos del mapa de frío en mensajes masivos es justo lo que penalizan.
+      Si te marcan como no deseado te bajan la calidad del número.<br><br>
+      Y al margen de las reglas: el booking se cierra porque conoces a alguien, no porque llegue
+      una plantilla. <strong style="color:var(--bone)">Que la app te diga a quién escribir; escribe tú.</strong></p>
   </div></div>`;
-
-  const g=document.getElementById("wa_guardar");
-  if(g)g.addEventListener("click",()=>{
-    guardaWaCfg({numero:val("wa_num"),idNumero:val("wa_idnum"),idCuenta:val("wa_idcta"),
-      activo:val("wa_activo")==="1",notas:val("wa_notas")});
-    toast("Configuración de WhatsApp guardada");
-    render();
-  });
 }
 
 /* ════════ CLIENTES ════════ */
