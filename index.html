@@ -65,6 +65,8 @@ nav button .k{font-family:var(--mono);font-size:10px;color:var(--mute-2);margin-
   border-radius:9px;padding:1px 6px;margin-left:7px;line-height:1.5}
 nav button.on .k{color:var(--malo)}
 .storage{padding:14px;border-top:1px solid var(--rule);font-size:11px}
+.ver{margin-top:9px;text-align:center;font-family:var(--mono);font-size:9.5px;
+  color:var(--mute);opacity:.65;letter-spacing:.04em;user-select:text}
 .storage .st{display:flex;align-items:center;gap:7px;color:var(--mute);margin-bottom:9px;font-family:var(--mono);font-size:10px}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--mute-2);flex:0 0 6px}
 .dot.live{background:var(--ok);box-shadow:0 0 0 3px rgba(63,163,91,.15)}
@@ -806,6 +808,7 @@ select option,select optgroup{background:#1B1E24;color:#E9E7E2}
     <div class="storage">
       <div class="st"><span class="dot" id="dot"></span><span id="storeLabel">Conectando…</span></div>
       <button class="btn ghost sm" id="logoutBtn" style="width:100%;justify-content:center">Cerrar sesión</button>
+      <div class="ver" id="appVer"></div>
     </div>
   </aside>
   <div class="main">
@@ -977,6 +980,7 @@ const REDES={
   tiktok:   {label:"TikTok",   base:"https://tiktok.com/@",  ph:"@usuario"},
   youtube:  {label:"YouTube",  base:"https://youtube.com/@", ph:"@canal o URL"},
   spotify:  {label:"Spotify",  base:"",                      ph:"URL del perfil"},
+  soundcloud:{label:"SoundCloud",base:"https://soundcloud.com/",ph:"URL del perfil"},
   x:        {label:"X",        base:"https://x.com/",        ph:"@usuario"}
 };
 const SERVICIOS=["booking","management","development","sello"];
@@ -1013,6 +1017,10 @@ const ESTADO_REL={
   sin_respuesta:{label:"Sin respuesta",color:"#E0484D"},
   descartado:{label:"Descartado",color:"#565B65"}
 };
+/* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
+   del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
+   vistazo si el navegador de alguien tiene la última o una cacheada. */
+const APP_VERSION="0.001";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -1912,6 +1920,7 @@ function abreMenu(){
         <div class="st"><span class="dot ${document.getElementById("dot")?document.getElementById("dot").className.replace("dot","").trim():""}"></span>
           ${esc(document.getElementById("storeLabel")?document.getElementById("storeLabel").textContent:"")}</div>
         <button class="btn ghost sm" id="menuSalir" style="width:100%;justify-content:center">Cerrar sesión</button>
+        <div class="ver">v ${esc(APP_VERSION)}</div>
       </div>
     </aside>`;
   requestAnimationFrame(()=>{
@@ -5109,7 +5118,7 @@ function formCliente(id){
         El archivo debe estar compartido como <strong>«Cualquier persona con el enlace»</strong>, o no se verá.</span></div>
       <div class="f s4"><label>Enlace al rider</label><input id="c_rider" value="${esc(c.rider||"")}" placeholder="https://drive.google.com/…"></div>
       <div class="f s4"><label>Enlace al presskit</label><input id="c_press" value="${esc(c.presskit||"")}"></div>
-      <div class="f s4"><label>Carpeta de documentos</label><input id="c_docs" value="${esc(c.docs||"")}" placeholder="Contratos, DNI, modelo 145…"></div>
+      <div class="f s4"><label>Documentos</label><input id="c_docs" value="${esc(c.docs||"")}" placeholder="Contratos, DNI, modelo 145…"></div>
       <div class="f s12"><span class="hint">No pegues aquí escaneos de DNI ni contratos: guárdalos en Drive con permisos restringidos y deja aquí solo el enlace.</span></div>
     </div>
 
@@ -5500,7 +5509,7 @@ function fichaCliente(id){
       <dt>Factura</dt><dd>${fx.label} · IVA ${n(c.ivaPct)}% · IRPF ${n(c.irpfPct)}%</dd>
       <dt>Comisiones</dt><dd>${(c.servicios||[]).map(s=>`${s} ${n(c.comisiones&&c.comisiones[s])}%`).join(" · ")||"—"} <span class="dim">(sobre ${c.baseComision==="neto"?"neto":"bruto"})</span></dd>
       <dt>Redes</dt><dd>${redes.length?redes.map(k=>`<a href="${esc(redUrl(k,c.redes[k]))}" target="_blank" rel="noopener" class="pill violet" style="margin-right:4px">${REDES[k].label}</a>`).join(""):"<span class='dim'>Sin redes</span>"}</dd>
-      <dt>Documentos</dt><dd>${[["Rider",c.rider],["Presskit",c.presskit],["Carpeta",c.docs]].filter(d=>d[1]).map(d=>`<a href="${esc(d[1])}" target="_blank" rel="noopener" class="pill violet" style="margin-right:4px">${d[0]}</a>`).join("")||"<span class='dim'>Sin enlaces</span>"}</dd>
+      <dt>Enlaces</dt><dd>${[["Rider",c.rider],["Presskit",c.presskit],["Documentos",c.docs]].filter(d=>d[1]).map(d=>`<a href="${esc(d[1])}" target="_blank" rel="noopener" class="pill violet" style="margin-right:4px">${d[0]}</a>`).join("")||"<span class='dim'>Sin enlaces</span>"}</dd>
     </dl>
 
     ${c.notas?`<div class="section-title">Notas</div><div class="notebox">${esc(c.notas)}</div>`:""}
@@ -7314,12 +7323,17 @@ async function startApp(){
 }
 /* El botón del móvil reutiliza el mismo PNG que la barra lateral: el base64 pesa
    y no hay por qué llevarlo dos veces en el archivo. */
+function pintaVersion(){
+  const v=document.getElementById("appVer");
+  if(v)v.textContent="v "+APP_VERSION;
+}
 function pintaLogoBoton(){
   const b=document.getElementById("brandBtn"),l=document.querySelector(".brand-logo");
   if(b&&l)b.style.backgroundImage=`url("${l.getAttribute("src")}")`;
 }
 async function boot(){
   initSupabase();
+  pintaVersion();
   pintaLogoBoton();
   const hash=new URLSearchParams(location.hash.replace(/^#/,""));
   const isInvite=hash.get("type")==="invite"||hash.get("type")==="recovery";
