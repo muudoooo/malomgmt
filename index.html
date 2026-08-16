@@ -184,6 +184,18 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 .red-link:hover{background:var(--violet);color:#0E0F12;border-color:var(--violet)}
 .red-link::after{content:"↗";font-size:9px;opacity:.7}
 .pill.cat{border-color:color-mix(in srgb,var(--c) 55%,transparent);color:var(--c)}
+
+/* Géneros: etiquetas que se pulsan, no casillas. Una casilla obliga a apuntar
+   a un cuadrito de 13px; aquí el objetivo es la etiqueta entera. */
+.tagsel{display:flex;flex-wrap:wrap;gap:7px}
+.tagsel button{font-family:var(--sans);font-size:12px;line-height:1;padding:7px 12px;
+  border-radius:20px;border:1px solid var(--rule-2);background:transparent;color:#9AA0AB;
+  cursor:pointer;transition:border-color .12s,color .12s,background .12s}
+.tagsel button:hover{border-color:var(--artist);color:var(--bone)}
+.tagsel button[aria-pressed="true"]{border-color:var(--artist);color:var(--bone);
+  background:color-mix(in srgb,var(--artist) 20%,transparent);font-weight:500}
+.tagsel button.suelto{border-style:dashed}
+.tagsel button:focus-visible{outline:2px solid var(--artist);outline-offset:2px}
 /* «+N»: colaboraciones del show. Los nombres van en el title. */
 .colab-mark{flex:0 0 auto;font-family:var(--mono);font-size:9px;letter-spacing:.04em;
   color:var(--c-artista);border:1px solid color-mix(in srgb,var(--c-artista) 45%,transparent);
@@ -1020,7 +1032,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.001";
+const APP_VERSION="0.002";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -5053,9 +5065,7 @@ function formCliente(id){
     <div class="section-title">Acuerdo y comisiones</div>
     <div class="fgrid">
       <div class="f s12"><label>Servicios contratados</label>
-        <div style="display:flex;gap:14px;flex-wrap:wrap;padding-top:3px">
-        ${SERVICIOS.map(s=>`<label style="display:flex;gap:6px;align-items:center;font-family:var(--sans);font-size:13px;text-transform:none;letter-spacing:0;color:var(--bone);cursor:pointer">
-          <input type="checkbox" id="sv_${s}" ${(c.servicios||[]).includes(s)?"checked":""} style="width:auto"> ${s}</label>`).join("")}</div></div>
+        <div id="c_servicios" style="padding-top:4px"></div></div>
       ${SERVICIOS.map(s=>`<div class="f s3"><label>% ${s}</label><input id="cm_${s}" type="number" step="0.5" min="0" max="100" value="${n(co[s])}"></div>`).join("")}
       <div class="f s12"><label>DJ vinculado por defecto</label><select id="c_dj">
         <option value="">— ninguno —</option>
@@ -5206,31 +5216,58 @@ function formCliente(id){
     DB.subcategorias[cat].push(nom);save();pintaSubs(nom);toast("Subcategoría creada: "+nom);
   });
 
-  /* Géneros: casillas igual que los servicios, pero sobre un catálogo que
-     se puede ampliar aquí mismo o desde Datos → Géneros. */
+  /* Servicios: mismas etiquetas pulsables que los géneros. Se guardan en el
+     orden de SERVICIOS, no en el orden en que se van pulsando, porque el motor
+     financiero usa servicios[0] como servicio principal del cliente. */
+  let srvSel=SERVICIOS.filter(x=>(c.servicios||[]).includes(x));
+  function pintaServicios(){
+    const cont=document.getElementById("c_servicios");
+    if(!cont)return;
+    cont.innerHTML=`<div class="tagsel">${SERVICIOS.map(x=>`<button type="button" data-srv="${esc(x)}"
+      aria-pressed="${srvSel.includes(x)?"true":"false"}">${esc(x)}</button>`).join("")}</div>`;
+    cont.querySelectorAll("[data-srv]").forEach(b=>b.addEventListener("click",()=>{
+      const x=b.dataset.srv;
+      const puesto=!srvSel.includes(x);
+      srvSel=SERVICIOS.filter(y=>y===x?puesto:srvSel.includes(y));
+      b.setAttribute("aria-pressed",puesto?"true":"false");
+    }));
+  }
+  pintaServicios();
+  window.__leerServicios=()=>srvSel.slice();
+
+  /* Géneros: etiquetas sobre un catálogo que se puede ampliar aquí mismo
+     o desde Datos → Géneros. */
   let gensSel=generosDe(c).slice();
+  function textoResumen(){
+    if(!gensSel.length)return "Sin género asignado. Aparecerá como «—» en la lista de clientes.";
+    const orden=gensSel.slice().sort((a,b)=>a.localeCompare(b,"es"));
+    return `${orden.length} ${orden.length===1?"género":"géneros"}: ${orden.join(" · ")}`;
+  }
   function pintaGeneros(){
     const cat=generosCat();
     const cont=document.getElementById("c_generos");
     if(!cont)return;
     /* Un género asignado que ya no esté en el catálogo se sigue mostrando,
-       para no perderlo sin avisar */
+       con el borde punteado, para no perderlo sin avisar */
     const sueltos=gensSel.filter(g=>!cat.includes(g));
     cont.innerHTML=`
-      <div style="display:flex;gap:10px 20px;flex-wrap:wrap">
-        ${cat.concat(sueltos).map(g=>`
-          <label style="display:flex;gap:7px;align-items:center;font-size:13px;color:var(--bone);cursor:pointer">
-            <input type="checkbox" data-gen="${esc(g)}" ${gensSel.includes(g)?"checked":""} style="width:auto"> ${esc(g)}
-            ${sueltos.includes(g)?`<span class="dim tiny">(fuera del catálogo)</span>`:""}</label>`).join("")
+      <div class="tagsel">
+        ${cat.concat(sueltos).map(g=>`<button type="button" data-gen="${esc(g)}"
+          aria-pressed="${gensSel.includes(g)?"true":"false"}"
+          class="${sueltos.includes(g)?"suelto":""}"${sueltos.includes(g)?' title="Fuera del catálogo"':""}
+          >${esc(g)}</button>`).join("")
         ||`<span class="dim tiny">No hay géneros en el catálogo todavía. Pulsa «Añadir género».</span>`}
       </div>
-      <p class="hint" style="margin-top:9px;font-size:10.5px;color:var(--mute-2)">
-        ${gensSel.length?`Seleccionados: ${gensSel.map(esc).join(" · ")}`:"Sin género asignado. Aparecerá como «—» en la lista de clientes."}</p>`;
-    cont.querySelectorAll("[data-gen]").forEach(cb=>cb.addEventListener("change",()=>{
-      const g=cb.dataset.gen;
-      if(cb.checked){if(!gensSel.includes(g))gensSel.push(g)}
-      else gensSel=gensSel.filter(x=>x!==g);
-      pintaGeneros();
+      <p class="hint" id="c_genres" style="margin-top:10px;font-size:10.5px;color:var(--mute-2)">${esc(textoResumen())}</p>`;
+    /* Se cambia el botón en su sitio en vez de repintar el bloque entero:
+       así no se pierde el foco al ir marcando con el teclado. */
+    cont.querySelectorAll("[data-gen]").forEach(b=>b.addEventListener("click",()=>{
+      const g=b.dataset.gen;
+      const puesto=!gensSel.includes(g);
+      gensSel=puesto?gensSel.concat(g):gensSel.filter(x=>x!==g);
+      b.setAttribute("aria-pressed",puesto?"true":"false");
+      const r=document.getElementById("c_genres");
+      if(r)r.textContent=textoResumen();
     }));
   }
   pintaGeneros();
@@ -5332,7 +5369,7 @@ function saveCliente(id,isNew){
     email:val("c_email"),telefono:val("c_tel"),activo:val("c_activo")==="1",
     razonSocial:val("c_razon"),codigoPostal:val("c_cp"),ciudad:val("c_ciu"),
     redes:Object.fromEntries(Object.keys(REDES).map(k=>[k,val("rd_"+k)])),
-    servicios:SERVICIOS.filter(s=>document.getElementById("sv_"+s).checked),
+    servicios:(window.__leerServicios?window.__leerServicios():[]),
     comisiones:Object.fromEntries(SERVICIOS.map(s=>[s,num("cm_"+s)])),
     baseComision:val("c_base"),djDefectoId:val("c_dj"),roster:(window.__leerRoster?window.__leerRoster():[]),nif:val("c_nif"),direccion:val("c_dir"),
     facturacion:val("c_fact"),ivaPct:num("c_iva"),irpfPct:num("c_irpf"),iban:val("c_iban"),
