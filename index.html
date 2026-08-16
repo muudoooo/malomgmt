@@ -1832,7 +1832,6 @@ const VIEWS=[
   {id:"mailing",label:"Mailing",k:"8"},
   {id:"mapa",label:"Mapa",k:"9"},
   {id:"temas",label:"Temas",k:"t"},
-  {id:"whatsapp",label:"WhatsApp",k:"w"},
   {id:"capturas",label:"Capturas",k:"c"},
   {id:"equipo",label:"Equipo",k:"0"},
   {id:"generadores",label:"Generadores",k:"g"},
@@ -1867,7 +1866,7 @@ function render(){
   ta.innerHTML="";document.getElementById("viewSub").textContent="";
   ({panel:viewPanel,calendario:viewCalendario,shows:viewShows,eventos:viewEventos,
     clientes:viewClientes,contactos:viewContactos,documentos:viewDocumentos,
-    mailing:viewMailing,mapa:viewMapa,temas:viewTemas,whatsapp:viewWhatsapp,
+    mailing:viewMailing,mapa:viewMapa,temas:viewTemas,
     equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos})[VIEW](el,ta);
 }
 document.getElementById("nav").addEventListener("click",e=>{const b=e.target.closest("button[data-view]");if(!b)return;VIEW=b.dataset.view;render();window.scrollTo(0,0)});
@@ -2903,62 +2902,6 @@ function saveTema(isNew){
   touch();
 }
 
-
-/* ════════ WHATSAPP ════════
-   Aquí no se automatiza nada ni se habla con la API de Meta: esto es una
-   agenda. Dice quién tiene número y abre el chat para que escribas tú.
-   waLink() es lo que pinta además los botones verdes del resto de la app. */
-
-/* El número de una ficha, en formato internacional y listo para mostrar. */
-function waNumero(x){
-  const n=telLimpio((x&&(x.whatsapp||x.telefono))||"");
-  return n?"+"+n:"";
-}
-function waChat(x,texto){return waLink((x&&(x.whatsapp||x.telefono))||"",texto)}
-
-function viewWhatsapp(el,ta){
-  ta.innerHTML="";
-  const conNumero=[
-    ...DB.clientes.map(x=>({tipo:"cliente",id:x.id,nombre:x.nombre||x.nombreReal,num:waNumero(x)})),
-    ...DB.promotores.map(x=>({tipo:"contacto",id:x.id,nombre:x.nombre,num:waNumero(x)}))
-  ].filter(x=>x.num)
-   .sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||""),"es"));
-  const nCli=conNumero.filter(x=>x.tipo==="cliente").length;
-  const nCon=conNumero.length-nCli;
-  document.getElementById("viewSub").textContent=conNumero.length?`${conNumero.length} con número`:"";
-
-  el.innerHTML=`
-  <div class="strip" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
-    <div class="cell"><div class="lab">Fichas con número</div><div class="val v-artist">${conNumero.length}</div>
-      <div class="note">Se abre el chat de un clic</div></div>
-    <div class="cell"><div class="lab">Clientes</div><div class="val">${nCli}</div>
-      <div class="note">De ${DB.clientes.length}</div></div>
-    <div class="cell"><div class="lab">Contactos</div><div class="val">${nCon}</div>
-      <div class="note">De ${DB.promotores.length}</div></div>
-  </div>
-
-  <div class="card"><header><h3>Escribir por WhatsApp</h3><div class="spacer"></div>
-    <span class="dim tiny">orden alfabético</span></header><div class="body flush">
-    ${conNumero.length?`<table><tbody>
-      ${conNumero.map(x=>`<tr>
-        <td class="strong">${esc(x.nombre||"—")}<div class="dim tiny">${x.tipo}</div></td>
-        <td class="tiny dim" style="font-family:var(--mono);white-space:nowrap">${esc(x.num)}</td>
-        <td style="width:1%"><a class="red-link" href="${esc(waLink(x.num,""))}" target="_blank" rel="noopener">Abrir chat</a></td>
-      </tr>`).join("")}
-    </tbody></table>`
-    :`<div class="empty"><p>Ninguna ficha tiene teléfono todavía.<br>
-      <span class="dim tiny">Los números salen del campo Teléfono de clientes y contactos.</span></p></div>`}
-  </div></div>
-
-  <div class="card"><header><h3>Por qué no se manda solo</h3></header><div class="body">
-    <p style="color:var(--mute);font-size:12.5px;margin:0">
-      El contacto en frío con promotores es categoría marketing para Meta: exige consentimiento
-      previo, y convertir los avisos del mapa de frío en mensajes masivos es justo lo que penalizan.
-      Si te marcan como no deseado te bajan la calidad del número.<br><br>
-      Y al margen de las reglas: el booking se cierra porque conoces a alguien, no porque llegue
-      una plantilla. <strong style="color:var(--bone)">Que la app te diga a quién escribir; escribe tú.</strong></p>
-  </div></div>`;
-}
 
 /* ════════ CLIENTES ════════ */
 function viewClientes(el,ta){
