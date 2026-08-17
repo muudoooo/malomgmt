@@ -144,12 +144,31 @@ Deno.serve(async (req) => {
 
     if (accion === "raiz") return json({ raiz });
 
+    /* Diagnostico: con que cuenta de Google esta leyendo la funcion. Si no
+       coincide con la duena de las carpetas, listar devuelve 0 archivos sin
+       dar ningun error, que despista mucho. */
+    if (accion === "quien") {
+      const r = await fetch("https://www.googleapis.com/drive/v3/about?fields=user(emailAddress,displayName)",
+        { headers: { Authorization: "Bearer " + tk } });
+      const b = await r.json().catch(() => ({}));
+      return json({ cuenta: (b.user && b.user.emailAddress) || "desconocida", raiz });
+    }
+
     if (accion === "listar") {
       const q = encodeURIComponent("'" + objetivo + "' in parents and trashed=false");
       const b = await drive("/files?q=" + q +
         "&fields=files(id,name,mimeType,size,modifiedTime,webViewLink)" +
         "&orderBy=folder,name&pageSize=200", tk);
-      return json({ files: b.files || [] });
+      const files = b.files || [];
+      if (!files.length) {
+        // Una carpeta vacia y una carpeta que esta cuenta no ve son
+        // indistinguibles desde fuera. Se dice con que cuenta se ha mirado.
+        const w = await fetch("https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)",
+          { headers: { Authorization: "Bearer " + tk } });
+        const wb = await w.json().catch(() => ({}));
+        return json({ files: [], cuenta: (wb.user && wb.user.emailAddress) || "desconocida" });
+      }
+      return json({ files });
     }
 
     if (accion === "crearCarpeta") {
