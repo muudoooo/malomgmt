@@ -7514,7 +7514,22 @@ function driveRaiz(){
   const a=(DB.empresa&&DB.empresa.ajustes)||{};
   return a.driveRaizId?{id:a.driveRaizId,nombre:a.driveRaizNombre||"Carpeta de Drive"}:null;
 }
+/* Quien puede cambiar la carpeta madre. Se guarda en ajustes para poder
+   ampliarlo desde el menu de configuracion sin tocar codigo.
+   OJO: esto es una barrera de interfaz, no de seguridad. Cualquiera con la
+   consola del navegador abierta puede saltarsela. La proteccion de verdad
+   tiene que vivir en Supabase (RLS o Edge Function). */
+function driveAdmins(){
+  const a=(DB.empresa&&DB.empresa.ajustes)||{};
+  const l=Array.isArray(a.driveAdmins)&&a.driveAdmins.length?a.driveAdmins:["malo@malomgmt.com"];
+  return l.map(x=>String(x).toLowerCase());
+}
+function driveEsAdmin(){
+  const e=CURRENT_USER&&CURRENT_USER.email?String(CURRENT_USER.email).toLowerCase():"";
+  return !!e&&driveAdmins().indexOf(e)!==-1;
+}
 function driveGuardarRaiz(id,nombre){
+  if(!driveEsAdmin()){toast("Solo un administrador puede cambiar la carpeta madre");return}
   if(DB.sinAjustes){toast("Falta la columna 'ajustes' en la tabla empresa: la carpeta no se guardara");return}
   DB.empresa=Object.assign({},DB.empresa||{},
     {ajustes:Object.assign({},(DB.empresa||{}).ajustes||{},{driveRaizId:id,driveRaizNombre:nombre})});
@@ -7615,13 +7630,16 @@ function driveCardHTML(){
   const r=driveRaiz();
   return `<div class="card" id="driveCard" style="margin-bottom:16px"><header>
       <h3>Archivos en Drive</h3><div class="spacer"></div>
-      <button class="btn ghost sm" id="driveConectar">${r?"Cambiar carpeta":"Conectar carpeta de Drive"}</button>
+      ${driveEsAdmin()?`<button class="btn ghost sm" id="driveConectar">${r?"Cambiar carpeta":"Conectar carpeta de Drive"}</button>`:""}
     </header><div class="body" id="driveBody">${
       r?`<p class="hint" style="margin:0 0 10px">Carpeta conectada: <strong style="color:var(--bone)">${esc(r.nombre)}</strong>.
           Los archivos no se copian a ningún sitio: siguen en Drive, con sus permisos.</p>
          <button class="btn primary sm" id="driveVer">Ver archivos</button>`
-       :`<p class="hint" style="margin:0">Conecta la carpeta madre de MALO y aquí verás lo que hay dentro, sin salir de la app.
-          Los archivos no se copian a ningún sitio: siguen en Drive, con sus permisos.</p>`
+       :(driveEsAdmin()
+          ?`<p class="hint" style="margin:0">Conecta la carpeta madre de MALO y aquí verás lo que hay dentro, sin salir de la app.
+             Los archivos no se copian a ningún sitio: siguen en Drive, con sus permisos.</p>`
+          :`<p class="hint" style="margin:0">Todavía no hay ninguna carpeta de Drive conectada.
+             Solo un administrador puede elegirla.</p>`)
     }</div></div>`;
 }
 
