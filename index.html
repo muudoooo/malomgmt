@@ -7673,7 +7673,8 @@ async function drivePintar(id,nombre,apilar){
   if(apilar!==false)DRIVE_RUTA.push({id,nombre});
   body.innerHTML=`<p class="dim tiny">Cargando…</p>`;
   try{
-    const files=await driveListar(id);
+    const res=await driveFn("listar",id?{carpetaId:id}:{});
+    const files=res.files||[]; const cuenta=res.cuenta||"";
     const filas=files.length
       ? files.map(f=>`<tr>
           <td style="width:28px">${driveIcono(f.mimeType)}</td>
@@ -7683,7 +7684,8 @@ async function drivePintar(id,nombre,apilar){
           <td class="dim tiny" style="text-align:right;white-space:nowrap">${esc(drivePeso(f.size))}</td>
           <td class="dim tiny" style="white-space:nowrap">${esc((f.modifiedTime||"").slice(0,10))}</td>
         </tr>`).join("")
-      : `<tr><td colspan="4" class="dim tiny">Esta carpeta está vacía.</td></tr>`;
+      : `<tr><td colspan="4" class="dim tiny">Vacía para la cuenta con la que MALO lee el Drive${
+            cuenta?" ("+esc(cuenta)+")":""}. Si en Drive sí ves archivos aquí, es que MALO está mirando con otra cuenta.</td></tr>`;
     body.innerHTML=`<p class="tiny" style="margin:0 0 8px">${driveMigasHTML()}</p>
       <table><tbody>${filas}</tbody></table>`;
     body.querySelectorAll(".drive-abrir").forEach(a=>a.addEventListener("click",e=>{
@@ -7696,6 +7698,14 @@ async function drivePintar(id,nombre,apilar){
     }));
   }catch(e){
     body.innerHTML=`<p class="hint" style="margin:0">No se pudo leer la carpeta: ${esc(e.message)}</p>`;
+  }
+}
+
+/* Diagnostico rapido: con que cuenta de Google esta leyendo MALO. Si no es la
+   duena de las carpetas, el listado sale vacio sin dar ningun error. */
+async function driveQuien(){
+  try{ const r=await driveFn("quien"); toast("MALO lee el Drive con: "+r.cuenta); return r; }
+  catch(e){ toast("No se pudo consultar: "+e.message); }
   }
 }
 

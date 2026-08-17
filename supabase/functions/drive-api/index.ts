@@ -27,7 +27,12 @@ const json = (b, s) => new Response(JSON.stringify(b), {
 const URL_SB = Deno.env.get("SUPABASE_URL");
 const SRV    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const ANON   = Deno.env.get("SUPABASE_ANON_KEY");
-const CID    = Deno.env.get("GOOGLE_CLIENT_ID");
+/* El client ID NO es un secreto: va escrito en el index.html publico. Se deja
+   aqui como respaldo porque en Supabase solo esta guardado GOOGLE_CLIENT_SECRET
+   (gcal-callback lo lleva en su codigo), y sin esto la funcion mandaba
+   client_id=undefined y Google contestaba "The OAuth client was not found". */
+const CID    = Deno.env.get("GOOGLE_CLIENT_ID") ||
+  "254476366820-6mlbkvatppl879d2jv8t25t67k5j1lid.apps.googleusercontent.com";
 const CSECRET= Deno.env.get("GOOGLE_CLIENT_SECRET");
 
 const admin = createClient(URL_SB, SRV);
@@ -59,6 +64,8 @@ async function tokenGoogle() {
   const clave = Object.keys(fila).find(k => /refresh/i.test(k));
   const refresh = clave ? fila[clave] : null;
   if (!refresh) throw new Error("La fila de google_auth no tiene refresh token");
+
+  if (!CSECRET) throw new Error("Falta el secreto GOOGLE_CLIENT_SECRET en Supabase");
 
   const r = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -137,12 +144,31 @@ Deno.serve(async (req) => {
 
     if (accion === "raiz") return json({ raiz });
 
+    /* Diagnostico: con que cuenta de Google esta leyendo la funcion. Si no
+       coincide con la duena de las carpetas, listar devuelve 0 archivos sin
+       dar ningun error, que despista mucho. */
+    if (accion === "quien") {
+      const r = await fetch("https://www.googleapis.com/drive/v3/about?fields=user(emailAddress,displayName)",
+        { headers: { Authorization: "Bearer " + tk } });
+      const b = await r.json().catch(() => ({}));
+      return json({ cuenta: (b.user && b.user.emailAddress) || "desconocida", raiz });
+    }
+
     if (accion === "listar") {
       const q = encodeURIComponent("'" + objetivo + "' in parents and trashed=false");
       const b = await drive("/files?q=" + q +
         "&fields=files(id,name,mimeType,size,modifiedTime,webViewLink)" +
         "&orderBy=folder,name&pageSize=200", tk);
-      return json({ files: b.files || [] });
+      const files = b.files || [];
+      if (!files.length) {
+        // Una carpeta vacia y una carpeta que esta cuenta no ve son
+        // indistinguibles desde fuera. Se dice con que cuenta se ha mirado.
+        const w = await fetch("https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)",
+          { headers: { Authorization: "Bearer " + tk } });
+        const wb = await w.json().catch(() => ({}));
+        return json({ files: [], cuenta: (wb.user && wb.user.emailAddress) || "desconocida" });
+      }
+      return json({ files });
     }
 
     if (accion === "crearCarpeta") {
