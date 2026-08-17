@@ -7496,6 +7496,207 @@ async function boot(){
   await startApp();
 }
 boot();
+
+/* ════════ DRIVE · archivos del equipo ════════
+   Los archivos NO se copian a Supabase: siguen en Drive, con los permisos de
+   Drive. MALO solo guarda el ID de la carpeta raíz (en empresa.ajustes) y pide
+   el listado en vivo cada vez. Por eso renombrar o mover cosas en Drive no
+   rompe nada: los IDs de Google no cambian.
+
+   Nunca se busca una carpeta por su nombre. Siempre por ID. */
+const DRIVE_API_KEY="AIzaSyCqYGsSqack-xlLifK6VxTso4DoTtmKABY";
+const DRIVE_APP_ID="254476366820";
+const DRIVE_SCOPE="https://www.googleapis.com/auth/drive";
+
+let DRIVE_TOKEN=null, DRIVE_TC=null, DRIVE_LIBS=null, DRIVE_RUTA=[];
+
+function driveRaiz(){
+  const a=(DB.empresa&&DB.empresa.ajustes)||{};
+  return a.driveRaizId?{id:a.driveRaizId,nombre:a.driveRaizNombre||"Carpeta de Drive"}:null;
+}
+function driveGuardarRaiz(id,nombre){
+  if(DB.sinAjustes){toast("Falta la columna 'ajustes' en la tabla empresa: la carpeta no se guardara");return}
+  DB.empresa=Object.assign({},DB.empresa||{},
+    {ajustes:Object.assign({},(DB.empresa||{}).ajustes||{},{driveRaizId:id,driveRaizNombre:nombre})});
+  save();
+}
+
+/* Carga las dos librerías de Google una sola vez y solo cuando hacen falta:
+   así no penalizan el arranque de quien no use Drive. */
+function driveCargarLibs(){
+  if(DRIVE_LIBS)return DRIVE_LIBS;
+  const meter=(src)=>new Promise((ok,err)=>{
+    const s=document.createElement("script");
+    s.src=src;s.async=true;s.onload=ok;s.onerror=()=>err(new Error("No se pudo cargar "+src));
+    document.head.appendChild(s);
+  });
+  DRIVE_LIBS=Promise.all([
+    meter("https://accounts.google.com/gsi/client"),
+    meter("https://apis.google.com/js/api.js")
+  ]).then(()=>new Promise(ok=>gapi.load("picker",ok)));
+  return DRIVE_LIBS;
+}
+
+function driveToken(){
+  if(DRIVE_TOKEN)return Promise.resolve(DRIVE_TOKEN);
+  return driveCargarLibs().then(()=>new Promise((ok,err)=>{
+    DRIVE_TC=google.accounts.oauth2.initTokenClient({
+      client_id:GOOGLE_CLIENT_ID,scope:DRIVE_SCOPE,
+      callback:r=>{
+        if(r.error){err(new Error(r.error));return}
+        DRIVE_TOKEN=r.access_token;
+        /* El token de Google dura una hora. Lo soltamos antes para que la
+           siguiente llamada pida uno nuevo en vez de fallar con un 401. */
+        setTimeout(()=>{DRIVE_TOKEN=null},50*60*1000);
+        ok(DRIVE_TOKEN);
+      }
+    });
+    DRIVE_TC.requestAccessToken({prompt:""});
+  }));
+}
+
+async function driveApi(path){
+  const t=await driveToken();
+  const r=await fetch("https://www.googleapis.com/drive/v3"+path,{headers:{Authorization:"Bearer "+t}});
+  if(r.status===401){DRIVE_TOKEN=null;throw new Error("La sesión de Drive ha caducado. Vuelve a pulsar Conectar.")}
+  const b=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((b.error&&b.error.message)||("Error "+r.status));
+  return b;
+}
+
+function driveListar(id){
+  const q=encodeURIComponent("'"+id+"' in parents and trashed=false");
+  return driveApi("/files?q="+q+"&fields=files(id,name,mimeType,size,modifiedTime,webViewLink)"+
+    "&orderBy=folder,name&pageSize=200").then(r=>r.files||[]);
+}
+
+function drivePickerCarpeta(){
+  return driveToken().then(t=>new Promise(ok=>{
+    const v=new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+      .setIncludeFolders(true).setSelectFolderEnabled(true)
+      .setMimeTypes("application/vnd.google-apps.folder");
+    new google.picker.PickerBuilder()
+      .setDeveloperKey(DRIVE_API_KEY)
+      /* setAppId es obligatorio aunque la documentación de Google no lo diga:
+         sin él, la carpeta se elige pero después da 404 al leerla. */
+      .setAppId(DRIVE_APP_ID)
+      .setOAuthToken(t).addView(v)
+      .setTitle("Elige la carpeta madre de MALO")
+      .setCallback(d=>{if(d.action===google.picker.Action.PICKED)ok(d.docs[0])})
+      .build().setVisible(true);
+  }));
+}
+
+/* ── Pintado ── */
+const DRIVE_ICONO={
+  "application/vnd.google-apps.folder":"📁",
+  "application/pdf":"📄",
+  "application/vnd.google-apps.document":"📝",
+  "application/vnd.google-apps.spreadsheet":"📊",
+  "application/vnd.google-apps.presentation":"📽"
+};
+function driveIcono(m){
+  if(DRIVE_ICONO[m])return DRIVE_ICONO[m];
+  if(m.indexOf("image/")===0)return "🖼";
+  if(m.indexOf("audio/")===0)return "🎵";
+  if(m.indexOf("video/")===0)return "🎬";
+  return "📎";
+}
+function drivePeso(b){
+  if(!b)return "";
+  const n=Number(b);
+  if(n<1024)return n+" B";
+  if(n<1048576)return (n/1024).toFixed(0)+" KB";
+  return (n/1048576).toFixed(1)+" MB";
+}
+function esCarpeta(f){return f.mimeType==="application/vnd.google-apps.folder"}
+
+function driveCardHTML(){
+  const r=driveRaiz();
+  return `<div class="card" id="driveCard" style="margin-bottom:16px"><header>
+      <h3>Archivos en Drive</h3><div class="spacer"></div>
+      <button class="btn ghost sm" id="driveConectar">${r?"Cambiar carpeta":"Conectar carpeta de Drive"}</button>
+    </header><div class="body" id="driveBody">${
+      r?`<p class="hint" style="margin:0 0 10px">Carpeta conectada: <strong style="color:var(--bone)">${esc(r.nombre)}</strong>.
+          Los archivos no se copian a ningún sitio: siguen en Drive, con sus permisos.</p>
+         <button class="btn primary sm" id="driveVer">Ver archivos</button>`
+       :`<p class="hint" style="margin:0">Conecta la carpeta madre de MALO y aquí verás lo que hay dentro, sin salir de la app.
+          Los archivos no se copian a ningún sitio: siguen en Drive, con sus permisos.</p>`
+    }</div></div>`;
+}
+
+function driveMigasHTML(){
+  return DRIVE_RUTA.map((p,i)=>
+    i===DRIVE_RUTA.length-1
+      ? `<strong style="color:var(--bone)">${esc(p.nombre)}</strong>`
+      : `<a href="#" class="drive-miga" data-i="${i}">${esc(p.nombre)}</a>`
+  ).join(' <span class="dim">/</span> ');
+}
+
+async function drivePintar(id,nombre,apilar){
+  const body=document.getElementById("driveBody");
+  if(!body)return;
+  if(apilar!==false)DRIVE_RUTA.push({id,nombre});
+  body.innerHTML=`<p class="dim tiny">Cargando…</p>`;
+  try{
+    const files=await driveListar(id);
+    const filas=files.length
+      ? files.map(f=>`<tr>
+          <td style="width:28px">${driveIcono(f.mimeType)}</td>
+          <td>${esCarpeta(f)
+            ? `<a href="#" class="drive-abrir" data-id="${esc(f.id)}" data-n="${esc(f.name)}">${esc(f.name)}</a>`
+            : `<a href="${esc(f.webViewLink||"#")}" target="_blank" rel="noopener">${esc(f.name)}</a>`}</td>
+          <td class="dim tiny" style="text-align:right;white-space:nowrap">${esc(drivePeso(f.size))}</td>
+          <td class="dim tiny" style="white-space:nowrap">${esc((f.modifiedTime||"").slice(0,10))}</td>
+        </tr>`).join("")
+      : `<tr><td colspan="4" class="dim tiny">Esta carpeta está vacía.</td></tr>`;
+    body.innerHTML=`<p class="tiny" style="margin:0 0 8px">${driveMigasHTML()}</p>
+      <table><tbody>${filas}</tbody></table>`;
+    body.querySelectorAll(".drive-abrir").forEach(a=>a.addEventListener("click",e=>{
+      e.preventDefault();drivePintar(a.dataset.id,a.dataset.n);
+    }));
+    body.querySelectorAll(".drive-miga").forEach(a=>a.addEventListener("click",e=>{
+      e.preventDefault();
+      const i=Number(a.dataset.i);const p=DRIVE_RUTA[i];
+      DRIVE_RUTA=DRIVE_RUTA.slice(0,i);drivePintar(p.id,p.nombre);
+    }));
+  }catch(e){
+    body.innerHTML=`<p class="hint" style="margin:0">No se pudo leer la carpeta: ${esc(e.message)}</p>`;
+  }
+}
+
+function driveBind(){
+  const btn=document.getElementById("driveConectar");
+  if(btn)btn.addEventListener("click",async()=>{
+    try{
+      const doc=await drivePickerCarpeta();
+      driveGuardarRaiz(doc.id,doc.name);
+      toast("Carpeta conectada: "+doc.name);
+      DRIVE_RUTA=[];
+      const h=document.getElementById("driveConectar");
+      if(h)h.textContent="Cambiar carpeta";
+      drivePintar(doc.id,doc.name);
+    }catch(e){ toast("No se pudo conectar con Drive: "+e.message) }
+  });
+  /* Deliberadamente NO se carga el listado al entrar en Documentos: eso
+     dispararia la ventana de permisos de Google a todo el que abra la vista.
+     Solo se pide el token cuando alguien pulsa "Ver archivos". */
+  const ver=document.getElementById("driveVer");
+  if(ver)ver.addEventListener("click",()=>{
+    const r=driveRaiz(); if(!r)return;
+    DRIVE_RUTA=[]; drivePintar(r.id,r.nombre);
+  });
+}
+
+/* Envolvemos la vista de documentos en vez de tocarla por dentro: así el diff
+   queda pequeño y lo de Drive se puede quitar de un tirón si molesta. */
+const _viewDocumentosBase=viewDocumentos;
+viewDocumentos=function(el,ta){
+  _viewDocumentosBase(el,ta);
+  el.insertAdjacentHTML("afterbegin",driveCardHTML());
+  driveBind();
+};
+
 </script>
 </body>
 </html>
