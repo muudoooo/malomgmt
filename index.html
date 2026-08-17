@@ -7579,10 +7579,22 @@ function driveToken(){
    JWT de la sesion, que es lo que la funcion valida. */
 async function driveFn(accion,extra){
   if(!sb)throw new Error("Sin conexion con Supabase");
-  const {data,error}=await sb.functions.invoke("drive-api",{body:Object.assign({accion},extra||{})});
-  if(error)throw new Error(error.message||"No se pudo contactar con drive-api");
-  if(data&&data.error)throw new Error(data.error);
-  return data||{};
+  /* Se llama con fetch en vez de sb.functions.invoke a proposito: invoke
+     anade las cabeceras apikey y x-client-info, y el preflight CORS de
+     drive-api solo admite authorization y content-type. Con invoke el
+     navegador bloquea la peticion antes de enviarla y sale el mensaje
+     "Failed to send a request to the Edge Function". */
+  const ses=await sb.auth.getSession();
+  const tk=ses&&ses.data&&ses.data.session&&ses.data.session.access_token;
+  if(!tk)throw new Error("Sesion caducada, vuelve a entrar");
+  const r=await fetch(SUPA_URL+"/functions/v1/drive-api",{
+    method:"POST",
+    headers:{"Authorization":"Bearer "+tk,"Content-Type":"application/json"},
+    body:JSON.stringify(Object.assign({accion:accion},extra||{}))
+  });
+  const b=await r.json().catch(()=>({}));
+  if(!r.ok||b.error)throw new Error(b.error||("drive-api devolvio "+r.status));
+  return b||{};
 }
 
 function driveListar(id){
