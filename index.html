@@ -7536,7 +7536,7 @@ function driveGuardarRaiz(id,nombre){
   if(DB.sinAjustes){toast("Falta la columna 'ajustes' en la tabla empresa: la carpeta no se guardara");return}
   DB.empresa=Object.assign({},DB.empresa||{},
     {ajustes:Object.assign({},(DB.empresa||{}).ajustes||{},{driveRaizId:id,driveRaizNombre:nombre})});
-  save();
+  return save();
 }
 
 /* Carga las dos librerías de Google una sola vez y solo cuando hacen falta:
@@ -7573,19 +7573,20 @@ function driveToken(){
   }));
 }
 
-async function driveApi(path){
-  const t=await driveToken();
-  const r=await fetch("https://www.googleapis.com/drive/v3"+path,{headers:{Authorization:"Bearer "+t}});
-  if(r.status===401){DRIVE_TOKEN=null;throw new Error("La sesión de Drive ha caducado. Vuelve a pulsar Conectar.")}
-  const b=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error((b.error&&b.error.message)||("Error "+r.status));
-  return b;
+/* Todo el trafico con Drive pasa por la Edge Function drive-api. El navegador
+   no ve nunca un token de Google, y por tanto nadie del equipo tiene que
+   conectar su cuenta ni ceder su Drive personal. supabase-js adjunta solo el
+   JWT de la sesion, que es lo que la funcion valida. */
+async function driveFn(accion,extra){
+  if(!sb)throw new Error("Sin conexion con Supabase");
+  const {data,error}=await sb.functions.invoke("drive-api",{body:Object.assign({accion},extra||{})});
+  if(error)throw new Error(error.message||"No se pudo contactar con drive-api");
+  if(data&&data.error)throw new Error(data.error);
+  return data||{};
 }
 
 function driveListar(id){
-  const q=encodeURIComponent("'"+id+"' in parents and trashed=false");
-  return driveApi("/files?q="+q+"&fields=files(id,name,mimeType,size,modifiedTime,webViewLink)"+
-    "&orderBy=folder,name&pageSize=200").then(r=>r.files||[]);
+  return driveFn("listar",id?{carpetaId:id}:{}).then(r=>r.files||[]);
 }
 
 function drivePickerCarpeta(){
@@ -7691,7 +7692,9 @@ function driveBind(){
   if(btn)btn.addEventListener("click",async()=>{
     try{
       const doc=await drivePickerCarpeta();
-      driveGuardarRaiz(doc.id,doc.name);
+      /* Se espera al guardado: drive-api lee la raiz de la base de datos, asi
+         que listar antes de que este escrita daria "no hay carpeta". */
+      await driveGuardarRaiz(doc.id,doc.name);
       toast("Carpeta conectada: "+doc.name);
       DRIVE_RUTA=[];
       const h=document.getElementById("driveConectar");
