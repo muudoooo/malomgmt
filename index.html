@@ -895,7 +895,10 @@ const GOOGLE_CLIENT_ID="254476366820-6mlbkvatppl879d2jv8t25t67k5j1lid.apps.googl
 function urlAutorizarGoogle(){
   const p=new URLSearchParams({client_id:GOOGLE_CLIENT_ID,
     redirect_uri:SUPA_URL+"/functions/v1/gcal-callback",response_type:"code",
-    scope:"https://www.googleapis.com/auth/calendar.events email",
+    /* Se pide tambien drive para que el token que guarda gcal-callback sirva
+       a la Edge Function drive-api: asi MALO lee el Drive con UNA sola cuenta
+       y el resto del equipo no necesita conectar la suya. */
+    scope:"https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive email",
     access_type:"offline",prompt:"consent"});
   return "https://accounts.google.com/o/oauth2/v2/auth?"+p.toString();
 }
