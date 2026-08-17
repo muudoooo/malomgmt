@@ -27,7 +27,12 @@ const json = (b, s) => new Response(JSON.stringify(b), {
 const URL_SB = Deno.env.get("SUPABASE_URL");
 const SRV    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const ANON   = Deno.env.get("SUPABASE_ANON_KEY");
-const CID    = Deno.env.get("GOOGLE_CLIENT_ID");
+/* El client ID NO es un secreto: va escrito en el index.html publico. Se deja
+   aqui como respaldo porque en Supabase solo esta guardado GOOGLE_CLIENT_SECRET
+   (gcal-callback lo lleva en su codigo), y sin esto la funcion mandaba
+   client_id=undefined y Google contestaba "The OAuth client was not found". */
+const CID    = Deno.env.get("GOOGLE_CLIENT_ID") ||
+  "254476366820-6mlbkvatppl879d2jv8t25t67k5j1lid.apps.googleusercontent.com";
 const CSECRET= Deno.env.get("GOOGLE_CLIENT_SECRET");
 
 const admin = createClient(URL_SB, SRV);
@@ -59,6 +64,8 @@ async function tokenGoogle() {
   const clave = Object.keys(fila).find(k => /refresh/i.test(k));
   const refresh = clave ? fila[clave] : null;
   if (!refresh) throw new Error("La fila de google_auth no tiene refresh token");
+
+  if (!CSECRET) throw new Error("Falta el secreto GOOGLE_CLIENT_SECRET en Supabase");
 
   const r = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
