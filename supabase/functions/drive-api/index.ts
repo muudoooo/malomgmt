@@ -183,6 +183,31 @@ Deno.serve(async (req) => {
       return json(b);
     }
 
+    /* Subida directa: la funcion NO toca el archivo. Solo le pide a Google una
+       URL de sesion temporal y el navegador manda los bytes ahi. Asi no hay
+       base64 (que inflaba un 33%), no se gasta el limite de 2s de CPU de la
+       funcion, y el tamano deja de estar limitado por el cuerpo de la peticion.
+       La URL viene ya autorizada, asi que el navegador sigue sin ver el token. */
+    if (accion === "subirInicio") {
+      if (!nombre) return json({ error: "Falta el nombre" }, 400);
+      const r = await fetch(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,size,webViewLink",
+        { method: "POST",
+          headers: { Authorization: "Bearer " + tk,
+                     "Content-Type": "application/json; charset=UTF-8",
+                     "X-Upload-Content-Type": mime || "application/octet-stream" },
+          body: JSON.stringify({ name: nombre, parents: [objetivo] }) });
+      if (!r.ok) {
+        const b = await r.json().catch(() => ({}));
+        return json({ error: (b.error && b.error.message) || "No se pudo iniciar la subida" }, 400);
+      }
+      const url = r.headers.get("location");
+      if (!url) return json({ error: "Google no devolvio la URL de subida" }, 500);
+      return json({ url });
+    }
+
+    /* Se mantiene la subida por la funcion para archivos pequenos y por si
+       algun navegador se quedo con la version anterior en cache. */
     if (accion === "subir") {
       if (!nombre || !contenidoBase64) return json({ error: "Falta nombre o contenido" }, 400);
       const lim = "malo" + crypto.randomUUID().slice(0, 12);
