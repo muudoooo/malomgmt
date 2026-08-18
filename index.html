@@ -7757,9 +7757,13 @@ async function driveSubirUno(file,carpetaId){
   let url=null;
   try{
     const r=await driveFn("subirInicio",{carpetaId:carpetaId,nombre:file.name,
-      mime:file.type||"application/octet-stream"});
+      mime:file.type||"application/octet-stream",origen:location.origin});
     url=r&&r.url;
   }catch(e){
+    /* Se etiqueta de donde viene el fallo: "Failed to fetch" a secas no dice
+       si murio la llamada a la funcion o el envio a Google. */
+    if(/failed to fetch/i.test(e.message||""))
+      throw new Error("no se pudo contactar con drive-api (revisar CORS o la funcion)");
     /* La funcion desplegada puede ser anterior a subirInicio. En ese caso se
        cae al metodo viejo en vez de romperse, y en cuanto se redespliegue la
        funcion esto deja de entrar solo. */
@@ -7767,8 +7771,13 @@ async function driveSubirUno(file,carpetaId){
   }
 
   if(url){
-    const r=await fetch(url,{method:"PUT",
-      headers:{"Content-Type":file.type||"application/octet-stream"},body:file});
+    let r;
+    try{
+      r=await fetch(url,{method:"PUT",
+        headers:{"Content-Type":file.type||"application/octet-stream"},body:file});
+    }catch(e){
+      throw new Error("Google rechazo la conexion del navegador ("+(e.message||"")+"). Suele ser CORS en la URL de subida.");
+    }
     if(!r.ok){
       let d=""; try{ const b=await r.json(); d=(b.error&&b.error.message)||""; }catch(e){}
       throw new Error(d||("Google devolvio "+r.status));

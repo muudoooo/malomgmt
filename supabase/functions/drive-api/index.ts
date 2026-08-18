@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
     const u = await usuario(req);
     if (!u) return json({ error: "Sesion no valida" }, 401);
 
-    const { accion, carpetaId, nombre, archivoId, contenidoBase64, mime } =
+    const { accion, carpetaId, nombre, archivoId, contenidoBase64, mime, origen } =
       await req.json().catch(() => ({}));
 
     const tk = await tokenGoogle();
@@ -193,9 +193,15 @@ Deno.serve(async (req) => {
       const r = await fetch(
         "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,size,webViewLink",
         { method: "POST",
-          headers: { Authorization: "Bearer " + tk,
-                     "Content-Type": "application/json; charset=UTF-8",
-                     "X-Upload-Content-Type": mime || "application/octet-stream" },
+          headers: Object.assign({
+            Authorization: "Bearer " + tk,
+            "Content-Type": "application/json; charset=UTF-8",
+            "X-Upload-Content-Type": mime || "application/octet-stream",
+          }, /* Google solo habilita CORS en la URL de sesion si la peticion que
+                 la crea lleva el Origin del navegador que va a subir. Como la
+                 sesion se crea aqui (servidor), hay que reenviarlo a mano o el
+                 PUT del navegador falla con "Failed to fetch". */
+             origen ? { Origin: origen } : {}),
           body: JSON.stringify({ name: nombre, parents: [objetivo] }) });
       if (!r.ok) {
         const b = await r.json().catch(() => ({}));
