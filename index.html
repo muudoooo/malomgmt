@@ -7742,17 +7742,45 @@ const DRIVE_AVISO_MB=50;
 /* El archivo va DIRECTO a Google, no a traves de la Edge Function: la funcion
    solo pide la URL de sesion. Asi no hay base64, no se gasta el limite de CPU
    de la funcion y el tamano deja de importar. */
+function driveLeerBase64(file){
+  return new Promise((ok,err)=>{
+    const fr=new FileReader();
+    fr.onerror=()=>err(new Error("No se pudo leer el archivo"));
+    /* readAsDataURL da "data:tipo;base64,XXXX": nos quedamos con lo de despues
+       de la coma, que es lo que espera la API de Drive. */
+    fr.onload=()=>{ const s=String(fr.result); ok(s.slice(s.indexOf(",")+1)); };
+    fr.readAsDataURL(file);
+  });
+}
+
 async function driveSubirUno(file,carpetaId){
-  const {url}=await driveFn("subirInicio",{carpetaId:carpetaId,nombre:file.name,
-    mime:file.type||"application/octet-stream"});
-  if(!url)throw new Error("Google no devolvio la URL de subida");
-  const r=await fetch(url,{method:"PUT",
-    headers:{"Content-Type":file.type||"application/octet-stream"},body:file});
-  if(!r.ok){
-    let d=""; try{ const b=await r.json(); d=(b.error&&b.error.message)||""; }catch(e){}
-    throw new Error(d||("Google devolvio "+r.status));
+  let url=null;
+  try{
+    const r=await driveFn("subirInicio",{carpetaId:carpetaId,nombre:file.name,
+      mime:file.type||"application/octet-stream"});
+    url=r&&r.url;
+  }catch(e){
+    /* La funcion desplegada puede ser anterior a subirInicio. En ese caso se
+       cae al metodo viejo en vez de romperse, y en cuanto se redespliegue la
+       funcion esto deja de entrar solo. */
+    if(!/desconocida/i.test(e.message||""))throw e;
   }
-  return r.json().catch(()=>({}));
+
+  if(url){
+    const r=await fetch(url,{method:"PUT",
+      headers:{"Content-Type":file.type||"application/octet-stream"},body:file});
+    if(!r.ok){
+      let d=""; try{ const b=await r.json(); d=(b.error&&b.error.message)||""; }catch(e){}
+      throw new Error(d||("Google devolvio "+r.status));
+    }
+    return r.json().catch(()=>({}));
+  }
+
+  if(file.size>6*1024*1024)
+    throw new Error("Demasiado grande para el metodo antiguo. Hay que actualizar drive-api en Supabase para poder subir archivos grandes.");
+  const b64=await driveLeerBase64(file);
+  return driveFn("subir",{carpetaId:carpetaId,nombre:file.name,
+    contenidoBase64:b64,mime:file.type||"application/octet-stream"});
 }
 
 async function driveSubir(files,carpetaId,carpetaNombre){
