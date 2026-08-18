@@ -7706,7 +7706,6 @@ async function drivePintar(id,nombre,apilar){
 async function driveQuien(){
   try{ const r=await driveFn("quien"); toast("MALO lee el Drive con: "+r.cuenta); return r; }
   catch(e){ toast("No se pudo consultar: "+e.message); }
-  }
 }
 
 function driveBind(){
