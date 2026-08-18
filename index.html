@@ -7734,17 +7734,25 @@ async function driveQuien(){
    infla el tamano un 33%, asi que se limita por arriba: para algo mas gordo,
    a Drive directamente. Subir por trozos seria lo suyo, pero es bastante mas
    codigo y de momento no hace falta. */
-const DRIVE_MAX_MB=8;
+/* Tope alto y no tecnico: lo que manda de verdad es el espacio libre de la
+   cuenta con la que MALO escribe en Drive. Se avisa a partir de 50 MB. */
+const DRIVE_MAX_MB=200;
+const DRIVE_AVISO_MB=50;
 
-function driveLeerBase64(file){
-  return new Promise((ok,err)=>{
-    const fr=new FileReader();
-    fr.onerror=()=>err(new Error("No se pudo leer el archivo"));
-    /* readAsDataURL da "data:tipo;base64,XXXX": nos quedamos con lo de despues
-       de la coma, que es lo que espera la API de Drive. */
-    fr.onload=()=>{ const s=String(fr.result); ok(s.slice(s.indexOf(",")+1)); };
-    fr.readAsDataURL(file);
-  });
+/* El archivo va DIRECTO a Google, no a traves de la Edge Function: la funcion
+   solo pide la URL de sesion. Asi no hay base64, no se gasta el limite de CPU
+   de la funcion y el tamano deja de importar. */
+async function driveSubirUno(file,carpetaId){
+  const {url}=await driveFn("subirInicio",{carpetaId:carpetaId,nombre:file.name,
+    mime:file.type||"application/octet-stream"});
+  if(!url)throw new Error("Google no devolvio la URL de subida");
+  const r=await fetch(url,{method:"PUT",
+    headers:{"Content-Type":file.type||"application/octet-stream"},body:file});
+  if(!r.ok){
+    let d=""; try{ const b=await r.json(); d=(b.error&&b.error.message)||""; }catch(e){}
+    throw new Error(d||("Google devolvio "+r.status));
+  }
+  return r.json().catch(()=>({}));
 }
 
 async function driveSubir(files,carpetaId,carpetaNombre){
@@ -7752,6 +7760,11 @@ async function driveSubir(files,carpetaId,carpetaNombre){
   const decir=t=>{ if($e)$e.textContent=t; };
   const lista=Array.from(files||[]);
   if(!lista.length)return;
+
+  const enormes=lista.filter(f=>f.size>DRIVE_AVISO_MB*1024*1024
+                                 && f.size<=DRIVE_MAX_MB*1024*1024);
+  if(enormes.length&&!confirm("Vas a subir "+enormes.length+" archivo(s) de mas de "
+      +DRIVE_AVISO_MB+" MB. Ocupan espacio de la cuenta de Drive de MALO y pueden tardar. Continuo?"))return;
 
   const gordos=lista.filter(f=>f.size>DRIVE_MAX_MB*1024*1024);
   if(gordos.length){
@@ -7765,9 +7778,7 @@ async function driveSubir(files,carpetaId,carpetaNombre){
     const f=suben[i];
     decir("Subiendo "+(i+1)+" de "+suben.length+"… "+f.name);
     try{
-      const b64=await driveLeerBase64(f);
-      await driveFn("subir",{carpetaId:carpetaId,nombre:f.name,
-        contenidoBase64:b64,mime:f.type||"application/octet-stream"});
+      await driveSubirUno(f,carpetaId);
       ok++;
     }catch(e){ toast("No se pudo subir "+f.name+": "+e.message); }
   }
