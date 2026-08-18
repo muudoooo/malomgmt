@@ -7648,6 +7648,13 @@ function driveCardHTML(){
       <h3>Archivos en Drive</h3><div class="spacer"></div>
       ${driveEsAdmin()?`<button class="btn ghost sm" id="driveConectar">${r?"Cambiar carpeta":"Conectar carpeta de Drive"}</button>`:""}
     </header><div class="body" id="driveBody">${
+      /* Se dice SIEMPRE con que cuenta lee MALO. Si no es la duena de las
+         carpetas, el listado sale vacio sin ningun error y no hay forma
+         humana de adivinar por que. */
+      (DB.googleAuth&&DB.googleAuth.email)
+        ?`<p class="tiny dim" style="margin:0 0 10px">MALO lee el Drive con <strong style="color:var(--bone)">${esc(DB.googleAuth.email)}</strong>. Las carpetas tienen que estar compartidas con esa cuenta.</p>`
+        :`<p class="hint" style="margin:0 0 10px">No hay ninguna cuenta de Google conectada. Conectala en Datos antes de usar esto.</p>`
+    }${
       r?`<p class="hint" style="margin:0 0 10px">Carpeta conectada: <strong style="color:var(--bone)">${esc(r.nombre)}</strong>.
           Los archivos no se copian a ningún sitio: siguen en Drive, con sus permisos.</p>
          <button class="btn primary sm" id="driveVer">Ver archivos</button>`
