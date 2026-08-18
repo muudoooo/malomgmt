@@ -1086,7 +1086,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.003";
+const APP_VERSION="0.004";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -1467,6 +1467,9 @@ async function loadRemote(){
   DB.contexto=(ctx.data||[]).map(r=>fromRow("contexto",r));
   DB.mensajes=(msj.data||[]).map(r=>fromRow("mensajes",r));
   DB.miembros=(mie.data||[]).reduce((a,m)=>{a[m.id]=m.nombre||m.email;return a},{});
+  /* La lista completa, con email, para la pestaña «Equipo y permisos». El mapa
+     de arriba se queda tal cual porque hay medio código que lo usa por id. */
+  DB.miembrosLista=(mie.data||[]).slice();
   DB.localidades=(loc.data||[]).reduce((a,l)=>{a[l.nombre]={provincia:l.provincia,comunidad:l.comunidad,original:l.original};return a},{});
   // Guardamos la autoría cruda para poder mostrarla
   (cli.data||[]).forEach(r=>{const c=DB.clientes.find(x=>x.id===r.id);
@@ -1913,7 +1916,7 @@ const VIEWS=[
   {id:"capturas",label:"Capturas",k:"c"},
   {id:"equipo",label:"Equipo",k:"0"},
   {id:"generadores",label:"Generadores",k:"g"},
-  {id:"datos",label:"Datos",k:"-"}
+  {id:"datos",label:"Configuración",k:"-"}
 ];
 /* Un trazo por apartado para la pantalla de inicio del móvil. Line art simple
    a 24x24: hereda el color, así que se ilumina solo al estar seleccionado. */
@@ -4361,8 +4364,92 @@ function viewCapturas(el,ta){
   });
 }
 
-/* ════════ DATOS ════════ */
-function viewDatos(el){
+
+/* ════════ CONFIGURACIÓN ════════
+   Antes esto era la vista «Datos», una sola columna de tarjetas. Ahora son
+   cuatro pestañas: Datos · Integraciones · Datos Empresa · Equipo y permisos.
+
+   De paso se arregla un fallo que estaba a la vista: tres tarjetas (Google
+   Calendar, Identidad de la empresa y Categorías) estaban escritas DOS veces
+   en el mismo HTML. Como repetían los mismos id, la segunda copia era
+   decorativa — getElementById devuelve siempre la primera, así que el botón
+   «Guardar logo» de abajo no hacía absolutamente nada.
+
+   Dónde vive cada cosa:
+     empresa.ajustes.empresa      → identidad y datos fiscales de MALO
+     empresa.ajustes.roles        → {email: rol} del equipo
+     empresa.ajustes.driveRaizId  → carpeta madre de Drive
+   Se usa el cajón «ajustes» (JSONB) en vez de columnas nuevas para no pedir
+   una migración de base de datos por cada campo. La tabla «miembros» no se
+   toca desde aquí: es la lista real de quién puede entrar, la crea el
+   registro. Aquí solo se le pone un rol al lado. */
+
+let CFG_TAB="datos";
+const CFG_TABS=[["datos","Datos"],["integraciones","Integraciones"],
+  ["empresa","Datos Empresa"],["equipo","Equipo y permisos"]];
+
+/* ── Ajustes compartidos del equipo ── */
+function cfgAjustes(){return (DB.empresa&&DB.empresa.ajustes)||{}}
+function guardarAjustes(patch){
+  if(DB.sinAjustes){toast("Falta la columna «ajustes» en la tabla empresa: esto no se guardará");return Promise.resolve()}
+  DB.empresa=Object.assign({},DB.empresa||{},{ajustes:Object.assign({},cfgAjustes(),patch)});
+  return save();
+}
+
+/* ── Roles ──
+   AVISO, y conviene tenerlo presente antes de confiar en esto: es una barrera
+   de INTERFAZ, no de seguridad. Esconde botones. Cualquiera con la consola del
+   navegador abierta se la salta, porque Supabase sigue aceptando la escritura.
+   La protección de verdad son políticas RLS en la base de datos; están
+   escritas en supabase/roles-rls.sql, SIN APLICAR, para revisarlas con el
+   desarrollador antes de tocar producción. */
+const ROL_FIJO="malo@malomgmt.com";
+const ROLES={
+  admin:{label:"Administrador",desc:"Todo: carpeta de Drive, datos de empresa, roles y borrado"},
+  gestor:{label:"Gestor",desc:"Clientes, shows, documentos y generadores"},
+  lectura:{label:"Solo lectura",desc:"Ve la información, no la cambia"}
+};
+function cfgRoles(){const r=cfgAjustes().roles;return (r&&typeof r==="object")?r:{}}
+function rolDe(email){
+  const e=String(email||"").toLowerCase();
+  if(!e)return "gestor";
+  /* El admin principal es fijo a propósito: si el rol de todos fuese editable,
+     un clic mal dado te deja fuera de tu propia app sin forma de volver. */
+  if(e===ROL_FIJO)return "admin";
+  const r=cfgRoles()[e];
+  return ROLES[r]?r:"gestor";
+}
+function miEmail(){return CURRENT_USER&&CURRENT_USER.email?String(CURRENT_USER.email).toLowerCase():""}
+function esAdmin(){return rolDe(miEmail())==="admin"}
+
+/* ── Identidad y datos fiscales de MALO ──
+   Son los datos que acabarán en las facturas y en el pie de la hoja de ruta.
+   «nombre» y «logo» sí son columnas reales de la tabla empresa porque ya
+   existían; el resto vive en ajustes.empresa. */
+const EMPRESA_DEF={razonSocial:"",nif:"",direccion:"",cp:"",ciudad:"",provincia:"",
+  pais:"España",email:"",telefono:"",web:"",iban:"",titularCuenta:"",
+  comisiones:{booking:15,management:20,development:0,sello:50}};
+function empresaCfg(){
+  const e=cfgAjustes().empresa||{};
+  return Object.assign({},EMPRESA_DEF,e,
+    {comisiones:Object.assign({},EMPRESA_DEF.comisiones,e.comisiones||{})});
+}
+
+function viewDatos(el,ta){
+  ta.innerHTML=CFG_TABS.map(([id,lab])=>
+    `<button class="btn ${CFG_TAB===id?"primary":"ghost"} sm" data-cfg-tab="${id}">${lab}</button>`).join("");
+  ta.querySelectorAll("[data-cfg-tab]").forEach(b=>b.addEventListener("click",()=>{
+    CFG_TAB=b.dataset.cfgTab;render();window.scrollTo(0,0);
+  }));
+  const t=CFG_TABS.find(x=>x[0]===CFG_TAB)||CFG_TABS[0];
+  const sub=document.getElementById("viewSub");
+  if(sub)sub.textContent=t[1];
+  ({datos:cfgTabDatos,integraciones:cfgTabIntegraciones,
+    empresa:cfgTabEmpresa,equipo:cfgTabEquipo})[t[0]](el);
+}
+
+/* ── Pestaña 1 · Datos ──────────────────────────────────────────────────── */
+function cfgTabDatos(el){
   const size=new Blob([JSON.stringify(DB)]).size;
   el.innerHTML=`
   <div class="grid2">
@@ -4373,6 +4460,7 @@ function viewDatos(el){
         usa <strong style="color:var(--bone)">Exportar copia</strong> una vez a la semana como red de seguridad.</p>
       <dl class="kv">
         <dt>Conectado como</dt><dd>${esc(CURRENT_NAME||"—")}</dd>
+        <dt>Tu rol</dt><dd>${esc((ROLES[rolDe(miEmail())]||{}).label||"—")}</dd>
         <dt>Tamaño de los datos</dt><dd>${(size/1024).toFixed(1)} KB</dd>
         <dt>Clientes</dt><dd>${DB.clientes.length}</dd>
         <dt>Shows</dt><dd>${DB.shows.length}</dd>
@@ -4402,32 +4490,6 @@ function viewDatos(el){
       <p style="color:var(--mute);font-size:12px;margin-top:16px">Los importes que introduces son <strong>siempre sin IVA</strong>. El IVA de la factura al promotor y el IVA/IRPF de la factura del cliente se calculan aparte y se muestran en la ficha de cada show.</p>
     </div></div>
   </div>
-
-  <div class="card"><header><h3>Google Calendar · conexión directa</h3></header><div class="body">
-    ${DB.googleAuth?`
-    <dl class="kv" style="margin-bottom:14px">
-      <dt>Estado</dt><dd><span class="pill ok">Conectado</span></dd>
-      <dt>Cuenta</dt><dd>${esc(DB.googleAuth.email)}</dd>
-    </dl>
-    <p style="color:var(--mute);font-size:12.5px;margin-bottom:14px">Los shows y eventos de cualquier cliente con un <strong style="color:var(--bone)">Calendar ID</strong> en su ficha se empujan a Google al momento — sin esperar horas.</p>
-    <button class="btn ghost sm" id="gcal_reconectar">Reconectar / cambiar cuenta</button>`
-    :`
-    <p style="color:var(--mute);font-size:12.5px;margin-bottom:14px">Sin conectar todavía. Al conectar, los shows y eventos de los clientes que tengan un Calendar ID en su ficha se sincronizan en tiempo real, en vez de esperar el feed de suscripción.</p>
-    <button class="btn primary sm" id="gcal_conectar">Conectar Google Calendar</button>`}
-  </div></div>
-
-  <div class="card"><header><h3>Identidad de la empresa</h3></header><div class="body">
-    <div class="fgrid">
-      <div class="f s8"><label>Logo (enlace a imagen)</label>
-        <input id="emp_logo" value="${esc((DB.empresa||{}).logo||"")}" placeholder="https://… PNG con fondo transparente">
-        <span class="hint">Aparece en el pie de cada página de la hoja de ruta. Sin logo se usa el monograma MA/LO.</span></div>
-      <div class="f s4"><label>Vista previa</label>
-        <div style="height:38px;display:flex;align-items:center">${(DB.empresa||{}).logo
-          ?`<img src="${esc(DB.empresa.logo)}" style="max-height:34px;max-width:90px;object-fit:contain">`
-          :`<span style="font-family:var(--cond);font-weight:700;font-size:15px;line-height:.86;text-align:center">MA<br>LO</span>`}</div></div>
-    </div>
-    <button class="btn sm" id="emp_save" style="margin-top:12px">Guardar logo</button>
-  </div></div>
 
   <div class="card"><header><h3>Categorías y subcategorías</h3></header><div class="body">
     <p style="color:var(--mute);font-size:12.5px;margin-bottom:18px">Las cinco categorías son fijas. Las subcategorías las gestionas tú: se eligen al crear o editar un cliente.</p>
@@ -4471,6 +4533,47 @@ function viewDatos(el){
     </div>
   </div></div>
 
+  <div class="card"><header><h3>Sobre el calendario</h3></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;line-height:1.65">
+      El calendario mezcla tres cosas: los <strong style="color:var(--bone)">shows</strong>, que llevan dinero asociado;
+      la <strong style="color:var(--bone)">agenda</strong>, que es contexto (estudio, viajes, entrevistas);
+      y las <strong style="color:var(--bone)">producciones propias</strong> de MALO.<br><br>
+      Para que un cliente vea sus fechas en su propio Google Calendar, pega su <strong style="color:var(--bone)">Calendar ID</strong>
+      en su ficha y comparte ese calendario con su email desde Google. Los cambios se envían al instante.
+      La primera vez, usa el botón <strong style="color:var(--bone)">«Sincronizar todo ahora»</strong> de su ficha
+      para empujar los shows que ya tenía cargados.
+    </p>
+  </div></div>
+
+  ${esAdmin()?`
+  <div class="card" style="border-color:rgba(224,72,77,.25)"><header><h3>Zona de riesgo</h3></header>
+    <div class="body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <p style="flex:1;min-width:240px;color:var(--mute);font-size:12.5px">Borra <strong style="color:var(--alert)">todos los datos de todo el equipo</strong> en la base compartida. Exporta antes una copia.</p>
+      <button class="btn danger" id="wipe">Borrar todos los datos</button>
+    </div></div>`:""}`;
+
+  document.getElementById("exp").addEventListener("click",exportJSON);
+  document.getElementById("imp").addEventListener("click",importJSON);
+  document.getElementById("csv").addEventListener("click",exportCSV);
+  const wipe=document.getElementById("wipe");
+  if(wipe)wipe.addEventListener("click",async()=>{
+    if(prompt("Esto borra los datos de TODO el equipo, no solo los tuyos.\nEscribe BORRAR para confirmar:")!=="BORRAR")return;
+    await Promise.all(["shows","eventos","producciones","clientes","promotores"]
+      .map(t=>sb.from(t).delete().neq("id","___nunca___").then(r=>r).catch(()=>{})));
+    await sb.from("subcategorias").delete().neq("categoria","___nunca___");
+    if(!DB.sinGeneros)await sb.from("generos").delete().neq("nombre","___nunca___").then(r=>r).catch(()=>{});
+    DB=blank();toast("Datos borrados en el servidor");
+    await save();await loadRemote();render();
+  });
+}
+
+/* ── Pestaña 2 · Integraciones ──────────────────────────────────────────
+   Aquí va la CONFIGURACIÓN de las conexiones. El explorador de archivos de
+   Drive sigue viviendo en Documentos, que es donde se trabaja con ellos. */
+function cfgTabIntegraciones(el){
+  const r=driveRaiz();
+  const cuenta=(DB.googleAuth&&DB.googleAuth.email)||"";
+  el.innerHTML=`
   <div class="card"><header><h3>Google Calendar · conexión directa</h3></header><div class="body">
     ${DB.googleAuth?`
     <dl class="kv" style="margin-bottom:14px">
@@ -4484,74 +4587,219 @@ function viewDatos(el){
     <button class="btn primary sm" id="gcal_conectar">Conectar Google Calendar</button>`}
   </div></div>
 
-  <div class="card"><header><h3>Identidad de la empresa</h3></header><div class="body">
-    <div class="fgrid">
-      <div class="f s8"><label>Logo (enlace a imagen)</label>
-        <input id="emp_logo" value="${esc((DB.empresa||{}).logo||"")}" placeholder="https://… PNG con fondo transparente">
-        <span class="hint">Aparece en el pie de cada página de la hoja de ruta. Sin logo se usa el monograma MA/LO.</span></div>
-      <div class="f s4"><label>Vista previa</label>
-        <div style="height:38px;display:flex;align-items:center">${(DB.empresa||{}).logo
-          ?`<img src="${esc(DB.empresa.logo)}" style="max-height:34px;max-width:90px;object-fit:contain">`
-          :`<span style="font-family:var(--cond);font-weight:700;font-size:15px;line-height:.86;text-align:center">MA<br>LO</span>`}</div></div>
+  <div class="card"><header><h3>Google Drive · carpeta del equipo</h3><div class="spacer"></div>
+    ${r?`<span class="pill ok">Conectada</span>`:`<span class="pill warn">Sin conectar</span>`}</header><div class="body">
+    <dl class="kv" style="margin-bottom:14px">
+      <dt>Carpeta madre</dt><dd>${r?esc(r.nombre):"—"}</dd>
+      <dt>MALO lee con</dt><dd>${cuenta?esc(cuenta):`<span class="pill alert">ninguna cuenta conectada</span>`}</dd>
+    </dl>
+    <p style="color:var(--mute);font-size:12.5px;margin-bottom:14px">
+      Todo el equipo ve los archivos sin conectar su propio Google: las peticiones pasan por la función
+      <code>drive-api</code>, que usa la cuenta de arriba y solo deja tocar lo que cuelga de la carpeta madre.
+      <strong style="color:var(--bone)">Las carpetas tienen que estar compartidas con esa cuenta</strong> —
+      si no, el listado sale vacío sin dar ningún error.<br><br>
+      Los archivos <strong style="color:var(--bone)">no se copian</strong> a la base de datos de MALO:
+      siguen en Drive, con los permisos de Drive. MALO solo guarda el ID de la carpeta y pide el listado en vivo,
+      así que renombrar o mover cosas en Drive no rompe nada.</p>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      ${esAdmin()
+        ?`<button class="btn primary sm" id="cfgDriveCarpeta">${r?"Cambiar carpeta madre":"Elegir carpeta madre"}</button>`
+        :`<span class="dim tiny" style="align-self:center">Solo un administrador puede cambiar la carpeta madre.</span>`}
+      <button class="btn ghost sm" id="cfgDriveQuien">Comprobar con qué cuenta lee</button>
+      <button class="btn ghost sm" id="cfgDriveIr">Ir a los archivos</button>
     </div>
-    <button class="btn sm" id="emp_save" style="margin-top:12px">Guardar logo</button>
   </div></div>
 
-  <div class="card"><header><h3>Categorías y subcategorías</h3></header><div class="body">
-    <p style="color:var(--mute);font-size:12.5px;margin-bottom:18px">Las cinco categorías son fijas. Las subcategorías las gestionas tú: se eligen al crear o editar un cliente.</p>
-    ${Object.entries(CATEGORIAS).map(([k,v])=>{
-      const subs=subsDe(k);
-      return `<div style="margin-bottom:16px">
-        <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px;--c:${v.color}">
-          <span class="cdot"></span><span class="strong" style="font-size:13px">${v.label}</span>
-          <span class="dim tiny">${subs.length}</span>
-          <button class="btn ghost sm" data-sub-add="${k}">+ Añadir</button></div>
-        <div style="display:flex;gap:7px;flex-wrap:wrap;padding-left:17px">
-          ${subs.length?subs.map(x=>{
-            const uso=DB.clientes.filter(c=>c.categoria===k&&c.subcategoria===x).length;
-            return `<span class="pill" style="display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;--c:${v.color};border-color:color-mix(in srgb,${v.color} 40%,transparent)">
-              <span style="color:var(--bone);font-family:var(--sans);font-size:12px;text-transform:none;letter-spacing:0">${esc(x)}</span>
-              ${uso?`<span style="color:${v.color}">${uso}</span>`:""}
-              <button class="x" style="padding:0 3px;font-size:13px" data-sub-ren="${k}|${esc(x)}" title="Renombrar">✎</button>
-              <button class="x" style="padding:0 3px;font-size:14px" data-sub-del="${k}|${esc(x)}" title="Eliminar">×</button></span>`}).join("")
-          :`<span class="dim tiny">Sin subcategorías.</span>`}
-        </div></div>`}).join("")}
-  </div></div>
+  <div class="card"><header><h3>Notificaciones</h3></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;margin:0">
+      Las notificaciones push se activan <strong style="color:var(--bone)">por dispositivo</strong>, no por cuenta:
+      cada móvil u ordenador tiene que darlas por su cuenta. El interruptor está en
+      <strong style="color:var(--bone)">Equipo</strong>, arriba del chat.
+      En iPhone hay que añadir MALO a la pantalla de inicio antes de que Safari lo permita.</p>
+  </div></div>`;
 
-  <div class="card"><header><h3>Sobre el calendario</h3></header><div class="body">
-    <p style="color:var(--mute);font-size:12.5px;line-height:1.65">
-      El calendario mezcla tres cosas: los <strong style="color:var(--bone)">shows</strong>, que llevan dinero asociado;
-      la <strong style="color:var(--bone)">agenda</strong>, que es contexto (estudio, viajes, entrevistas);
-      y las <strong style="color:var(--bone)">producciones propias</strong> de MALO.<br><br>
-      Para que un cliente vea sus fechas en su propio Google Calendar, pega su <strong style="color:var(--bone)">Calendar ID</strong>
-      en su ficha y comparte ese calendario con su email desde Google. Los cambios se envían al instante.
-      La primera vez, usa el botón <strong style="color:var(--bone)">«Sincronizar todo ahora»</strong> de su ficha
-      para empujar los shows que ya tenía cargados.
-    </p>
-  </div></div>
-
-  <div class="card" style="border-color:rgba(224,72,77,.25)"><header><h3>Zona de riesgo</h3></header>
-    <div class="body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <p style="flex:1;min-width:240px;color:var(--mute);font-size:12.5px">Borra <strong style="color:var(--alert)">todos los datos de todo el equipo</strong> en la base compartida. Exporta antes una copia.</p>
-      <button class="btn danger" id="wipe">Borrar todos los datos</button>
-    </div></div>`;
   const gc=document.getElementById("gcal_conectar"),gr=document.getElementById("gcal_reconectar");
   if(gc)gc.addEventListener("click",()=>{window.location.href=urlAutorizarGoogle()});
   if(gr)gr.addEventListener("click",()=>{if(confirm("Esto reemplaza la cuenta conectada actual. ¿Continuar?"))window.location.href=urlAutorizarGoogle()});
-  document.getElementById("emp_save").addEventListener("click",()=>{
-    DB.empresa=Object.assign({nombre:"MALO"},DB.empresa||{},{logo:val("emp_logo")});
-    toast("Logo actualizado");touch();});
-  document.getElementById("exp").addEventListener("click",exportJSON);
-  document.getElementById("imp").addEventListener("click",importJSON);
-  document.getElementById("csv").addEventListener("click",exportCSV);
-  document.getElementById("wipe").addEventListener("click",async()=>{
-    if(prompt("Esto borra los datos de TODO el equipo, no solo los tuyos.\nEscribe BORRAR para confirmar:")!=="BORRAR")return;
-    await Promise.all(["shows","eventos","producciones","clientes","promotores"]
-      .map(t=>sb.from(t).delete().neq("id","___nunca___").then(r=>r).catch(()=>{})));
-    await sb.from("subcategorias").delete().neq("categoria","___nunca___");
-    if(!DB.sinGeneros)await sb.from("generos").delete().neq("nombre","___nunca___").then(r=>r).catch(()=>{});
-    DB=blank();toast("Datos borrados en el servidor");
-    await save();await loadRemote();render();
+
+  const bc=document.getElementById("cfgDriveCarpeta");
+  if(bc)bc.addEventListener("click",async()=>{
+    try{
+      const doc=await drivePickerCarpeta();
+      /* Se espera al guardado: drive-api lee la raíz de la base de datos, así
+         que listar antes de que esté escrita daría «no hay carpeta». */
+      await driveGuardarRaiz(doc.id,doc.name);
+      DRIVE_RUTA=[];
+      toast("Carpeta conectada: "+doc.name);
+      render();
+    }catch(e){ toast("No se pudo conectar con Drive: "+e.message) }
+  });
+  document.getElementById("cfgDriveQuien").addEventListener("click",driveQuien);
+  document.getElementById("cfgDriveIr").addEventListener("click",()=>{
+    VIEW="documentos";render();window.scrollTo(0,0);
+  });
+}
+
+/* ── Pestaña 3 · Datos Empresa ──────────────────────────────────────────
+   Los datos que acabarán impresos: pie de la hoja de ruta hoy, cabecera de
+   las facturas cuando se hagan los generadores. Por eso están aquí y no
+   dispersos por el código. */
+function cfgTabEmpresa(el){
+  const E=empresaCfg();
+  const nom=(DB.empresa||{}).nombre||"MALO";
+  const logo=(DB.empresa||{}).logo||"";
+  const servicios=(typeof SERVICIOS!=="undefined"&&SERVICIOS.length)?SERVICIOS:["booking","management","development","sello"];
+  el.innerHTML=`
+  <div class="card"><header><h3>Identidad</h3></header><div class="body">
+    <div class="fgrid">
+      <div class="f s4"><label>Nombre comercial</label>
+        <input id="emp_nombre" value="${esc(nom)}" placeholder="MALO"></div>
+      <div class="f s5"><label>Logo (enlace a imagen)</label>
+        <input id="emp_logo" value="${esc(logo)}" placeholder="https://… PNG con fondo transparente">
+        <span class="hint">Aparece en el pie de cada página de la hoja de ruta. Sin logo se usa el monograma MA/LO.</span></div>
+      <div class="f s3"><label>Vista previa</label>
+        <div style="height:38px;display:flex;align-items:center">${logo
+          ?`<img src="${esc(logo)}" style="max-height:34px;max-width:90px;object-fit:contain">`
+          :`<span style="font-family:var(--cond);font-weight:700;font-size:15px;line-height:.86;text-align:center">MA<br>LO</span>`}</div></div>
+    </div>
+  </div></div>
+
+  <div class="card"><header><h3>Datos fiscales</h3></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;margin-bottom:16px">
+      Son los datos con los que MALO factura. Todavía no se imprimen en ningún sitio:
+      se van a usar en los generadores de contrato y factura. Rellenarlos ahora ahorra tenerlos que buscar después.</p>
+    <div class="fgrid">
+      <div class="f s6"><label>Razón social</label><input id="emp_razon" value="${esc(E.razonSocial)}" placeholder="Nombre fiscal completo"></div>
+      <div class="f s3"><label>NIF / CIF</label><input id="emp_nif" value="${esc(E.nif)}" placeholder="B12345678"></div>
+      <div class="f s3"><label>País</label><input id="emp_pais" value="${esc(E.pais)}"></div>
+      <div class="f s6"><label>Dirección</label><input id="emp_dir" value="${esc(E.direccion)}" placeholder="Calle y número"></div>
+      <div class="f s2"><label>C.P.</label><input id="emp_cp" value="${esc(E.cp)}"></div>
+      <div class="f s2"><label>Ciudad</label><input id="emp_ciudad" value="${esc(E.ciudad)}"></div>
+      <div class="f s2"><label>Provincia</label><input id="emp_prov" value="${esc(E.provincia)}"></div>
+      <div class="f s4"><label>Email de facturación</label><input id="emp_email" value="${esc(E.email)}" placeholder="admin@malomgmt.com"></div>
+      <div class="f s4"><label>Teléfono</label><input id="emp_tel" value="${esc(E.telefono)}"></div>
+      <div class="f s4"><label>Web</label><input id="emp_web" value="${esc(E.web)}" placeholder="malomgmt.com"></div>
+    </div>
+  </div></div>
+
+  <div class="card"><header><h3>Cuenta de cobro</h3></header><div class="body">
+    <p class="hint" style="margin-bottom:14px">Va en el pie de las facturas que emita MALO. No es un dato secreto —
+      un IBAN se da para cobrar — pero lo ve todo el equipo, así que ponlo sabiéndolo.</p>
+    <div class="fgrid">
+      <div class="f s7"><label>IBAN</label><input id="emp_iban" value="${esc(E.iban)}" placeholder="ES00 0000 0000 0000 0000 0000"></div>
+      <div class="f s5"><label>Titular de la cuenta</label><input id="emp_titular" value="${esc(E.titularCuenta)}"></div>
+    </div>
+  </div></div>
+
+  <div class="card"><header><h3>Comisiones por defecto</h3></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;margin-bottom:16px">
+      Los porcentajes con los que se rellena la ficha de un cliente <strong style="color:var(--bone)">nuevo</strong>.
+      Cambiarlos aquí no toca a ningún cliente ya creado: cada uno mantiene los suyos.</p>
+    <div class="fgrid">
+      ${servicios.map(s=>`<div class="f s3"><label>% ${esc(s)}</label>
+        <input id="emp_com_${esc(s)}" type="number" step="0.5" min="0" value="${n(E.comisiones[s]||0)}"></div>`).join("")}
+    </div>
+  </div></div>
+
+  <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
+    <button class="btn primary" id="emp_save">Guardar datos de empresa</button>
+    ${DB.sinAjustes?`<span class="pill alert">Falta la columna «ajustes» en la tabla empresa: no se guardará</span>`:""}
+  </div>`;
+
+  document.getElementById("emp_save").addEventListener("click",async()=>{
+    const comisiones={};
+    servicios.forEach(s=>{comisiones[s]=num("emp_com_"+s)});
+    /* nombre y logo son columnas reales; el resto va al cajón ajustes. */
+    DB.empresa=Object.assign({nombre:"MALO"},DB.empresa||{},
+      {nombre:val("emp_nombre")||"MALO",logo:val("emp_logo")});
+    await guardarAjustes({empresa:{
+      razonSocial:val("emp_razon"),nif:val("emp_nif"),direccion:val("emp_dir"),
+      cp:val("emp_cp"),ciudad:val("emp_ciudad"),provincia:val("emp_prov"),
+      pais:val("emp_pais"),email:val("emp_email"),telefono:val("emp_tel"),
+      web:val("emp_web"),iban:val("emp_iban"),titularCuenta:val("emp_titular"),
+      comisiones:comisiones}});
+    toast("Datos de empresa guardados");
+    render();
+  });
+}
+
+/* ── Pestaña 4 · Equipo y permisos ──────────────────────────────────────
+   La lista sale de la tabla «miembros», que es la de verdad: una fila por
+   persona que se ha registrado. No se crea gente desde aquí a propósito —
+   una lista paralela se desincronizaría a la primera. Aquí solo se le pone
+   un rol al lado, y ese rol vive en empresa.ajustes.roles. */
+function cfgTabEquipo(el){
+  const admin=esAdmin();
+  const yo=miEmail();
+  const gente=(DB.miembrosLista||[]).slice()
+    .sort((a,b)=>String(a.nombre||a.email||"").localeCompare(String(b.nombre||b.email||"")));
+  el.innerHTML=`
+  <div class="card"><header><h3>Quién entra en MALO</h3><div class="spacer"></div>
+    <span class="pill">${gente.length} ${gente.length===1?"persona":"personas"}</span></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;margin-bottom:16px">
+      Esta lista es la tabla de miembros de Supabase: aparece aquí quien se ha registrado con su email.
+      Para <strong style="color:var(--bone)">dar de alta</strong> a alguien, que se registre en la app;
+      para <strong style="color:var(--bone)">quitarle el acceso del todo</strong>, hay que borrar su usuario
+      en Supabase — eso no se hace desde aquí porque no tiene vuelta atrás.</p>
+    ${gente.length?`
+    <table><thead><tr>
+      <th>Nombre</th><th>Email</th><th style="width:190px">Rol</th>
+    </tr></thead><tbody>
+      ${gente.map(m=>{
+        const em=String(m.email||"").toLowerCase();
+        const rol=rolDe(em);
+        const fijo=em===ROL_FIJO;
+        return `<tr>
+          <td>${esc(m.nombre||"—")}${em===yo?` <span class="dim tiny">· tú</span>`:""}</td>
+          <td class="dim tiny">${esc(m.email||"—")}</td>
+          <td>${(admin&&!fijo)
+            ? `<select data-rol-email="${esc(em)}">${Object.entries(ROLES).map(([k,v])=>
+                `<option value="${k}" ${rol===k?"selected":""}>${v.label}</option>`).join("")}</select>`
+            : `<span class="pill${rol==="admin"?" ok":""}">${esc(ROLES[rol].label)}</span>${
+                fijo?` <span class="dim tiny">fijo</span>`:""}`}</td>
+        </tr>`}).join("")}
+    </tbody></table>`
+    :`<p class="dim tiny">Todavía no hay nadie en la tabla «miembros». Aparecerán en cuanto se registren.</p>`}
+    ${admin?`<div style="display:flex;gap:9px;align-items:center;margin-top:16px;flex-wrap:wrap">
+      <button class="btn primary" id="rol_save">Guardar roles</button>
+      ${DB.sinAjustes?`<span class="pill alert">Falta la columna «ajustes»: no se guardará</span>`:""}
+    </div>`:`<p class="hint" style="margin-top:14px">Solo un administrador puede cambiar los roles.</p>`}
+  </div></div>
+
+  <div class="card"><header><h3>Qué puede hacer cada rol</h3></header><div class="body">
+    <dl class="kv">
+      ${Object.entries(ROLES).map(([k,v])=>`<dt>${esc(v.label)}</dt><dd>${esc(v.desc)}</dd>`).join("")}
+    </dl>
+    <p style="color:var(--mute);font-size:12.5px;margin-top:16px">
+      <strong style="color:var(--bone)">${esc(ROL_FIJO)}</strong> es administrador de forma fija y no se puede cambiar
+      desde la app: si el rol de todos fuese editable, un clic mal dado dejaría a MALO sin ningún administrador
+      y sin forma de recuperarlo.</p>
+  </div></div>
+
+  <div class="card" style="border-color:rgba(224,72,77,.25)"><header><h3>Aviso: esto todavía no es seguridad</h3></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;line-height:1.65;margin:0">
+      Hoy los roles <strong style="color:var(--bone)">esconden botones</strong>, nada más. Quien tenga acceso a MALO
+      y sepa abrir la consola del navegador puede seguir escribiendo en la base de datos, porque Supabase todavía
+      acepta cualquier escritura de un usuario con sesión.<br><br>
+      Para que un rol signifique algo de verdad hacen falta políticas <strong style="color:var(--bone)">RLS</strong>
+      en Postgres. Están escritas en <code>supabase/roles-rls.sql</code> dentro del repositorio,
+      <strong style="color:var(--alert)">sin aplicar</strong>: aplicarlas mal deja al equipo sin poder guardar,
+      así que es una revisión a hacer con el desarrollador y no un botón de esta pantalla.</p>
+  </div></div>`;
+
+  const bs=document.getElementById("rol_save");
+  if(bs)bs.addEventListener("click",async()=>{
+    const roles=Object.assign({},cfgRoles());
+    el.querySelectorAll("[data-rol-email]").forEach(s=>{
+      const em=s.dataset.rolEmail;
+      if(!em)return;
+      /* «gestor» es el valor por defecto: no se guarda, así la lista no crece
+         con entradas que no dicen nada. */
+      if(s.value==="gestor")delete roles[em]; else roles[em]=s.value;
+    });
+    await guardarAjustes({roles:roles});
+    toast("Roles guardados");
+    render();
   });
 }
 
@@ -5142,8 +5390,10 @@ function abrirNotasDe(el){
 /* ── Formulario cliente ── */
 let icsPend=null;
 function formCliente(id){
+  /* Los % por defecto se leen de Configuración → Datos Empresa; si no se han
+     tocado nunca, empresaCfg() devuelve los de siempre (15/20/0/50). */
   const c=id?cliente(id):{id:uid("cli"),categoria:"artista",servicios:["booking"],
-    comisiones:{booking:15,management:20,development:0,sello:50},baseComision:"bruto",
+    comisiones:Object.assign({},empresaCfg().comisiones),baseComision:"bruto",
     facturacion:"autonomo_irpf",activo:true,redes:{},ical:{url:"",ultima:"",n:0}};
   const co=c.comisiones||{},rd=c.redes||{},ic=c.ical||{};
   const PR=plantillaRuta(c);
@@ -7524,20 +7774,13 @@ function driveRaiz(){
   const a=(DB.empresa&&DB.empresa.ajustes)||{};
   return a.driveRaizId?{id:a.driveRaizId,nombre:a.driveRaizNombre||"Carpeta de Drive"}:null;
 }
-/* Quien puede cambiar la carpeta madre. Se guarda en ajustes para poder
-   ampliarlo desde el menu de configuracion sin tocar codigo.
+/* Quien puede cambiar la carpeta madre: ahora sale de los roles de
+   Configuracion → Equipo y permisos, en vez de una lista propia de Drive.
+   Un sitio unico donde mirar quien manda.
    OJO: esto es una barrera de interfaz, no de seguridad. Cualquiera con la
    consola del navegador abierta puede saltarsela. La proteccion de verdad
    tiene que vivir en Supabase (RLS o Edge Function). */
-function driveAdmins(){
-  const a=(DB.empresa&&DB.empresa.ajustes)||{};
-  const l=Array.isArray(a.driveAdmins)&&a.driveAdmins.length?a.driveAdmins:["malo@malomgmt.com"];
-  return l.map(x=>String(x).toLowerCase());
-}
-function driveEsAdmin(){
-  const e=CURRENT_USER&&CURRENT_USER.email?String(CURRENT_USER.email).toLowerCase():"";
-  return !!e&&driveAdmins().indexOf(e)!==-1;
-}
+function driveEsAdmin(){ return esAdmin(); }
 function driveGuardarRaiz(id,nombre){
   if(!driveEsAdmin()){toast("Solo un administrador puede cambiar la carpeta madre");return}
   if(DB.sinAjustes){toast("Falta la columna 'ajustes' en la tabla empresa: la carpeta no se guardara");return}
@@ -7660,7 +7903,7 @@ function driveCardHTML(){
          humana de adivinar por que. */
       (DB.googleAuth&&DB.googleAuth.email)
         ?`<p class="tiny dim" style="margin:0 0 10px">MALO lee el Drive con <strong style="color:var(--bone)">${esc(DB.googleAuth.email)}</strong>. Las carpetas tienen que estar compartidas con esa cuenta.</p>`
-        :`<p class="hint" style="margin:0 0 10px">No hay ninguna cuenta de Google conectada. Conectala en Datos antes de usar esto.</p>`
+        :`<p class="hint" style="margin:0 0 10px">No hay ninguna cuenta de Google conectada. Conéctala en Configuración → Integraciones antes de usar esto.</p>`
     }${
       r?`<p class="hint" style="margin:0 0 10px">Carpeta conectada: <strong style="color:var(--bone)">${esc(r.nombre)}</strong>.
           Los archivos no se copian a ningún sitio: siguen en Drive, con sus permisos.</p>
