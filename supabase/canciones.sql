@@ -53,3 +53,14 @@ select table_name, count(*) as columnas
  where table_schema='public'
    and table_name in ('canciones','cancion_participantes','cancion_ingresos')
  group by table_name order by table_name;
+
+-- PASO 5 · portada, audio, créditos y género (19 ago 2026)
+-- Los archivos viven en Drive (igual que Documentos); aquí solo guardamos
+-- el id de Drive y una URL directa para poder mostrarlos en la app.
+alter table public.canciones add column if not exists genero text;
+alter table public.canciones add column if not exists creditos text;
+alter table public.canciones add column if not exists drive_folder_id text;
+alter table public.canciones add column if not exists portada_drive_id text;
+alter table public.canciones add column if not exists portada_url text;
+alter table public.canciones add column if not exists audio_drive_id text;
+alter table public.canciones add column if not exists audio_url text;

@@ -234,6 +234,22 @@ Deno.serve(async (req) => {
       return json(b);
     }
 
+    /* Comparte un archivo como "cualquiera con el enlace, lector". Se usa para
+       portadas y pistas de audio de canciones, que van a acabar viéndose en
+       Bolsillo (cliente) o en Mis Canciones: sin esto el archivo es privado
+       de la cuenta de Drive de MALO y ni un <img> ni un <audio> lo cargan. */
+    if (accion === "compartir") {
+      if (!archivoId) return json({ error: "Falta archivoId" }, 400);
+      if (!(await dentroDeLaRaiz(archivoId, raiz, tk)))
+        return json({ error: "Ese archivo esta fuera de la carpeta de MALO" }, 403);
+      await drive("/files/" + archivoId + "/permissions", tk, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "reader", type: "anyone" }),
+      });
+      const b = await drive("/files/" + archivoId + "?fields=id,webViewLink,webContentLink,thumbnailLink", tk);
+      return json(b);
+    }
+
     if (accion === "papelera") {
       // A la papelera, nunca borrado definitivo: Drive la guarda 30 dias.
       if (!archivoId) return json({ error: "Falta archivoId" }, 400);
