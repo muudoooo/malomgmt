@@ -855,6 +855,111 @@ select option,select optgroup{background:#1B1E24;color:#E9E7E2}
   border-radius:8px;transition:border-color .12s,background .12s}
 .drive-zona.dentro{border-color:var(--violet,#8b7cf6);
   background:color-mix(in srgb,var(--violet,#8b7cf6) 8%,transparent)}
+
+/* ════════ PASADA DE MÓVIL ════════
+   Medido a 386px de ancho, que es un iPhone normal. Lo que se arregla aquí:
+
+   1. Los filtros salían de anchos distintos (230, 195, 173, 265 px) porque la
+      regla de arriba apunta a «.filters .fl» y los campos NO van dentro de
+      ningún .fl: son hijos directos de .filters. Nunca se aplicó.
+   2. Las tablas de Shows (978px), Contactos (1063px) y Producciones (842px)
+      solo enseñaban dos columnas de nueve. El caché, la comisión y el neto
+      quedaban a la derecha, fuera de la pantalla.
+   3. Las cinco celdas del panel se apilaban de una en una: 3,8 pantallas de
+      scroll para ver cinco números.
+   4. Botones y campos por debajo del mínimo cómodo para el dedo.
+
+   Nada de esto toca el escritorio: todo vive dentro de la media query. */
+
+/* Barra de pestañas de Configuración. Va ANTES de las media queries: si se
+   escribe después, gana por orden de aparición y deja el 2×2 del móvil en
+   una sola columna. */
+.cfg-tabs{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── 1 · Filtros ── */
+@media(max-width:700px){
+  .filters{gap:8px}
+  .filters > input,.filters > select:not([data-buscable]),.filters > .buscable-wrap,
+  .filters > .chk-filtro,.filters .fl{flex:1 1 100%;width:100%;min-width:0}
+  .filters input[type=search]{min-width:0}
+  .filters .fl .buscable-wrap,.filters .fl select{width:100%;min-width:0}
+  /* El buscador se queda fuera; el resto se pliega (ver filtrosPlegables) */
+  .filtros-btn{width:100%;justify-content:center;margin:0 0 10px;
+    border:1px solid var(--rule-2);background:var(--panel)}
+  .filtros-btn .pill{margin-left:7px}
+  .filters.filtros-extra{display:none}
+  .filters.filtros-extra.abierto{display:flex}
+}
+
+/* ── 2 · Tablas anchas → fichas ──
+   El marcado no cambia: tablasFicha() copia el título de cada columna al
+   data-lbl de su celda y aquí la tabla se lee como una lista de fichas.
+   Las dos primeras celdas hacen de cabecera; el resto van en rejilla. */
+@media(max-width:900px){
+  table.t-ficha,.t-ficha tbody,.t-ficha tr,.t-ficha td{display:block;width:auto}
+  .t-ficha thead{display:none}
+  table.t-ficha{table-layout:auto}
+  .t-ficha tr{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));
+    gap:11px 16px;padding:14px 16px;border-bottom:1px solid var(--rule)}
+  .t-ficha tbody tr:last-child{border-bottom:none}
+  .t-ficha td{border:none;padding:0;overflow:visible;text-overflow:clip;white-space:normal}
+  /* Las celdas llevan recortes en línea («Riverland Fe…») para que la columna
+     no ensanche la tabla. En ficha hay ancho de sobra y el recorte solo estorba;
+     como el estilo va en el atributo, hace falta !important para ganarle. */
+  .t-ficha td span,.t-ficha td div{white-space:normal!important;overflow:visible!important;
+    text-overflow:clip!important}
+  .t-ficha td:before{content:attr(data-lbl);display:block;font-family:var(--mono);
+    font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute-2);margin-bottom:4px}
+  .t-ficha td.num{text-align:left}
+  /* Celda sin dato: en tabla es un hueco, en ficha sería una etiqueta huérfana */
+  .t-ficha td.ff-vacio{display:none}
+  /* Cabecera de la ficha: primera celda pequeña (suele ser la fecha) y
+     segunda grande (suele ser el nombre). Sin etiqueta, se entienden solas. */
+  .t-ficha td.ff-1,.t-ficha td.ff-2{grid-column:1/-1}
+  .t-ficha td.ff-1:before,.t-ficha td.ff-2:before{display:none}
+  .t-ficha td.ff-1{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+    color:var(--mute);margin-bottom:-6px}
+  .t-ficha td.ff-2{font-size:15px;line-height:1.25}
+  /* Una fila de tabla se toca entera; conviene que se note */
+  .t-ficha tbody tr.click:active{background:var(--panel-2)}
+  /* Ya no hay nada que desplazar de lado dentro de la tarjeta */
+  .card .body.flush{overflow-x:visible}
+}
+
+/* ── 3 · Tira de indicadores del panel ── */
+@media(max-width:900px){
+  .strip{grid-template-columns:1fr 1fr}
+  .cell{padding:12px 14px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+  .cell:nth-child(2n){border-right:none}
+  .cell .lab{font-size:9px;margin-bottom:7px}
+  .cell .val{font-size:19px}
+  .cell .note{font-size:11px;margin-top:5px}
+}
+@media(max-width:380px){
+  .strip{grid-template-columns:1fr}
+  .cell{border-right:none}
+}
+
+/* ── 4 · Tamaño para el dedo y legibilidad ──
+   40px es el mínimo cómodo. Los enlaces de redes (.red-link) se quedan como
+   están a propósito: son etiquetas, no botones, y agrandarlos convertiría la
+   ficha de un cliente en una pared. */
+@media(max-width:900px){
+  .tiny,.dim.tiny{font-size:12px}
+  #view .btn{min-height:40px;padding:9px 15px}
+  #view .btn.sm{min-height:36px;padding:7px 13px;font-size:12px}
+  #topActions .btn.sm{min-height:34px}
+  .filters input,.filters select,.filters .buscable-input,.chk-filtro{min-height:42px}
+  #view .pill .x{min-width:28px;min-height:28px;display:inline-flex;
+    align-items:center;justify-content:center}
+  /* Las pestañas de Configuración, dentro del contenido: en la barra de
+     arriba solo tienen el 60% del ancho y quedaban tras un scroll lateral. */
+  /* Rejilla de 2×2 y no flex: con flex las cuatro salían de anchos distintos
+     y la última se quedaba sola en su línea. */
+  .cfg-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+  .cfg-tabs .btn{width:100%;justify-content:center}
+}
+
 </style>
 </head>
 <body>
@@ -1086,7 +1191,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.004";
+const APP_VERSION="0.005";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -1952,6 +2057,85 @@ function noLeidos(){
   const t=ultimoLeido();
   return (DB.mensajes||[]).filter(m=>m.creadoEn>t&&(!CURRENT_USER||m.autor!==CURRENT_USER.id)).length;
 }
+/* ── Tablas que se puedan leer en el móvil ──────────────────────────────
+   Una tabla de nueve columnas en 386px enseña dos: la fecha y el cliente.
+   El caché, la comisión y el neto —lo que uno viene a mirar— quedan fuera
+   de la pantalla, y hay que arrastrar el dedo de lado para verlos.
+
+   En vez de reescribir cada vista, aquí se le copia a cada celda el título
+   de su columna en data-lbl; el CSS (@media max-width:900px, .t-ficha) la
+   convierte en ficha. Se ejecuta siempre, también en escritorio: los
+   atributos no hacen nada hasta que la media query entra, así que
+   redimensionar la ventana no deja la tabla a medias.
+
+   Se salta .t-clientes, que ya tenía su propio modo ficha hecho a mano. */
+function tablasFicha(root){
+  (root||document).querySelectorAll("table").forEach(t=>{
+    if(t.classList.contains("t-clientes")||t.classList.contains("cascade"))return;
+    const ths=[...t.querySelectorAll("thead th")].map(x=>x.textContent.trim());
+    if(ths.length<4)return;              // con tres columnas o menos ya cabe
+    t.classList.add("t-ficha");
+    t.querySelectorAll("tbody tr").forEach(tr=>{
+      const tds=tr.children;
+      /* Las filas de «no hay nada» llevan un td con colspan: no son fichas */
+      if(tds.length!==ths.length)return;
+      for(let i=0;i<tds.length;i++){
+        const td=tds[i];
+        if(!td.dataset.lbl)td.dataset.lbl=ths[i]||"";
+        if(i<2)td.classList.add("ff-"+(i+1));
+        /* Etiqueta sin valor debajo es ruido: la celda vacía se esconde */
+        if(!td.textContent.trim())td.classList.add("ff-vacio");
+      }
+    });
+  });
+}
+
+/* ── Filtros plegados en el móvil ────────────────────────────────────────
+   Cuatro o cinco filtros apilados son media pantalla larga antes de ver el
+   primer dato. Aquí se queda a la vista el buscador, que es el que se usa
+   siempre, y el resto se pliega tras un botón que dice cuántos hay puestos
+   (si no, uno filtra, se olvida, y jura que le faltan shows).
+
+   Los nodos se MUEVEN, no se vuelven a crear: así conservan los listeners
+   que la vista les acaba de poner. Y el estado abierto/cerrado se recuerda,
+   porque render() se vuelve a llamar con cada tecla del buscador. */
+let FILTROS_ABIERTOS=false;
+function filtrosPlegables(root){
+  /* 700px y no 900: es el mismo corte que usa el CSS de .filtros-extra. Si
+     no coinciden, entre 700 y 900 sale el botón y no pliega nada. */
+  if(!window.matchMedia("(max-width:700px)").matches)return;
+  const f=(root||document).querySelector(".filters");
+  if(!f)return;
+  const busca=f.querySelector("input[type=search]");
+  /* Lo que se pliega es todo menos el buscador. Los <select> ocultos que
+     monta buscable() viajan con su .buscable-wrap, así que no se tocan. */
+  const resto=[...f.children].filter(x=>x!==busca);
+  if(resto.length<2)return;
+
+  /* Cuenta solo lo que de verdad está filtrando. Un <select> siempre tiene
+     valor —«Todos los clientes» lo es—, así que vale la primera opción como
+     «sin filtrar»; si no, el contador marcaría 3 nada más entrar. */
+  const puesto=e=>e.type==="checkbox"?e.checked
+    :e.tagName==="SELECT"?e.selectedIndex>0
+    :!!(e.value&&e.value.trim());
+  const cuenta=resto.reduce((n,x)=>n+[...(x.matches("input,select")?[x]:x.querySelectorAll("input,select"))]
+    .filter(puesto).length,0);
+
+  const btn=document.createElement("button");
+  btn.type="button";
+  btn.className="btn ghost sm filtros-btn";
+  btn.innerHTML="Filtros"+(cuenta?` <span class="pill">${cuenta}</span>`:"");
+  const caja=document.createElement("div");
+  caja.className="filters filtros-extra"+(FILTROS_ABIERTOS?" abierto":"");
+  resto.forEach(x=>caja.appendChild(x));
+  f.insertAdjacentElement("afterend",caja);
+  f.insertAdjacentElement("afterend",btn);
+  btn.addEventListener("click",()=>{
+    FILTROS_ABIERTOS=!FILTROS_ABIERTOS;
+    caja.classList.toggle("abierto",FILTROS_ABIERTOS);
+  });
+}
+
 function render(){
   if(VIEW==="equipo")marcarLeido();
   const nl=noLeidos();
@@ -1968,6 +2152,8 @@ function render(){
     clientes:viewClientes,contactos:viewContactos,documentos:viewDocumentos,
     mailing:viewMailing,mapa:viewMapa,temas:viewTemas,
     equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos})[VIEW](el,ta);
+  tablasFicha(el);
+  filtrosPlegables(el);
   pintaDock();
 }
 document.getElementById("nav").addEventListener("click",e=>{const b=e.target.closest("button[data-view]");if(!b)return;VIEW=b.dataset.view;render();window.scrollTo(0,0)});
@@ -4436,16 +4622,25 @@ function empresaCfg(){
 }
 
 function viewDatos(el,ta){
-  ta.innerHTML=CFG_TABS.map(([id,lab])=>
-    `<button class="btn ${CFG_TAB===id?"primary":"ghost"} sm" data-cfg-tab="${id}">${lab}</button>`).join("");
-  ta.querySelectorAll("[data-cfg-tab]").forEach(b=>b.addEventListener("click",()=>{
-    CFG_TAB=b.dataset.cfgTab;render();window.scrollTo(0,0);
-  }));
   const t=CFG_TABS.find(x=>x[0]===CFG_TAB)||CFG_TABS[0];
   const sub=document.getElementById("viewSub");
   if(sub)sub.textContent=t[1];
   ({datos:cfgTabDatos,integraciones:cfgTabIntegraciones,
     empresa:cfgTabEmpresa,equipo:cfgTabEquipo})[t[0]](el);
+
+  const tabs=`<div class="cfg-tabs">`+CFG_TABS.map(([id,lab])=>
+    `<button class="btn ${CFG_TAB===id?"primary":"ghost"} sm" data-cfg-tab="${id}">${lab}</button>`
+  ).join("")+`</div>`;
+  /* En el teléfono la barra de arriba solo dispone del 60% del ancho, así que
+     las cuatro pestañas quedaban escondidas tras un scroll lateral que nadie
+     descubre. Ahí van dentro del contenido, encima de las tarjetas.
+     Se pintan DESPUÉS de la pestaña porque cada cfgTab* reescribe el.innerHTML. */
+  const movil=window.matchMedia("(max-width:900px)").matches;
+  if(movil){ ta.innerHTML=""; el.insertAdjacentHTML("afterbegin",tabs); }
+  else { ta.innerHTML=tabs; }
+  (movil?el:ta).querySelectorAll("[data-cfg-tab]").forEach(b=>b.addEventListener("click",()=>{
+    CFG_TAB=b.dataset.cfgTab;render();window.scrollTo(0,0);
+  }));
 }
 
 /* ── Pestaña 1 · Datos ──────────────────────────────────────────────────── */
