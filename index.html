@@ -912,14 +912,21 @@ select option,select optgroup{background:#1B1E24;color:#E9E7E2}
     font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute-2);margin-bottom:4px}
   .t-ficha td.num{text-align:left}
   /* Celda sin dato: en tabla es un hueco, en ficha sería una etiqueta huérfana */
-  .t-ficha td.ff-vacio{display:none}
-  /* Cabecera de la ficha: primera celda pequeña (suele ser la fecha) y
-     segunda grande (suele ser el nombre). Sin etiqueta, se entienden solas. */
-  .t-ficha td.ff-1,.t-ficha td.ff-2{grid-column:1/-1}
-  .t-ficha td.ff-1:before,.t-ficha td.ff-2:before{display:none}
-  .t-ficha td.ff-1{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+  .t-ficha td.ff-vacio,.t-ficha td.ff-oculto{display:none}
+
+  /* Las cifras de encima de cada barra miden 50px y la columna del mes 24:
+     se salían del recuadro por la derecha. En el teléfono lo que se lee es
+     la forma; el importe exacto sigue en el título de cada barra. */
+  .mini-barras{gap:4px!important}
+  .mini-barras > div > .tiny:first-child{display:none}
+  .mini-barras .tiny{font-size:9.5px}
+  /* Cabecera de la ficha: la fecha arriba en pequeño y el titular debajo en
+     grande. Sin etiqueta: se entienden solas. */
+  .t-ficha td.ff-fecha,.t-ficha td.ff-titulo{grid-column:1/-1}
+  .t-ficha td.ff-fecha:before,.t-ficha td.ff-titulo:before{display:none}
+  .t-ficha td.ff-fecha{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
     color:var(--mute);margin-bottom:-6px}
-  .t-ficha td.ff-2{font-size:15px;line-height:1.25}
+  .t-ficha td.ff-titulo{font-size:15px;line-height:1.25}
   /* Una fila de tabla se toca entera; conviene que se note */
   .t-ficha tbody tr.click:active{background:var(--panel-2)}
   /* Ya no hay nada que desplazar de lado dentro de la tarjeta */
@@ -1191,7 +1198,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.005";
+const APP_VERSION="0.006";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -2074,6 +2081,16 @@ function tablasFicha(root){
     if(t.classList.contains("t-clientes")||t.classList.contains("cascade"))return;
     const ths=[...t.querySelectorAll("thead th")].map(x=>x.textContent.trim());
     if(ths.length<4)return;              // con tres columnas o menos ya cabe
+    /* data-movil="Nombre,Plaza,…" recorta la ficha a esas columnas. Sin él se
+       enseñan todas. Hace falta en listas largas: Contactos tiene 154 filas
+       por 8 columnas, y en ficha completa eran 54 pantallas de scroll. Lo que
+       se esconde no se pierde: la fila entera abre la ficha al tocarla. */
+    const soloMovil=(t.dataset.movil||"").split(",").map(s=>s.trim()).filter(Boolean);
+    /* Qué celda hace de titular de la ficha. En Shows la primera columna es
+       la fecha y el titular es la segunda (el cliente); en Contactos la
+       primera ya es el nombre. Si no se mira, Contactos sale con la
+       categoría en grande y el nombre en gris pequeño. */
+    const conFecha=/^fecha/i.test(ths[0]||"");
     t.classList.add("t-ficha");
     t.querySelectorAll("tbody tr").forEach(tr=>{
       const tds=tr.children;
@@ -2082,7 +2099,9 @@ function tablasFicha(root){
       for(let i=0;i<tds.length;i++){
         const td=tds[i];
         if(!td.dataset.lbl)td.dataset.lbl=ths[i]||"";
-        if(i<2)td.classList.add("ff-"+(i+1));
+        if(conFecha&&i===0)td.classList.add("ff-fecha");
+        else if(i===(conFecha?1:0))td.classList.add("ff-titulo");
+        if(soloMovil.length&&soloMovil.indexOf(ths[i])===-1)td.classList.add("ff-oculto");
         /* Etiqueta sin valor debajo es ruido: la celda vacía se esconde */
         if(!td.textContent.trim())td.classList.add("ff-vacio");
       }
@@ -2325,7 +2344,7 @@ function viewPanel(el,ta){
   <div class="card"><header><h3>Comisión MALO por mes · ${filtro.anio}</h3></header><div class="body">
     ${(()=>{const meses=comisionesPorMes(filtro.anio);const max=Math.max(1,...meses.map(m=>m.comis));
       const NOM=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-      return `<div style="display:flex;gap:8px;align-items:flex-end;height:120px">
+      return `<div class="mini-barras" style="display:flex;gap:8px;align-items:flex-end;height:120px">
         ${meses.map(m=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
           <div class="tiny dim" style="font-family:var(--mono)">${m.comis?eur0(m.comis):""}</div>
           <div style="width:100%;background:${m.comis?"var(--malo)":"var(--panel-2)"};border-radius:3px 3px 0 0;
@@ -3353,7 +3372,7 @@ function viewContactos(el,ta){
     ${selectOrden("ordContactos",[["cat","Categoría"],["alpha","Alfabético A-Z"],["shows_desc","Más shows"],["cache_desc","Caché medio más alto"],["frio","Más tiempo sin contactar"]],filtro.ordenContactos)}
     ${(filtro.q||filtro.catBD||filtro.relBD)?`<button class="btn ghost sm" id="bclr">Quitar filtros</button>`:""}
   </div>
-  <div class="card"><div class="body flush"><table>
+  <div class="card"><div class="body flush"><table data-movil="Nombre,Categoría,Plaza,Contacto">
   <thead><tr><th>Nombre</th><th style="width:1%;white-space:nowrap">Categoría</th><th style="width:1%;white-space:nowrap">Relación</th><th>Plaza</th><th class="num" style="width:1%">Shows</th><th class="num" style="width:1%;white-space:nowrap">Caché medio</th><th style="width:1%">Pago</th><th style="min-width:230px">Contacto</th></tr></thead>
   <tbody>${list.map(p=>{
     const ss=DB.shows.filter(s=>s.promotorId===p.id&&s.estado!=="cancelado");
