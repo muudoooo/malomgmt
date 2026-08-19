@@ -1518,7 +1518,9 @@ const TABLE_MAP={
     crew:"crew",showsCreados:"shows_creados"},
   canciones:{id:"id",titulo:"titulo",artistaId:"artista_id",fechaLanzamiento:"fecha_lanzamiento",isrc:"isrc",
     distribuidora:"distribuidora",feeDistribucionPct:"fee_distribucion_pct",mgmtPct:"mgmt_pct",
-    cuentaPortal:"cuenta_portal",notas:"notas"},
+    cuentaPortal:"cuenta_portal",notas:"notas",genero:"genero",creditos:"creditos",
+    driveFolderId:"drive_folder_id",portadaDriveId:"portada_drive_id",portadaUrl:"portada_url",
+    audioDriveId:"audio_drive_id",audioUrl:"audio_url"},
   cancionParticipantes:{id:"id",cancionId:"cancion_id",clienteId:"cliente_id",nombre:"nombre",rol:"rol",pct:"pct"},
   cancionIngresos:{id:"id",cancionId:"cancion_id",mes:"mes",bruto:"bruto",unidades:"unidades",canal:"canal"}
 };
@@ -3477,7 +3479,7 @@ function viewMisCanciones(el,ta){
   <tbody>${list.map(c=>{
     const bruto=brutoTotalCancion(c.id),suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
     return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
-      <td class="strong">${esc(c.titulo||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</td>
+      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(c.titulo||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
       <td><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(c.artistaId))}</span></td>
       <td class="dim">${esc(c.distribuidora||"—")}${c.cuentaPortal?`<div class="tiny dim">cta. ${esc(c.cuentaPortal)}</div>`:""}</td>
       <td class="num">${eur0(bruto)}</td>
@@ -3518,12 +3520,37 @@ function formCancion(id){
       <div class="f s2"><label>Lanzamiento</label><input id="cn_flanz" type="date" value="${esc(o.fechaLanzamiento||"")}"></div>
       <div class="f s3"><label>% distribución</label><input id="cn_fee" type="number" min="0" max="100" step="0.1" value="${n(o.feeDistribucionPct)}"></div>
       <div class="f s3"><label>% management</label><input id="cn_mgmt" type="number" min="0" max="100" step="0.1" value="${n(o.mgmtPct)}"></div>
+      <div class="f s3"><label>Género</label><input id="cn_genero" value="${esc(o.genero||"")}" placeholder="Trap, reggaetón…"></div>
     </div>
     <div class="card" style="margin:14px 0"><div class="body" style="display:flex;gap:22px;flex-wrap:wrap">
       <div><div class="lab">Bruto acumulado</div><div class="val">${eur0(cascada.bruto)}</div></div>
       <div><div class="lab">Tras distribución</div><div class="val">${eur0(cascada.trasDist)}</div></div>
       <div><div class="lab">Pool a repartir</div><div class="val v-artist">${eur0(cascada.pool)}</div></div>
     </div></div>
+
+    <div class="section-title">Portada y audio</div>
+    <div class="fgrid">
+      <div class="f s6">
+        <label>Portada</label>
+        <div id="cn_portada_zona" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0">
+          ${o.portadaUrl?`<img src="${esc(o.portadaUrl)}" style="width:56px;height:56px;object-fit:cover;border-radius:6px">`:""}
+          ${id?`<button class="btn ghost sm" id="cn_portada_btn" type="button">${o.portadaUrl?"Cambiar imagen":"Elegir imagen"}</button>
+            <input type="file" id="cn_portada_input" accept="image/*" hidden>`
+            :`<span class="dim tiny">Guarda la canción primero para poder subir portada</span>`}
+          <span class="dim tiny" id="cn_portada_estado"></span>
+        </div>
+      </div>
+      <div class="f s6">
+        <label>Pista de audio</label>
+        <div id="cn_audio_zona" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0">
+          ${o.audioUrl?`<audio controls src="${esc(o.audioUrl)}" style="height:32px;max-width:100%"></audio>`:""}
+          ${id?`<button class="btn ghost sm" id="cn_audio_btn" type="button">${o.audioUrl?"Cambiar pista":"Elegir audio"}</button>
+            <input type="file" id="cn_audio_input" accept="audio/*" hidden>`
+            :`<span class="dim tiny">Guarda la canción primero para poder subir audio</span>`}
+          <span class="dim tiny" id="cn_audio_estado"></span>
+        </div>
+      </div>
+    </div>
 
     <div class="section-title">Reparto
       <div class="spacer"></div><span id="cn_sumapill" class="pill"></span>
@@ -3536,6 +3563,10 @@ function formCancion(id){
       <button class="btn ghost sm" id="cn_addmes" type="button">+ Añadir mes</button>
     </div>
     <div id="cn_ingresos"></div>
+
+    <div class="section-title">Créditos</div>
+    <div class="fgrid"><div class="f s12">
+      <textarea id="cn_creditos" style="min-height:50px" placeholder="Compositores, ingeniero de mezcla/máster, productor si no está ya en el reparto…">${esc(o.creditos||"")}</textarea></div></div>
 
     <div class="section-title">Notas</div>
     <div class="fgrid"><div class="f s12">
@@ -3616,13 +3647,91 @@ function formCancion(id){
   document.getElementById("cn_addmes").addEventListener("click",()=>{
     ingresos.push({id:uid("cani"),cancionId:o.id,mes:hoy().slice(0,7)+"-01",bruto:0,unidades:0});pintaIngresos();
   });
-  window.__leerCancion=()=>({
-    id:o.id,titulo:val("cn_tit"),artistaId:val("cn_cli"),isrc:val("cn_isrc"),
-    distribuidora:val("cn_dist")||"ADA",cuentaPortal:val("cn_cuenta"),fechaLanzamiento:val("cn_flanz"),
-    feeDistribucionPct:num("cn_fee"),mgmtPct:num("cn_mgmt"),notas:val("cn_notas"),
-    _participantes:participantes.filter(x=>(x.clienteId||"").trim()||String(x.nombre||"").trim()),
-    _ingresos:ingresos.filter(x=>x.mes)
-  });
+  if(id){
+    const pbtn=document.getElementById("cn_portada_btn"),pinput=document.getElementById("cn_portada_input");
+    if(pbtn&&pinput){pbtn.addEventListener("click",()=>pinput.click());
+      pinput.addEventListener("change",()=>{ if(pinput.files[0])subirMediaCancion(id,pinput.files[0],"portada"); pinput.value=""; });}
+    const abtn=document.getElementById("cn_audio_btn"),ainput=document.getElementById("cn_audio_input");
+    if(abtn&&ainput){abtn.addEventListener("click",()=>ainput.click());
+      ainput.addEventListener("change",()=>{ if(ainput.files[0])subirMediaCancion(id,ainput.files[0],"audio"); ainput.value=""; });}
+  }
+  window.__leerCancion=()=>{
+    const vivo=(DB.canciones||[]).find(x=>x.id===o.id)||{};
+    return {
+      id:o.id,titulo:val("cn_tit"),artistaId:val("cn_cli"),isrc:val("cn_isrc"),
+      distribuidora:val("cn_dist")||"ADA",cuentaPortal:val("cn_cuenta"),fechaLanzamiento:val("cn_flanz"),
+      feeDistribucionPct:num("cn_fee"),mgmtPct:num("cn_mgmt"),notas:val("cn_notas"),
+      genero:val("cn_genero"),creditos:val("cn_creditos"),
+      driveFolderId:vivo.driveFolderId||"",portadaDriveId:vivo.portadaDriveId||"",portadaUrl:vivo.portadaUrl||"",
+      audioDriveId:vivo.audioDriveId||"",audioUrl:vivo.audioUrl||"",
+      _participantes:participantes.filter(x=>(x.clienteId||"").trim()||String(x.nombre||"").trim()),
+      _ingresos:ingresos.filter(x=>x.mes)
+    };
+  };
+}
+/* ── Portada y audio de canción, guardados en Drive ──
+   Reutiliza driveFn/driveSubirUno (los mismos que Documentos): el archivo va
+   directo a Google, MALO solo guarda el id y una URL directa para pintarlo.
+   Estructura en Drive: CANCIONES/<artista> - <título>/portada|audio. */
+async function cancionesFolderId(){
+  const ya=((DB.empresa||{}).ajustes||{}).driveCancionesId;
+  if(ya)return ya;
+  const raiz=driveRaiz();
+  if(!raiz)throw new Error("Conecta primero la carpeta de Drive (Documentos → Conectar carpeta de Drive)");
+  const r=await driveFn("crearCarpeta",{carpetaId:raiz.id,nombre:"CANCIONES"});
+  DB.empresa=Object.assign({},DB.empresa||{},
+    {ajustes:Object.assign({},(DB.empresa||{}).ajustes||{},{driveCancionesId:r.id})});
+  await save();
+  return r.id;
+}
+async function cancionFolderId(cancion){
+  if(cancion.driveFolderId)return cancion.driveFolderId;
+  const padre=await cancionesFolderId();
+  const artista=(DB.clientes||[]).find(x=>x.id===cancion.artistaId);
+  const nombre=((artista&&(artista.nombre||artista.nombreReal))||"Sin artista")+" - "+(cancion.titulo||"sin título");
+  const r=await driveFn("crearCarpeta",{carpetaId:padre,nombre:nombre.trim()});
+  DB.canciones=(DB.canciones||[]).map(x=>x.id===cancion.id?Object.assign({},x,{driveFolderId:r.id}):x);
+  await save();
+  return r.id;
+}
+async function subirMediaCancion(cancionId,file,tipo){
+  const cancion=(DB.canciones||[]).find(x=>x.id===cancionId);
+  if(!cancion)return;
+  const estadoId=tipo==="portada"?"cn_portada_estado":"cn_audio_estado";
+  const zonaId=tipo==="portada"?"cn_portada_zona":"cn_audio_zona";
+  const decir=t=>{const e=document.getElementById(estadoId);if(e)e.textContent=t};
+  try{
+    decir("Subiendo…");
+    const carpeta=await cancionFolderId(cancion);
+    const subida=await driveSubirUno(file,carpeta);
+    if(!subida||!subida.id)throw new Error("Drive no devolvió el archivo subido");
+    const info=await driveFn("compartir",{archivoId:subida.id}).catch(()=>({}));
+    const url=tipo==="portada"
+      ?("https://drive.google.com/thumbnail?id="+subida.id+"&sz=w800")
+      :(info.webContentLink||("https://drive.google.com/uc?export=download&id="+subida.id));
+    const campoId=tipo==="portada"?"portadaDriveId":"audioDriveId";
+    const campoUrl=tipo==="portada"?"portadaUrl":"audioUrl";
+    DB.canciones=(DB.canciones||[]).map(x=>x.id===cancionId?Object.assign({},x,{[campoId]:subida.id,[campoUrl]:url,driveFolderId:carpeta}):x);
+    await save();
+    decir("");
+    toast(tipo==="portada"?"Portada subida":"Pista subida");
+    const zona=document.getElementById(zonaId);
+    if(zona){
+      let prev=zona.querySelector(tipo==="portada"?"img":"audio");
+      if(!prev){
+        prev=document.createElement(tipo==="portada"?"img":"audio");
+        if(tipo==="portada")prev.style.cssText="width:56px;height:56px;object-fit:cover;border-radius:6px";
+        else{prev.controls=true;prev.style.cssText="height:32px;max-width:100%"}
+        zona.prepend(prev);
+      }
+      prev.src=url;
+      const btn=zona.querySelector("button");
+      if(btn)btn.textContent=tipo==="portada"?"Cambiar imagen":"Cambiar pista";
+    }
+  }catch(e){
+    decir("");
+    toast("No se pudo subir: "+e.message);
+  }
 }
 function saveCancion(isNew){
   const c=window.__leerCancion();
