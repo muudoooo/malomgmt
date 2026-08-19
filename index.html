@@ -723,6 +723,64 @@ select option,select optgroup{background:#1B1E24;color:#E9E7E2}
 .rt-hint{background:var(--panel-2);border:1px solid var(--rule);border-radius:6px;padding:10px 14px;
   font-size:11.5px;color:var(--mute);margin-bottom:14px;font-family:var(--sans)}
 
+/* ── Regla de campos vacíos de la hoja de ruta ──
+   Lo que no se rellena no se imprime: la fila, la sección o la página entera
+   desaparecen en vez de dejar un hueco. En pantalla se activa con el botón
+   «Ocultar vacíos» para poder ver el PDF exacto antes de generarlo. */
+.rt.rt-limpio .rt-vacia,.rt.rt-limpio .rt-h1.vacio{display:none}
+
+/* ── Generador de contratos ── */
+.ct-wrap{display:grid;grid-template-columns:minmax(320px,1fr) minmax(0,1.35fr);gap:22px;align-items:start}
+.ct-form .section-title:first-child{margin-top:0}
+.ct-pago{display:grid;grid-template-columns:1fr 132px 118px 32px;gap:7px;margin-bottom:7px}
+.ct-pago input{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:7px 9px;
+  width:100%;color:var(--bone);font-size:12.5px}
+.ct-pago .btn{padding:0;height:100%}
+.ct-prev{position:sticky;top:8px}
+/* El documento. Ancho A4 real y alto libre: la paginación la hace el navegador
+   al imprimir, con break-inside en cada cláusula para no cortar por la mitad. */
+.ct{background:#fff;color:#111;width:210mm;padding:17mm 18mm;font-family:var(--sans);font-size:9.6pt;
+  line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact;zoom:var(--ct-z,1)}
+.ct .ct-hd{padding-bottom:9px;border-bottom:2px solid #111;margin-bottom:16px}
+.ct h1{font-size:20pt;font-weight:800;letter-spacing:-.02em;text-transform:uppercase;line-height:1.02;margin:0}
+.ct .ct-sub{font-family:var(--mono);font-size:8pt;letter-spacing:.12em;text-transform:uppercase;color:#666;margin-top:6px}
+.ct .ct-p{margin:0 0 9px}
+.ct .ct-h2{font-family:var(--mono);font-size:8.5pt;letter-spacing:.14em;text-transform:uppercase;color:#666;
+  padding-bottom:5px;border-bottom:1px solid #ccc;margin:20px 0 10px;break-after:avoid;page-break-after:avoid}
+.ct table{width:100%;border-collapse:collapse;margin:0 0 12px}
+.ct .ct-part th,.ct .ct-banco th{width:52mm;text-align:left;vertical-align:top;padding:5px 10px 5px 0;
+  font-family:var(--mono);font-size:7.6pt;letter-spacing:.09em;text-transform:uppercase;color:#777;font-weight:400}
+.ct .ct-part td,.ct .ct-banco td{padding:5px 0;vertical-align:top;font-weight:600;border-bottom:1px solid #e6e6e6}
+.ct .ct-part tr:last-child td,.ct .ct-banco tr:last-child td{border-bottom:none}
+.ct .ct-eco thead th{font-family:var(--mono);font-size:7.6pt;letter-spacing:.08em;text-transform:uppercase;
+  color:#666;text-align:left;padding:5px 7px;border-bottom:1px solid #111;font-weight:400;white-space:nowrap}
+.ct .ct-eco tbody td{padding:6px 7px;border-bottom:1px solid #e6e6e6}
+.ct .ct-eco tfoot td{padding:7px;border-top:1.5px solid #111;font-weight:800}
+.ct .n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ct .ct-cl{margin-top:16px;break-inside:avoid;page-break-inside:avoid}
+.ct .ct-cl h3{font-size:9.6pt;font-weight:800;letter-spacing:.01em;text-transform:uppercase;margin:0 0 6px;
+  display:flex;gap:8px;align-items:baseline}
+.ct .ct-cl h3 span{font-family:var(--mono);font-weight:400;color:#999}
+.ct .ct-cl p{margin:0 0 7px;text-align:justify;hyphens:auto}
+.ct .ct-cierre{margin-top:22px;break-before:avoid}
+.ct .ct-firmas{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:26px;break-inside:avoid}
+.ct .ct-firmas .ct-rot{display:block;font-family:var(--mono);font-size:7.6pt;letter-spacing:.12em;
+  text-transform:uppercase;color:#777;margin-bottom:5px}
+.ct .ct-firmas b{display:block;font-weight:800;text-transform:uppercase}
+.ct .ct-firmas span{display:block}
+.ct .ct-firmas i{display:block;border-bottom:1px solid #111;margin-top:24mm}
+@media(max-width:1100px){
+  .ct-wrap{grid-template-columns:1fr}
+  .ct-prev{position:static}
+}
+@media print{
+  .ct-wrap{display:block}
+  .ct-form{display:none!important}
+  .ct{zoom:1!important;width:auto;padding:14mm 13mm}
+  /* Igual que la hoja de ruta: sin este bloque se imprimirían los huecos vacíos */
+  .rt .rt-vacia,.rt .rt-h1.vacio{display:none!important}
+}
+
 @page{size:A4;margin:0}
 @media print{
   body{background:#fff}
@@ -1429,12 +1487,13 @@ const TABLE_MAP={
     generos:"generos",rutaPlantilla:"ruta_plantilla"},
   promotores:{id:"id",nombre:"nombre",categoria:"categoria",subtipo:"subtipo",ciudad:"ciudad",direccion:"direccion",
     pais:"pais",aforo:"aforo",contacto:"contacto",email:"email",telefono:"telefono",cif:"cif",web:"web",
-    estadoRelacion:"estado_relacion",ultimoContacto:"ultimo_contacto",notas:"notas"},
+    estadoRelacion:"estado_relacion",ultimoContacto:"ultimo_contacto",notas:"notas",
+    firmante:"firmante",firmanteDni:"firmante_dni",razonSocial:"razon_social",jurisdiccion:"jurisdiccion"},
   shows:{id:"id",clienteId:"cliente_id",promotorId:"promotor_id",fecha:"fecha",ciudad:"ciudad",pais:"pais",
     servicio:"servicio",estado:"estado",cacheBruto:"cache_bruto",moneda:"moneda",tipoCambio:"tipo_cambio",
     retencionOrigen:"retencion_origen",ivaPct:"iva_pct",comisionPct:"comision_pct",baseComision:"base_comision",
     gastos:"gastos",adjuntos:"adjuntos",horarios:"horarios",alojamiento:"alojamiento",transporte:"transporte",
-    contactoLocal:"contacto_local",ruta:"ruta",cobro:"cobro",liq:"liq",googleEventId:"google_event_id",
+    contactoLocal:"contacto_local",ruta:"ruta",contrato:"contrato",cobro:"cobro",liq:"liq",googleEventId:"google_event_id",
     djId:"dj_id",googleEventIdDj:"google_event_id_dj",djs:"djs",allIn:"all_in",notas:"notas",
     googleEventsParticipantes:"google_events_participantes",
     promotoresExtra:"promotores_extra",djInvitadoNombre:"dj_invitado_nombre",djInvitadoIncluir:"dj_invitado_incluir"},
@@ -1501,6 +1560,7 @@ function normalizaEntidad(tabla,o){
     o.cobro=o.cobro&&typeof o.cobro==="object"?o.cobro:{estado:"pendiente",fechaPrevista:"",fechaCobro:"",factura:""};
     o.liq=o.liq&&typeof o.liq==="object"?o.liq:{estado:"pendiente",fecha:"",factura:""};
     o.ruta=o.ruta||null;
+    o.contrato=o.contrato||null;
   }
   if(tabla==="suscriptores"){
     o.etiquetas=Array.isArray(o.etiquetas)?o.etiquetas:[];
@@ -1538,7 +1598,7 @@ function normalizaEntidad(tabla,o){
   return o;
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -1553,7 +1613,10 @@ async function loadRemote(){
     sb.from("generos").select("nombre"),
     /* Sonda: si la columna no existe, Postgres devuelve error y no rompe nada */
     sb.from("clientes").select("ruta_plantilla").limit(1),
-    sb.from("temas").select("*")
+    sb.from("temas").select("*"),
+    /* Sondas del generador de contratos: sin las columnas la app va igual */
+    sb.from("shows").select("contrato").limit(1),
+    sb.from("promotores").select("firmante").limit(1)
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -1570,6 +1633,11 @@ async function loadRemote(){
      plantilla no se guarda y hay que decirlo en vez de tragárselo. */
   DB.sinPlantilla=!!rpl.error;
   if(DB.sinPlantilla)console.warn("Columna «ruta_plantilla» no disponible:",rpl.error.message);
+  /* Igual con el contrato: se puede rellenar e imprimir, pero no se guarda. */
+  DB.sinContrato=!!ctr.error;
+  if(DB.sinContrato)console.warn("Columna «shows.contrato» no disponible:",ctr.error.message);
+  DB.sinPromotorFiscal=!!pfi.error;
+  if(DB.sinPromotorFiscal)console.warn("Columnas fiscales de «promotores» no disponibles:",pfi.error.message);
   /* Igual con las dos tablas nuevas: si falta el SQL la app funciona, pero lo dice
      y deja de mandarlas al guardar para no tumbar el resto del upsert. */
   DB.sinTemas=!!tem.error;
@@ -1620,8 +1688,12 @@ async function save(){
       return r};
     const ops=[
       DB.clientes.length&&sb.from("clientes").upsert(DB.clientes.map(filaCliente)),
-      DB.promotores.length&&sb.from("promotores").upsert(DB.promotores.map(p=>toRow("promotores",p))),
-      DB.shows.length&&sb.from("shows").upsert(DB.shows.map(s=>toRow("shows",s))),
+      DB.promotores.length&&sb.from("promotores").upsert(DB.promotores.map(p=>{
+        const r=toRow("promotores",p);
+        if(DB.sinPromotorFiscal){delete r.firmante;delete r.firmante_dni;delete r.razon_social;delete r.jurisdiccion}
+        return r})),
+      DB.shows.length&&sb.from("shows").upsert(DB.shows.map(s=>{
+        const r=toRow("shows",s);if(DB.sinContrato)delete r.contrato;return r})),
       DB.eventos.length&&sb.from("eventos").upsert(DB.eventos.map(e=>toRow("eventos",e))),
       DB.producciones.length&&sb.from("producciones").upsert(DB.producciones.map(p=>toRow("producciones",p))),
       DB.suscriptores.length&&sb.from("suscriptores").upsert(DB.suscriptores.map(x=>toRow("suscriptores",x))),
@@ -1667,6 +1739,7 @@ function migrate(d){
   o.promotores.forEach(p=>{
     if(!p.categoria)p.categoria=MAPTIPO[p.tipo]||"promotor";
     if(p.direccion===undefined)p.direccion="";
+    ["firmante","firmanteDni","razonSocial","jurisdiccion"].forEach(k=>{if(p[k]===undefined)p[k]=""});
     if(p.subtipo===undefined)p.subtipo=(p.tipo&&["sala","club"].includes(p.tipo))?p.tipo:"";
   });
   o.shows.forEach(s=>{
@@ -1677,6 +1750,7 @@ function migrate(d){
     if(s.allIn===undefined)s.allIn=false;
     s.adjuntos.forEach(a=>{if(a.importe===undefined)a.importe=0;if(a.fecha===undefined)a.fecha=""});
     if(s.ruta===undefined)s.ruta=null;
+    if(s.contrato===undefined)s.contrato=null;
     if(!s.horarios)s.horarios={};
     if(s.alojamiento===undefined)s.alojamiento="";
     if(s.transporte===undefined)s.transporte="";
@@ -4421,13 +4495,24 @@ function viewGeneradores(el,ta){
   </div></div>
 
   <div class="card"><header><h3>Generador de contratos</h3><div class="spacer"></div>
-    <span class="pill warn">pendiente</span></header><div class="body">
-    <p style="color:var(--mute);font-size:12.5px">
-      La mecánica está resuelta: sería igual que la hoja de ruta, rellenando una plantilla con los datos
-      del cliente, el promotor, el caché y las condiciones del show.
-      <strong style="color:var(--bone)">Lo que falta es el clausulado.</strong> Si lo escribo yo, firmarías
-      un texto legal que no ha revisado nadie con criterio para ello. Pásame el modelo de contrato que ya
-      uséis (o el que os valide un abogado) y lo convierto en generador el mismo día.</p>
+    <span class="pill ok">disponible</span></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;margin-bottom:16px">
+      Rellena la plantilla de contrato de actuación de MALO con los datos del show: partes, condiciones
+      particulares, calendario de pagos con el IVA calculado y cuenta de cobro. El clausulado va tal cual
+      está en la plantilla firmada y <strong style="color:var(--bone)">no se edita desde aquí</strong>.
+      A la derecha se ve el documento en tiempo real: es exactamente el PDF.
+      Lo que se deje en blanco desaparece del papel en vez de imprimir un hueco.</p>
+    ${DB.sinContrato?`<p class="hint" style="margin-bottom:14px;color:var(--alert)">Falta ejecutar
+      <strong>supabase/contratos.sql</strong>: se puede rellenar e imprimir, pero no se guarda.</p>`:""}
+    <div class="fgrid">
+      <div class="f s8"><label>Elige el show</label><select id="gen_show_ct">
+        <option value="">— elige una fecha —</option>
+        ${proximos.length?`<optgroup label="Próximas">${proximos.map(s=>`<option value="${s.id}">${fecha(s.fecha)} · ${esc(nomCliente(s.clienteId))} · ${esc(nomPromotor(s.promotorId)!=="—"?nomPromotor(s.promotorId):(s.ciudad||""))}${s.contrato?" ✓":""}</option>`).join("")}</optgroup>`:""}
+        ${recientes.length?`<optgroup label="Pasadas">${recientes.map(s=>`<option value="${s.id}">${fecha(s.fecha)} · ${esc(nomCliente(s.clienteId))} · ${esc(nomPromotor(s.promotorId)!=="—"?nomPromotor(s.promotorId):(s.ciudad||""))}${s.contrato?" ✓":""}</option>`).join("")}</optgroup>`:""}
+      </select><span class="hint">Las marcadas con ✓ ya tienen contrato empezado.</span></div>
+      <div class="f s4" style="justify-content:flex-end">
+        <button class="btn primary btn-ajustado" id="gen_ct">Abrir generador</button></div>
+    </div>
   </div></div>
 
   <div class="card"><header><h3>Generador de facturas</h3><div class="spacer"></div>
@@ -4455,6 +4540,11 @@ function viewGeneradores(el,ta){
     const meses=[...document.querySelectorAll("#rp_meses input:checked")].map(x=>x.value);
     if(!meses.length){toast("Marca al menos un mes");return}
     reporteGanancias({clienteId:val("rp_cli"),catPromotor:val("rp_cat"),M:meses,A:val("rp_anio")});
+  });
+  document.getElementById("gen_ct").addEventListener("click",()=>{
+    const id=val("gen_show_ct");
+    if(!id){toast("Elige primero una fecha");return}
+    contratoShow(id);
   });
   document.getElementById("gen_abrir").addEventListener("click",()=>{
     const id=val("gen_show");
@@ -4632,7 +4722,7 @@ function esAdmin(){return rolDe(miEmail())==="admin"}
    «nombre» y «logo» sí son columnas reales de la tabla empresa porque ya
    existían; el resto vive en ajustes.empresa. */
 const EMPRESA_DEF={razonSocial:"",nif:"",direccion:"",cp:"",ciudad:"",provincia:"",
-  pais:"España",email:"",telefono:"",web:"",iban:"",titularCuenta:"",
+  pais:"España",email:"",telefono:"",web:"",iban:"",titularCuenta:"",banco:"",representante:"",
   comisiones:{booking:15,management:20,development:0,sello:50}};
 function empresaCfg(){
   const e=cfgAjustes().empresa||{};
@@ -4893,6 +4983,8 @@ function cfgTabEmpresa(el){
       <div class="f s4"><label>Email de facturación</label><input id="emp_email" value="${esc(E.email)}" placeholder="admin@malomgmt.com"></div>
       <div class="f s4"><label>Teléfono</label><input id="emp_tel" value="${esc(E.telefono)}"></div>
       <div class="f s4"><label>Web</label><input id="emp_web" value="${esc(E.web)}" placeholder="malomgmt.com"></div>
+      <div class="f s12"><label>Representada por</label><input id="emp_repr" value="${esc(E.representante)}" placeholder="Nombre y apellidos de quien firma">
+        <span class="hint">Quien firma los contratos en nombre de MALO. Sale en la cabecera y en el pie de firmas.</span></div>
     </div>
   </div></div>
 
@@ -4902,6 +4994,8 @@ function cfgTabEmpresa(el){
     <div class="fgrid">
       <div class="f s7"><label>IBAN</label><input id="emp_iban" value="${esc(E.iban)}" placeholder="ES00 0000 0000 0000 0000 0000"></div>
       <div class="f s5"><label>Titular de la cuenta</label><input id="emp_titular" value="${esc(E.titularCuenta)}"></div>
+      <div class="f s12"><label>Banco</label><input id="emp_banco" value="${esc(E.banco)}" placeholder="Banco Sabadell (código de entidad 0081)">
+        <span class="hint">Como quieras que aparezca escrito en el contrato.</span></div>
     </div>
   </div></div>
 
@@ -4931,6 +5025,7 @@ function cfgTabEmpresa(el){
       cp:val("emp_cp"),ciudad:val("emp_ciudad"),provincia:val("emp_prov"),
       pais:val("emp_pais"),email:val("emp_email"),telefono:val("emp_tel"),
       web:val("emp_web"),iban:val("emp_iban"),titularCuenta:val("emp_titular"),
+      banco:val("emp_banco"),representante:val("emp_repr"),
       comisiones:comisiones}});
     toast("Datos de empresa guardados");
     render();
@@ -6975,6 +7070,7 @@ function hojaRuta(showId){
     <span class="dim tiny">${esc(nomCliente(s.clienteId))} · ${fecha(s.fecha)}</span>
     <div class="spacer"></div>
     ${tienePlantilla(s.clienteId)?`<button class="btn sm" id="rtPlantilla" title="Rellena los huecos con lo de siempre de este artista">Aplicar plantilla</button>`:""}
+    <button class="btn sm" id="rtLimpio" title="Enseña el documento tal como va a salir el PDF: sin las filas vacías">Ocultar vacíos</button>
     <button class="btn sm" id="rtGuardar">Guardar</button>
     <button class="btn primary sm" id="rtPdf">Generar PDF</button>
     <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
@@ -7088,6 +7184,7 @@ function hojaRuta(showId){
   }
   doc.addEventListener("input",e=>{
     crece(e.target);
+    limpiaVacios();
     const i=e.target.dataset.h;
     if(i!==undefined){
       const ini=doc.querySelector(`[data-h="${i}"][data-k="inicio"]`).value;
@@ -7147,14 +7244,539 @@ function hojaRuta(showId){
   const evBox=document.getElementById("rtEvBox");
   if(evBox)evBox.querySelector("input").addEventListener("input",e=>
     evBox.classList.toggle("vacio",!e.target.value.trim()));
+  /* ── Regla de campos vacíos ──
+     Lo que no se rellena no se imprime: primero la fila, luego la sección si
+     todas sus filas están vacías, y luego la página entera. Las páginas se
+     renumeran para que no salga «01 · 03». En pantalla se ve con el botón
+     «Ocultar vacíos», que es la previsualización exacta del PDF. */
+  function limpiaVacios(){
+    const lleno=e=>String(e.value||"").trim()!=="";
+    doc.querySelectorAll(".rt-tbl tr").forEach(tr=>{
+      const cs=[...tr.querySelectorAll("td input,td textarea")];
+      tr.classList.toggle("rt-vacia",cs.length>0&&!cs.some(lleno));
+    });
+    doc.querySelectorAll(".rt-sec").forEach(sec=>{
+      const fs=[...sec.querySelectorAll(".rt-tbl tr")];
+      sec.classList.toggle("rt-vacia",fs.length>0&&fs.every(tr=>tr.classList.contains("rt-vacia")));
+    });
+    /* La primera página no se quita nunca: lleva el titular, el artista y la fecha */
+    const pgs=[...doc.querySelectorAll(".rt-page")];
+    pgs.forEach((pg,i)=>{
+      const ss=[...pg.querySelectorAll(".rt-sec")];
+      pg.classList.toggle("rt-vacia",i>0&&ss.length>0&&ss.every(x=>x.classList.contains("rt-vacia")));
+    });
+    let k=0;
+    pgs.forEach(pg=>{
+      const num=pg.querySelector(".rt-pg");if(!num)return;
+      if(num.dataset.orig===undefined)num.dataset.orig=num.textContent;
+      if(!doc.classList.contains("rt-limpio")||pg.classList.contains("rt-vacia")){num.textContent=num.dataset.orig;return}
+      num.textContent=String(++k).padStart(2,"0");
+    });
+  }
+  function modoLimpio(on){
+    doc.classList.toggle("rt-limpio",on);
+    limpiaVacios();
+    const b=document.getElementById("rtLimpio");
+    if(b){b.classList.toggle("primary",on);b.textContent=on?"Ver todo":"Ocultar vacíos"}
+  }
+  const btnLimpio=document.getElementById("rtLimpio");
+  if(btnLimpio)btnLimpio.addEventListener("click",()=>modoLimpio(!doc.classList.contains("rt-limpio")));
+  /* Aunque se imprima con Cmd+P sin pasar por el botón, la numeración cuadra */
+  window.addEventListener("beforeprint",()=>{doc.classList.add("rt-limpio");limpiaVacios()});
+  limpiaVacios();
   document.getElementById("rtGuardar").addEventListener("click",()=>{guardar();toast("Hoja de ruta guardada")});
-  document.getElementById("rtPdf").addEventListener("click",()=>{guardar();setTimeout(()=>window.print(),60)});
+  /* Antes de imprimir se activa el modo limpio: lo que ve en pantalla al abrirse
+     el diálogo es exactamente el PDF que se va a guardar. */
+  document.getElementById("rtPdf").addEventListener("click",()=>{guardar();modoLimpio(true);setTimeout(()=>window.print(),60)});
   document.getElementById("rtAddH").addEventListener("click",()=>{
     const r=guardar();r.horarios.push({concepto:"",inicio:"",fin:"",notas:""});
     DB.shows=DB.shows.map(x=>x.id===s.id?Object.assign({},x,{ruta:r}):x);save();closeModal();hojaRuta(s.id)});
   document.getElementById("rtAddV").addEventListener("click",()=>{
     const r=guardar();r.viaje.push({trayecto:"",detalle:""});
     DB.shows=DB.shows.map(x=>x.id===s.id?Object.assign({},x,{ruta:r}):x);save();closeModal();hojaRuta(s.id)});
+}
+
+/* ── Clausulado del contrato de actuación ──
+   Transcripción literal de la plantilla que usa MALO (Plantilla_Contrato_Actuacion_MALO.pdf).
+   NO se toca sin pasar por quien la haya validado: es el texto que se firma.
+   Los [CORCHETES] que quedaban en el PDF son ahora campos del generador. */
+const CT_CLAUSULAS=[
+["01","OBJETO DEL CONTRATO Y PROPIEDAD INTELECTUAL",[
+"Este contrato cubre únicamente la actuación del Artista. No incluye la cesión de ningún derecho de propiedad intelectual sobre la actuación, repertorio, imagen, nombre artístico, marca o contenidos del Artista: todos esos derechos quedan reservados al Artista y/o a sus respectivos titulares.",
+"No se permite grabar, fijar, fotografiar profesionalmente, retransmitir, emitir por streaming o explotar sonido o imagen del show, ensayos, pruebas de sonido o backstage, por ningún medio, sin el consentimiento previo y por escrito del Agente.",
+"Cualquier autorización de grabación deberá indicar, como mínimo, finalidad, medios, duración, territorio, plataformas y forma de explotación. La autorización para grabar no implica por sí sola autorización para publicar, monetizar, editar, reutilizar o sublicenciar el contenido."]],
+["02","IMAGEN, PUBLICIDAD, PATROCINIO Y MERCHANDISING",[
+"El Promotor no puede anunciar, comercializar o comunicar públicamente el show hasta que el contrato esté firmado, se haya hecho el primer pago y el Agente haya dado el visto bueno al contenido publicitario, salvo autorización escrita del Agente.",
+"El Promotor puede usar el nombre del Artista, imagen, logotipo y materiales proporcionados por el Agente únicamente para promocionar el evento objeto de este contrato y durante el periodo necesario para dicha promoción.",
+"El Promotor no puede modificar, recortar, alterar, añadir claims o utilizar materiales distintos de los aprobados sin autorización previa y por escrito del Agente.",
+"El billing acordado en las condiciones particulares es vinculante. El Promotor no podrá modificar la posición, tamaño relativo, descripción o condición del Artista en cartelería, entradas, anuncios, redes sociales, web, prensa o cualquier otro soporte sin autorización escrita del Agente.",
+"El Promotor no puede asociar al Artista con ninguna marca, patrocinador, producto, partido político, organización, causa o campaña sin acuerdo previo y por escrito del Agente.",
+"El Promotor no puede comprometer al Artista a entrevistas, ruedas de prensa, meet & greets, firmas, contenido para redes, sesiones fotográficas u otras apariciones públicas sin autorización previa y por escrito del Agente.",
+"El Agente se reserva el derecho a gestionar patrocinios y merchandising del Artista como considere oportuno, incluida la venta dentro del recinto, sin que esto genere ninguna compensación para el Promotor. El Promotor debe ceder gratis una mesa con acceso a corriente para la venta de merchandising del Artista.",
+"El Promotor no podrá utilizar el nombre, imagen, marca, logotipo, fotografías o cualquier elemento identificativo del Artista para promocionar otros eventos, artistas, productos o actividades no incluidos expresamente en este contrato."]],
+["03","RECINTO, ESCENARIO Y CAMERINOS",[
+"El Promotor paga y proporciona sonido e iluminación profesional según el Rider Técnico acordado (incluso por email, que también forma parte del contrato). El Artista no tendrá restricciones de sonido sin su consentimiento.",
+"Si el equipo no cumple lo acordado, no está disponible a tiempo o no funciona correctamente y ello impide o compromete materialmente la actuación, el Agente podrá cancelar la actuación sin penalización para el Artista, sin perjuicio del derecho a reclamar el caché y los gastos que correspondan.",
+"Si el recinto es al aire libre, el Promotor debe proteger el escenario de la lluvia y el viento, y asegurarse de que el equipo y el área del Artista se mantengan secos y seguros.",
+"El Promotor contrata y paga el backline exclusivo según las especificaciones del Artista.",
+"El Promotor proporciona camerinos según las especificaciones del Artista: espacio razonable, que se puedan cerrar con llave, con baño propio, espejo y productos de aseo. También hará lo posible por dar al Agente un espacio de oficina cerca de los camerinos (mesa, silla y wifi).",
+"El Artista dispone de un mínimo de 10 entradas normales y 10 pases de backstage, sin contar a su equipo, salvo que las condiciones particulares indiquen una cantidad diferente.",
+"El Promotor será responsable de mantener el recinto dentro del aforo autorizado y de garantizar las condiciones de seguridad exigibles para el Artista, su equipo y el público."]],
+["04","RIDERS, CONTROL CREATIVO Y HORARIOS",[
+"El Promotor cumple el Rider Técnico y de Hospitalidad acordados y contrata todo el personal y medios necesarios para el evento: electricidad, backline, sonido, técnicos, carga y descarga, producción, electricista, seguridad, personal sanitario y cualquier otro medio exigido por el recinto o por el Rider.",
+"El Agente y el Artista tienen control creativo sobre la actuación: contenido, presentación, decoración y qué música o vídeos se ponen justo antes y después del show.",
+"El Promotor reserva y paga el hotel según el Rider de Hospitalidad.",
+"El Promotor envía la hoja de ruta al Agente (horarios, direcciones, contactos, hotel y número de reserva) 5 días antes del evento, salvo que las partes acuerden otro plazo.",
+"El Promotor contrata y paga los traslados entre hotel, recinto y aeropuerto, coordinados con el Tour Manager.",
+"Los gastos que el Artista haya pagado por su cuenta y que correspondan al Promotor (alojamiento, hospitalidad, producción, transporte u otros previamente aprobados) se le reembolsan el día del evento, durante el soundcheck, en efectivo o mediante transferencia inmediata.",
+"Si el Promotor se retrasa más de 30 minutos respecto del horario acordado por causas imputables al Promotor, el Agente y el Artista podrán reducir la duración del show en el mismo tiempo de retraso, sin que esto afecte al caché.",
+"El show no puede pasar de las 03:00 de la madrugada sin aprobación previa del management o la Agencia.",
+"Ningún cambio de fecha, recinto, ciudad, horario principal, formato del evento o condiciones esenciales será válido sin aprobación previa y por escrito del Agente."]],
+["05","EXCLUSIVIDAD TERRITORIAL",[
+"Cuando así se indique en las condiciones particulares, el Promotor tendrá una exclusividad territorial respecto del Artista durante el periodo y radio allí establecidos. Durante dicho periodo, el Agente no podrá confirmar otra actuación pública del mismo Artista dentro del radio acordado sin autorización del Promotor.",
+"La exclusividad no impedirá actuaciones privadas, festivales, compromisos previamente confirmados, apariciones promocionales o actuaciones cuya naturaleza sea distinta, salvo que las condiciones particulares indiquen expresamente lo contrario.",
+"La exclusividad quedará condicionada al cumplimiento puntual de las obligaciones de pago del Promotor. Cualquier impago extinguirá automáticamente la exclusividad."]],
+["06","OTRAS OBLIGACIONES DEL PROMOTOR",[
+"El Promotor es el único responsable de pagar el caché acordado, aunque haya delegado la contratación en otra persona o empresa.",
+"El Promotor gestiona y paga todos los permisos y licencias necesarios: autorizaciones administrativas, visados cuando correspondan, SGAE y demás entidades de gestión, prevención de riesgos laborales, Seguridad Social, obligaciones fiscales, seguros y cualquier otro requisito legal relacionado con el evento.",
+"El Promotor respeta el aforo permitido y garantiza la seguridad del Artista y su equipo, comprometiéndose a indemnizar cualquier daño o pérdida derivado de incumplimientos imputables al Promotor.",
+"El Promotor indemniza al Agente y al Artista frente a reclamaciones de terceros derivadas del evento cuando sean consecuencia de actos u omisiones imputables al Promotor, al recinto, a sus proveedores o al personal contratado por ellos.",
+"El Promotor deberá mantener vigente un seguro de responsabilidad civil adecuado al evento y, cuando proceda, entregar copia de la póliza o certificado de cobertura al Agente antes de la actuación.",
+"Si el Promotor cancela el evento sin causa justificada, deberá pagar el 100% del caché acordado más los gastos no reembolsables razonablemente incurridos por el Agente, Artista o su equipo en relación con la actuación.",
+"Si el evento se cancela por presiones políticas, religiosas o sociales dirigidas contra el Artista o su participación, el Promotor también deberá pagar el 100% del caché, salvo que la cancelación sea consecuencia de un supuesto de fuerza mayor expresamente regulado en este contrato.",
+"El Promotor informa semanalmente al Agente sobre la venta de entradas desde el inicio de la comercialización y hasta la celebración del evento.",
+"El Promotor da entrada gratuita a los invitados del Artista según las condiciones particulares.",
+"En los 15 días siguientes al evento, el Promotor entrega al Agente la documentación correspondiente a la liquidación y/o declaración ante SGAE o la entidad de gestión que corresponda.",
+"Si se ha pactado un porcentaje sobre beneficios, el Promotor justificará todos los gastos computables con facturas y documentación suficiente. El Agente podrá solicitar comprobación razonable de dichas cuentas."]],
+["07","PAGOS, IMPAGO Y ACEPTACIÓN",[
+"El calendario de pagos indicado en las condiciones económicas es esencial. Si el Promotor no realiza cualquiera de los pagos en la fecha pactada, el Agente podrá resolver el contrato y cancelar la actuación de inmediato, con derecho a reclamar las cantidades que correspondan conforme a este contrato.",
+"Si el Promotor realiza el primer pago y no formula objeción expresa y por escrito dentro de los 7 días siguientes, se entenderá que acepta las condiciones del contrato, sin perjuicio de que las partes deban formalizar la firma cuando así se requiera.",
+"Si el Promotor anuncia públicamente, comercializa entradas o promociona el evento antes de la firma, dicha actuación se considerará aceptación expresa de las condiciones del presente contrato, sin perjuicio de la prohibición de anunciar antes del primer pago y aprobación del Agente."]],
+["08","CANCELACIÓN, REPROGRAMACIÓN Y FUERZA MAYOR",[
+"Se considera fuerza mayor cualquier acontecimiento imprevisible o inevitable, ajeno al control razonable de las partes, que imposibilite legal o materialmente la celebración de la actuación, incluyendo, entre otros, desastres naturales graves, incendio, guerra, terrorismo, epidemias o pandemias, restricciones gubernamentales, cierre administrativo del recinto, disturbios graves, huelgas generales o condiciones meteorológicas extremas que hagan insegura la celebración.",
+"La parte que conozca un supuesto de fuerza mayor deberá comunicarlo a la otra parte tan pronto como sea razonablemente posible y aportar, cuando proceda, documentación acreditativa.",
+"Ante un supuesto de fuerza mayor, las partes intentarán de buena fe reprogramar la actuación en una nueva fecha razonablemente próxima y en condiciones económicas equivalentes.",
+"Si la actuación se reprograma, las cantidades ya abonadas se imputarán a la nueva fecha, salvo acuerdo escrito en contrario.",
+"Si no fuera posible reprogramar la actuación dentro de un plazo razonable, cada parte asumirá sus propios gastos, salvo que la ley aplicable o las condiciones particulares establezcan otra cosa.",
+"La enfermedad grave, accidente o imposibilidad física del Artista que impida razonablemente actuar será considerada causa de imposibilidad del Artista y podrá dar lugar a reprogramación. El Agente comunicará la situación tan pronto como sea posible. Las cantidades recibidas se imputarán preferentemente a la nueva fecha acordada o se liquidarán conforme a lo que acuerden las partes.",
+"Si la cancelación es imputable al Promotor, no constituye fuerza mayor y no deriva de un incumplimiento del Artista, se aplicará la penalización del 100% del caché más los gastos no reembolsables.",
+"La cancelación por incumplimiento del Promotor, incluyendo impago, falta de permisos, incumplimiento grave del Rider, falta de condiciones de seguridad o imposibilidad de disponer del recinto en las condiciones pactadas, se considerará cancelación imputable al Promotor."]],
+["09","RETRASOS Y CAMBIOS DE HORARIO",[
+"El horario de actuación acordado es esencial. Cualquier cambio deberá ser aprobado por el Agente.",
+"Si el retraso o cambio de horario es imputable al Promotor y afecta al tiempo disponible para la actuación, el Artista podrá reducir proporcionalmente la duración del show sin reducción del caché.",
+"Si el retraso compromete la seguridad, el transporte, las obligaciones posteriores del Artista o las condiciones esenciales pactadas, el Agente podrá cancelar la actuación sin penalización para el Artista y reclamar las cantidades que correspondan.",
+"El Promotor no podrá modificar unilateralmente el orden de actuación, horario de prueba de sonido, acceso al recinto, condiciones de camerino o cualquier elemento esencial del Rider."]],
+["10","RESPONSABILIDAD E INDEMNIDAD",[
+"Cada parte responderá de los daños directos que cause por dolo, culpa o incumplimiento de sus obligaciones, dentro de los límites permitidos por la legislación aplicable.",
+"Salvo que legalmente no pueda limitarse, el Agente no responderá frente al Promotor por lucro cesante, pérdida de beneficios, pérdida de oportunidad, daños indirectos, pérdida de negocio o daños reputacionales.",
+"La responsabilidad máxima contractual del Agente frente al Promotor, salvo dolo o aquellos supuestos que legalmente no puedan limitarse, quedará limitada al importe neto del caché efectivamente abonado o pendiente de abono.",
+"El Promotor mantendrá indemnes al Agente, Artista y su equipo frente a reclamaciones de terceros que deriven del recinto, seguridad, personal, proveedores, permisos, licencias, instalaciones o cualquier incumplimiento imputable al Promotor."]],
+["11","CONFIDENCIALIDAD Y PROTECCIÓN DE DATOS",[
+"Las partes se comprometen a mantener confidenciales los términos económicos y comerciales del presente contrato, salvo cuando su divulgación sea necesaria para asesores, contables, abogados, entidades financieras, administraciones públicas o cuando exista obligación legal.",
+"De acuerdo con la normativa de protección de datos, los datos de contacto de las partes se incorporarán al sistema de tratamiento de {AGENTE}, con CIF {AGENTE_NIF} y domicilio en {AGENTE_DIR}, con la finalidad de gestionar la relación contractual, administrativa, contable y fiscal.",
+"Los datos podrán compartirse con asesores, entidades financieras, administraciones públicas, proveedores y terceros cuando sea necesario para ejecutar el contrato o cumplir obligaciones legales.",
+"Puedes ejercer los derechos de acceso, rectificación, limitación, supresión, portabilidad y oposición escribiendo a {AGENTE_DIR} o {AGENTE_EMAIL}."]],
+["12","CUÁNDO ENTRA EN VIGOR EL CONTRATO",[
+"El contrato entra en vigor desde su firma por ambas partes, sin perjuicio de que el pago del anticipo, la promoción pública o cualquier otra actuación inequívoca del Promotor pueda constituir aceptación de sus términos conforme a las cláusulas anteriores.",
+"Los cambios que el Promotor proponga al contrato o a los riders no son válidos hasta que el Agente los apruebe por escrito.",
+"Este contrato sustituye cualquier acuerdo anterior sobre el mismo evento, salvo aquellos anexos o acuerdos escritos que se incorporen expresamente."]],
+["13","RESOLUCIÓN DEL CONTRATO",[
+"Si alguna de las partes incumple de forma sustancial sus obligaciones, la otra parte podrá resolver el contrato y reclamar la indemnización correspondiente, por acuerdo o por vía judicial.",
+"En particular, si no se paga en la fecha pactada, el Agente puede resolver el contrato y cancelar la actuación de inmediato.",
+"La resolución del contrato no afectará a las obligaciones económicas ya devengadas ni a las cláusulas que por su naturaleza deban continuar vigentes, incluyendo propiedad intelectual, confidencialidad, responsabilidad, indemnidad y jurisdicción."]],
+["14","CESIÓN",[
+"Ninguna de las partes puede ceder, transferir o gravar a favor de terceros los derechos u obligaciones de este contrato, ni total ni parcialmente, sin consentimiento previo y por escrito de la otra parte.",
+"Quien firme en nombre del Promotor debe hacerlo como representante legal o apoderado, y el Agente puede pedir que lo acredite.",
+"La subcontratación de servicios por parte del Promotor no le exime de ninguna obligación ni responsabilidad derivada del presente contrato."]],
+["15","LEY Y JURISDICCIÓN",[
+"Este contrato se rige por la ley española.",
+"Cualquier duda o disputa sobre su interpretación o cumplimiento se somete a los juzgados y tribunales de {JURISDICCION}, salvo que una norma imperativa establezca otra jurisdicción."]],
+["16","INTEGRIDAD DEL CONTRATO",[
+"El presente contrato, junto con sus condiciones particulares y riders técnico y de hospitalidad, constituye el acuerdo íntegro entre las partes respecto de la actuación.",
+"Si alguna disposición fuera declarada nula o inaplicable, las demás disposiciones permanecerán vigentes y las partes intentarán sustituir la disposición afectada por otra válida que produzca un efecto económico y jurídico lo más parecido posible.",
+"La falta de ejercicio inmediato de cualquier derecho por una de las partes no supondrá renuncia a dicho derecho."]]
+];
+
+/* ════════ GENERADOR DE CONTRATOS ════════
+   Formulario a la izquierda, documento A4 a la derecha que se repinta con cada
+   tecla: lo que se ve ES lo que sale en el PDF. El clausulado vive en
+   CT_CLAUSULAS y no se edita desde la app a propósito — es el texto que se firma.
+
+   Regla de campos vacíos (igual que en la hoja de ruta): una condición
+   particular sin rellenar NO se imprime. Antes salía «[DETALLES]» en el papel,
+   que es peor que no decir nada. Lo que se ha quitado se avisa en el editor. */
+const CT_PART=[
+  ["artista","Artista","Nombre artístico"],
+  ["ciudad","Ciudad",""],
+  ["recinto","Recinto","Nombre del recinto"],
+  ["fechaAct","Fecha de la actuación","DD/MM/AAAA"],
+  ["duracion","Duración del show","90 min"],
+  ["cache","Caché garantizado","—"],
+  ["logistica","Logística","Transporte"],
+  ["hospedaje","Hospedaje","Habitaciones y condiciones"],
+  ["ground","Ground","Traslados en destino"],
+  ["dietas","Dietas",""],
+  ["vip","Acceso VIP / invitados","Nº entradas + Nº pases backstage"],
+  ["exclusividad","Exclusividad / radius","Detalles o «no aplica»"]
+];
+const CT_DEF_BANCO="Banco Sabadell (código de entidad 0081)";
+
+/* Duración del show a partir de los horarios del show, si están puestos */
+function ctDuracion(s){
+  const h=s.horarios||{};
+  const d=durMin(h.show,h.fin);
+  return d?(d%60?`${Math.floor(d/60)}h ${pad(d%60)} min`:`${Math.floor(d/60)}h`):"";
+}
+/* Datos de partida del contrato: show + promotor + cliente + datos de empresa.
+   Igual que rutaDe(): solo rellena lo que no esté ya guardado en el contrato. */
+function contratoDe(s){
+  const c=cliente(s.clienteId)||{},p=DB.promotores.find(x=>x.id===s.promotorId)||{};
+  const E=empresaCfg(),cc=calc(s);
+  const C=JSON.parse(JSON.stringify(s.contrato||{}));
+  const d=(k,v)=>{if(C[k]===undefined)C[k]=v||""};
+  d("ciudadFirma",E.ciudad||"Barcelona");
+  d("fechaFirma",hoy());
+  d("jurisdiccion",p.jurisdiccion||E.ciudad||"Barcelona");
+  d("artista",c.nombre||c.nombreReal||"");
+  d("ciudad",s.ciudad||"");
+  d("recinto",[p.nombre||""].concat(colabsDe(s).map(nomPromotor)).filter(Boolean).join(" + "));
+  d("fechaAct",s.fecha?fecha(s.fecha):"");
+  d("duracion",ctDuracion(s));
+  d("logistica",s.transporte||"");
+  d("hospedaje",s.alojamiento||"");
+  d("ground","");d("dietas","");d("vip","");d("exclusividad","");
+  if(C.cache===undefined)C.cache=cc.bruto;
+  if(C.ivaPct===undefined)C.ivaPct=(s.ivaPct!==undefined&&s.ivaPct!=="")?n(s.ivaPct):21;
+  C.prom=Object.assign({
+    modo:p.razonSocial?"sociedad":"autonomo",
+    nombre:p.firmante||p.contacto||"",
+    dni:p.firmanteDni||"",
+    sociedad:p.razonSocial||"",
+    direccion:p.direccion||"",
+    cif:p.cif||""},C.prom||{});
+  C.agente=Object.assign({
+    nombre:E.razonSocial||(DB.empresa||{}).nombre||"MALO MANAGEMENT",
+    nif:E.nif||"",
+    representante:E.representante||"",
+    direccion:[E.direccion,[E.cp,E.ciudad].filter(Boolean).join(" ")].filter(Boolean).join(", "),
+    email:E.email||""},C.agente||{});
+  C.banco=Object.assign({
+    titular:E.titularCuenta||"",
+    banco:E.banco||CT_DEF_BANCO,
+    iban:E.iban||""},C.banco||{});
+  if(!Array.isArray(C.pagos)||!C.pagos.length)
+    C.pagos=[{concepto:"Anticipo",fecha:"",subtotal:""},
+             {concepto:"Pago / Resto",fecha:"",subtotal:n(C.cache)}];
+  return C;
+}
+/* Los importes con el IVA que toque. Se calcula todo aquí para que el documento
+   y el aviso de descuadre lean exactamente los mismos números. */
+function ctCalc(C){
+  const iva=n(C.ivaPct);
+  const filas=C.pagos.map(p=>{
+    const sub=n(p.subtotal),i=sub*iva/100;
+    return {concepto:p.concepto||"",fecha:p.fecha||"",sub,iva:i,tot:sub+i,
+      vacio:!String(p.subtotal==null?"":p.subtotal).trim()&&!String(p.fecha||"").trim()};
+  });
+  const vis=filas.filter(f=>!f.vacio);
+  const t=vis.reduce((a,f)=>({sub:a.sub+f.sub,iva:a.iva+f.iva,tot:a.tot+f.tot}),{sub:0,iva:0,tot:0});
+  return {iva,filas,vis,t,cache:n(C.cache),descuadre:Math.abs(t.sub-n(C.cache))>0.01};
+}
+/* Valor impreso de cada condición particular. Devuelve "" cuando no hay nada
+   que imprimir, y quien llama decide si quita la fila. */
+function ctValorPart(C,k){
+  if(k==="cache")return n(C.cache)?`${eur(C.cache)} + IVA${n(C.ivaPct)?` (${n(C.ivaPct)}%)`:""}`:"";
+  return String(C[k]||"").trim();
+}
+function ctPartes(C){
+  const A=C.agente,P=C.prom;
+  const a=[`Entre <b>${esc(A.nombre)}</b>`,
+    A.nif?`con CIF/NIF ${esc(A.nif)}`:"",
+    A.representante?`representada por ${esc(A.representante)}`:"",
+    "actuando como Agente"+(A.direccion?` y domicilio en ${esc(A.direccion)}`:""),
+    "(en adelante, el Agente)."].filter(Boolean).join(", ").replace(", (en adelante"," (en adelante");
+  const soc=P.modo==="sociedad";
+  const b=[`Y <b>${esc(P.nombre||"—")}</b>`,
+    P.dni?`con DNI ${esc(P.dni)}`:"",
+    soc?`actuando en representación de <b>${esc(P.sociedad||"—")}</b>`:"actuando en nombre propio como autónomo",
+    P.direccion?`con domicilio en ${esc(P.direccion)}`:"",
+    P.cif?`y ${soc?"CIF":"NIF"} ${esc(P.cif)}`:"",
+    "(en adelante, el Promotor)."].filter(Boolean).join(", ").replace(", (en adelante"," (en adelante");
+  return [a,b];
+}
+/* El documento entero. Es una función pura: mismo contrato, mismo HTML. */
+function ctDoc(C){
+  const K=ctCalc(C),A=C.agente;
+  const vars=t=>String(t)
+    .replace(/\{AGENTE\}/g,esc(A.nombre))
+    .replace(/\{AGENTE_NIF\}/g,esc(A.nif||"—"))
+    .replace(/\{AGENTE_DIR\}/g,esc(A.direccion||"—"))
+    .replace(/\{AGENTE_EMAIL\}/g,esc(A.email||"—"))
+    .replace(/\{JURISDICCION\}/g,esc(C.jurisdiccion||"—"));
+  const part=CT_PART.map(([k,lab])=>[lab,ctValorPart(C,k)]).filter(x=>x[1]);
+  const nEuro=v=>`<td class="n">${eur(v)}</td>`;
+  return `
+  <div class="ct-hd">
+    <h1>Contrato de actuación</h1>
+    <div class="ct-sub">En ${esc(C.ciudadFirma||"—")} · ${esc(C.fechaFirma?fecha(C.fechaFirma):"—")}</div>
+  </div>
+  ${ctPartes(C).map(p=>`<p class="ct-p">${p}</p>`).join("")}
+  <p class="ct-p">Ambas partes acuerdan: el Agente pone al Artista a disposición del Promotor para una actuación,
+    en las condiciones particulares y generales que se detallan a continuación, junto con sus anexos correspondientes.</p>
+  ${part.length?`<table class="ct-part">${part.map(([lab,v])=>
+    `<tr><th>${esc(lab)}</th><td>${esc(v)}</td></tr>`).join("")}</table>`:""}
+  <p class="ct-p">Este contrato lo forman estas condiciones particulares, las condiciones generales que siguen, y los
+    riders técnico y de hospitalidad que acuerden ambas partes (antes o después de firmar). Si hay contradicción entre
+    las condiciones generales y los riders, gana lo que digan los riders.</p>
+  <h2 class="ct-h2">Condiciones económicas</h2>
+  <table class="ct-eco">
+    <thead><tr><th>Concepto</th><th>Fecha límite</th><th class="n">Subtotal</th><th class="n">IVA</th><th class="n">Total</th></tr></thead>
+    <tbody>${K.vis.map(f=>`<tr><td>${esc(f.concepto)}</td><td>${esc(f.fecha?fecha(f.fecha):"")}</td>
+      ${nEuro(f.sub)}${nEuro(f.iva)}${nEuro(f.tot)}</tr>`).join("")}</tbody>
+    <tfoot><tr><td colspan="2">Total</td>${nEuro(K.t.sub)}${nEuro(K.t.iva)}${nEuro(K.t.tot)}</tr></tfoot>
+  </table>
+  <p class="ct-p">Los pagos se hacen por transferencia bancaria a esta cuenta:</p>
+  <table class="ct-banco">
+    ${[["Titular",C.banco.titular],["Banco",C.banco.banco],["IBAN",C.banco.iban]]
+      .filter(x=>String(x[1]||"").trim())
+      .map(([k,v])=>`<tr><th>${k}</th><td>${esc(v)}</td></tr>`).join("")}
+  </table>
+  <p class="ct-p">El Promotor manda el justificante de pago por email a ${esc(A.email||"—")}, indicando el número de
+    factura, el artista y la localidad del evento.</p>
+  ${CT_CLAUSULAS.map(([num,tit,ps])=>`<section class="ct-cl">
+    <h3><span>${num}</span> ${esc(tit)}</h3>
+    ${ps.map(p=>`<p>${vars(esc(p))}</p>`).join("")}
+  </section>`).join("")}
+  <p class="ct-p ct-cierre">En prueba de conformidad, ambas partes firman este contrato y sus anexos, por duplicado,
+    en el lugar y fecha indicados arriba.</p>
+  <div class="ct-firmas">
+    <div><span class="ct-rot">El Agente</span>
+      <b>${esc(A.nombre)}</b>
+      <span>Fdo.: ${esc(A.representante||"—")}</span><i></i></div>
+    <div><span class="ct-rot">El Promotor</span>
+      <b>${esc(C.prom.modo==="sociedad"?(C.prom.sociedad||"—"):(C.prom.nombre||"—"))}</b>
+      <span>Fdo.: ${esc(C.prom.nombre||"—")}</span><i></i></div>
+  </div>`;
+}
+
+/* El editor: formulario a la izquierda, documento a la derecha. Cada tecla
+   repinta el documento, así que la previsualización no puede desincronizarse
+   del PDF: es literalmente el mismo nodo que se imprime. */
+function contratoShow(showId){
+  const s=DB.shows.find(x=>x.id===showId);if(!s)return;
+  let C=contratoDe(s);
+  const campo=(path,lab,extra)=>{
+    const v=path.split(".").reduce((o,k)=>(o||{})[k],C);
+    const a=Object.assign({t:"text",s:6,ph:"",hint:""},extra||{});
+    return `<div class="f s${a.s}"><label>${lab}</label>
+      <input type="${a.t}" data-c="${path}" value="${esc(v==null?"":v)}" placeholder="${esc(a.ph)}"${a.t==="number"?' step="0.01"':""}>
+      ${a.hint?`<span class="hint">${a.hint}</span>`:""}</div>`;
+  };
+  openModal(`
+  <header><h3>Contrato de actuación</h3>
+    <span class="dim tiny">${esc(nomCliente(s.clienteId))} · ${fecha(s.fecha)}</span>
+    <div class="spacer"></div>
+    <button class="btn sm" id="ctMail" title="Copia al portapapeles el email para mandar el contrato">Copiar email</button>
+    <button class="btn sm" id="ctGuardar">Guardar</button>
+    <button class="btn primary sm" id="ctPdf">Generar PDF</button>
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    ${DB.sinContrato?`<div class="rt-hint noprint" style="color:var(--alert)">Falta ejecutar <strong>supabase/contratos.sql</strong>: el contrato se puede rellenar e imprimir, pero <strong>no se guarda</strong>.</div>`:""}
+    <div class="ct-wrap">
+      <div class="ct-form noprint">
+        <div class="section-title">Firma</div>
+        <div class="fgrid">
+          ${campo("ciudadFirma","Ciudad de firma",{s:6})}
+          ${campo("fechaFirma","Fecha de firma",{s:6,t:"date"})}
+          ${campo("jurisdiccion","Ciudad de jurisdicción",{s:12,hint:"Cláusula 15 · juzgados a los que se somete el contrato"})}
+        </div>
+
+        <div class="section-title">El Promotor</div>
+        <div class="fgrid">
+          <div class="f s12"><label>Firma como</label><select data-c="prom.modo">
+            <option value="autonomo" ${C.prom.modo!=="sociedad"?"selected":""}>Autónomo · en nombre propio</option>
+            <option value="sociedad" ${C.prom.modo==="sociedad"?"selected":""}>En representación de una sociedad</option>
+          </select></div>
+          ${campo("prom.nombre","Nombre y apellidos del firmante",{s:6})}
+          ${campo("prom.dni","DNI del firmante",{s:6})}
+          ${campo("prom.sociedad","Sociedad promotora",{s:6,hint:"Solo si firma en representación de una empresa"})}
+          ${campo("prom.cif","CIF / NIF",{s:6})}
+          ${campo("prom.direccion","Domicilio completo",{s:12,ph:"Calle, número, CP y ciudad"})}
+          <div class="f s12"><span class="hint">Estos datos se guardan en la ficha del contacto al pulsar
+            <strong style="color:var(--bone)">Guardar</strong>: el próximo contrato con
+            ${esc(nomPromotor(s.promotorId))} sale ya relleno.</span></div>
+        </div>
+
+        <div class="section-title">Condiciones particulares</div>
+        <div class="fgrid">
+          ${campo("artista","Artista",{s:6})}
+          ${campo("ciudad","Ciudad",{s:6})}
+          ${campo("recinto","Recinto",{s:12})}
+          ${campo("fechaAct","Fecha de la actuación",{s:6,ph:"DD/MM/AAAA"})}
+          ${campo("duracion","Duración del show",{s:6,ph:"90 min"})}
+          ${campo("cache","Caché garantizado (€, sin IVA)",{s:6,t:"number"})}
+          ${campo("ivaPct","IVA (%)",{s:6,t:"number"})}
+          ${campo("logistica","Logística",{s:6,ph:"Transporte"})}
+          ${campo("hospedaje","Hospedaje",{s:6,ph:"Habitaciones y condiciones"})}
+          ${campo("ground","Ground",{s:6,ph:"Traslados en destino"})}
+          ${campo("dietas","Dietas",{s:6})}
+          ${campo("vip","Acceso VIP / invitados",{s:6,ph:"10 entradas + 10 backstage"})}
+          ${campo("exclusividad","Exclusividad / radius",{s:6,ph:"No aplica"})}
+          <div class="f s12"><span class="hint">Lo que dejes en blanco <strong style="color:var(--bone)">no sale
+            en el PDF</strong>: desaparece la fila entera en vez de imprimir un hueco.</span></div>
+        </div>
+
+        <div class="section-title">Condiciones económicas
+          <div class="spacer"></div>
+          <button class="btn ghost sm" id="ctRepartir" type="button" title="Anticipo del 50% y resto al final">50 / 50</button>
+        </div>
+        <div id="ctPagos"></div>
+        <button class="btn ghost sm" id="ctAddPago" type="button" style="margin-top:8px">+ Pago</button>
+        <div id="ctAviso"></div>
+
+        <div class="section-title">Cuenta de cobro</div>
+        <div class="fgrid">
+          ${campo("banco.titular","Titular",{s:12})}
+          ${campo("banco.banco","Banco",{s:12})}
+          ${campo("banco.iban","IBAN",{s:12})}
+          <div class="f s12"><span class="hint">Sale de <strong style="color:var(--bone)">Ajustes → Datos empresa</strong>.
+            Lo que cambies aquí solo afecta a este contrato.</span></div>
+        </div>
+
+        <div class="section-title">El Agente</div>
+        <div class="fgrid">
+          ${campo("agente.nombre","Razón social",{s:12})}
+          ${campo("agente.nif","CIF / NIF",{s:6})}
+          ${campo("agente.representante","Representada por",{s:6})}
+          ${campo("agente.direccion","Domicilio",{s:12})}
+          ${campo("agente.email","Email de contacto",{s:12})}
+        </div>
+      </div>
+      <div class="ct-prev">
+        <div class="rt-hint noprint">Esto es exactamente el PDF. <strong style="color:var(--bone)">Generar PDF</strong>
+          abre el diálogo de impresión: destino <strong style="color:var(--bone)">Guardar como PDF</strong>, tamaño A4
+          y encabezados del navegador desactivados. Se guarda solo antes de imprimir.</div>
+        <div class="ct" id="ctDoc"></div>
+      </div>
+    </div>
+  </div>`);
+
+  const doc=document.getElementById("ctDoc");
+  const cajaPagos=document.getElementById("ctPagos");
+  const aviso=document.getElementById("ctAviso");
+  const form=document.querySelector(".ct-form");
+
+  function pintaPagos(){
+    cajaPagos.innerHTML=C.pagos.map((p,i)=>`<div class="ct-pago">
+      <input data-pg="${i}" data-k="concepto" value="${esc(p.concepto||"")}" placeholder="Concepto">
+      <input data-pg="${i}" data-k="fecha" type="date" value="${esc(p.fecha||"")}">
+      <input data-pg="${i}" data-k="subtotal" type="number" step="0.01" value="${(p.subtotal===""||p.subtotal==null)?"":n(p.subtotal)}" placeholder="Subtotal €">
+      <button class="btn ghost sm" data-quita="${i}" type="button" title="Quitar esta línea">×</button>
+    </div>`).join("");
+  }
+  /* Un A4 son 794px y la columna del documento es más estrecha: se reduce el
+     documento entero hasta el hueco que haya, y al imprimir vuelve a 1. */
+  function encaja(){
+    const p=doc.parentElement;if(!p)return;
+    const hueco=p.clientWidth;
+    if(hueco>0)doc.style.setProperty("--ct-z",Math.min(1,hueco/(210*96/25.4)).toFixed(4));
+  }
+  function pinta(){
+    doc.innerHTML=ctDoc(C);
+    const K=ctCalc(C);
+    const fuera=CT_PART.filter(([k])=>!ctValorPart(C,k)).map(([,lab])=>lab);
+    aviso.innerHTML=[
+      K.descuadre?`<p class="hint" style="color:var(--alert);margin-top:10px">Los pagos suman
+        ${eur(K.t.sub)} y el caché es ${eur(K.cache)} — ${eur(K.cache-K.t.sub)} de diferencia.</p>`:"",
+      fuera.length?`<p class="hint" style="margin-top:10px">Fuera del PDF por estar en blanco:
+        ${fuera.map(esc).join(" · ")}.</p>`:""
+    ].join("");
+    encaja();
+  }
+  window.addEventListener("resize",encaja);
+
+  const pon=(path,v)=>{
+    const ks=path.split("."),last=ks.pop();
+    let o=C;ks.forEach(k=>{o[k]=o[k]||{};o=o[k]});
+    o[last]=v;
+  };
+  const alEscribir=e=>{
+    const t=e.target;
+    if(t.dataset.c){pon(t.dataset.c,t.value);pinta();return}
+    if(t.dataset.pg!==undefined){
+      const i=+t.dataset.pg;
+      C.pagos[i]=C.pagos[i]||{};
+      C.pagos[i][t.dataset.k]=t.value;
+      pinta();
+    }
+  };
+  form.addEventListener("input",alEscribir);
+  form.addEventListener("change",alEscribir);
+  cajaPagos.addEventListener("click",e=>{
+    const b=e.target.closest("[data-quita]");if(!b)return;
+    if(C.pagos.length<2){toast("Tiene que quedar al menos una línea de pago");return}
+    C.pagos.splice(+b.dataset.quita,1);pintaPagos();pinta();
+  });
+  document.getElementById("ctAddPago").addEventListener("click",()=>{
+    C.pagos.push({concepto:"",fecha:"",subtotal:""});pintaPagos();pinta();
+  });
+  document.getElementById("ctRepartir").addEventListener("click",()=>{
+    const mitad=Math.round(n(C.cache)/2*100)/100;
+    while(C.pagos.length<2)C.pagos.push({concepto:"",fecha:"",subtotal:""});
+    C.pagos=C.pagos.slice(0,2);
+    C.pagos[0].concepto=C.pagos[0].concepto||"Anticipo";
+    C.pagos[0].subtotal=mitad;
+    C.pagos[1].concepto=C.pagos[1].concepto||"Pago / Resto";
+    C.pagos[1].subtotal=Math.round((n(C.cache)-mitad)*100)/100;
+    pintaPagos();pinta();
+  });
+
+  /* Guardar hace dos cosas: el contrato al show, y los datos fiscales del
+     firmante a la ficha del contacto, que es donde sirven para la próxima vez. */
+  function guardar(){
+    DB.shows=DB.shows.map(x=>x.id===s.id?Object.assign({},x,{contrato:JSON.parse(JSON.stringify(C))}):x);
+    const p=DB.promotores.find(x=>x.id===s.promotorId);
+    if(p&&!DB.sinPromotorFiscal){
+      const nuevo={};
+      if(C.prom.nombre&&C.prom.nombre!==p.firmante)nuevo.firmante=C.prom.nombre;
+      if(C.prom.dni&&C.prom.dni!==p.firmanteDni)nuevo.firmanteDni=C.prom.dni;
+      if(C.prom.modo==="sociedad"&&C.prom.sociedad&&C.prom.sociedad!==p.razonSocial)nuevo.razonSocial=C.prom.sociedad;
+      if(C.prom.direccion&&C.prom.direccion!==p.direccion)nuevo.direccion=C.prom.direccion;
+      if(C.jurisdiccion&&C.jurisdiccion!==p.jurisdiccion)nuevo.jurisdiccion=C.jurisdiccion;
+      if(C.prom.cif&&!p.cif)nuevo.cif=C.prom.cif;
+      if(Object.keys(nuevo).length)
+        DB.promotores=DB.promotores.map(x=>x.id===p.id?Object.assign({},x,nuevo):x);
+    }
+    save();
+  }
+  document.getElementById("ctGuardar").addEventListener("click",()=>{guardar();toast("Contrato guardado")});
+  document.getElementById("ctPdf").addEventListener("click",()=>{guardar();setTimeout(()=>window.print(),60)});
+  document.getElementById("ctMail").addEventListener("click",()=>{
+    const K=ctCalc(C);
+    const txt=`Asunto: Contrato de actuación · ${C.artista||""} · ${C.ciudad||""} · ${C.fechaAct||""}
+
+Hola${C.prom.nombre?" "+String(C.prom.nombre).split(" ")[0]:""},
+
+Te adjunto el contrato de actuación de ${C.artista||"el artista"} para ${C.fechaAct||"la fecha acordada"} en ${C.recinto||C.ciudad||"el recinto"}.
+
+Condiciones económicas:
+${K.vis.map(f=>`· ${f.concepto}${f.fecha?" ("+fecha(f.fecha)+")":""}: ${eur(f.sub)} + ${eur(f.iva)} de IVA = ${eur(f.tot)}`).join("\n")}
+· Total: ${eur(K.t.tot)} IVA incluido
+
+Los pagos van a ${C.banco.iban||"la cuenta indicada en el contrato"}, a nombre de ${C.banco.titular||C.agente.nombre}. Cuando hagáis la transferencia, mandadnos el justificante a ${C.agente.email||""} indicando artista y localidad.
+
+Devuélvenoslo firmado y lo cerramos. Cualquier duda, aquí estoy.
+
+${C.agente.representante||""}
+${C.agente.nombre||""}`;
+    if(navigator.clipboard&&navigator.clipboard.writeText)
+      navigator.clipboard.writeText(txt).then(()=>toast("Email copiado · pega y adjunta el PDF"),
+        ()=>toast("No se pudo copiar"));
+    else toast("Este navegador no deja copiar al portapapeles");
+  });
+  pintaPagos();
+  pinta();
+  requestAnimationFrame(encaja);
 }
 
 /* ── Fechas de contexto (festivos propios, escolar, festivales) ── */
@@ -7216,6 +7838,7 @@ function formShow(id,comoNuevo){
   <header class="mbar"><h3>${esNuevo?"Nuevo show":"Editar show"}</h3><div class="spacer"></div>
     ${esNuevo?"":`<button class="btn sm" data-act="dup-show" data-id="${s.id}">Duplicar</button>`}
     ${esNuevo?"":`<button class="btn sm" data-act="hoja" data-id="${s.id}">Hoja de ruta</button>`}
+    ${esNuevo?"":`<button class="btn sm" data-act="contrato" data-id="${s.id}">Contrato</button>`}
     <button class="btn sm btn-ajustado" id="s_btnotas" data-act="notas-abrir" data-notas-target="s_notas"
       data-asomo-target="s_notas" aria-label="Notas de esta fecha">Notas${plano(s.notas)?`<span class="pip"></span>`:""}</button>
     ${esNuevo?"":`<button class="btn danger sm" data-act="del-show" data-id="${s.id}">Eliminar</button>`}
@@ -7702,6 +8325,7 @@ document.addEventListener("click",e=>{
       return;
     }
     if(act==="hoja")return hojaRuta(el.dataset.id);
+    if(act==="contrato")return contratoShow(el.dataset.id);
     if(act==="plantilla-ruta")return formPlantillaRuta(el.dataset.id);
     if(act==="reporte")return reporteLiquidacion(el.dataset.id,el.dataset.mes,el.dataset.anio);
     if(act==="ensenar-loc")return formLocalidades();
