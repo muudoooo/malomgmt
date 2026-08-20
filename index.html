@@ -30,7 +30,10 @@
 }
 :root{
   --ink:#0E0F12; --panel:#15171C; --panel-2:#1B1E24; --panel-3:#242830;
-  --rule:#2A2F38; --rule-2:#383E49; --bone:#E9E7E2; --mute:#7C818C; --mute-2:#565B65;
+  /* Grises subidos un punto (antes #7C818C/#565B65): los rótulos pequeños en
+     --mute-2 quedaban a 2.8:1 de contraste y el mínimo legible es 4.5:1.
+     La impresión no cambia: la hoja de ruta fuerza #000/#555 en @media print. */
+  --rule:#2A2F38; --rule-2:#383E49; --bone:#E9E7E2; --mute:#8F95A0; --mute-2:#828792;
   --artist:#8A6BF0; --malo:#E94F87; --alert:#E0484D; --ok:#3FA35B; --warn:#D9822B; --violet:#8A6BF0;
   --c-artista:#3FB6CC; --c-dj:#8A6BF0; --c-soundsystem:#D94F8C; --c-evento:#4FA36B; --c-creador:#6B8FE8;
   --sans:'Archivo','Helvetica Neue',Arial,sans-serif;
@@ -44,6 +47,7 @@ body{background:var(--ink);color:var(--bone);font-family:var(--sans);font-size:1
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 button{cursor:pointer;background:none;border:none}
 a{color:var(--artist)}
+a:hover{color:#A98BF5}
 
 .shell{display:flex;min-height:100vh;box-sizing:border-box;
   padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
@@ -57,7 +61,7 @@ a{color:var(--artist)}
 .brand .tag{margin-top:8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute-2);line-height:1.6}
 .brand .tag b{color:var(--mute);font-weight:500}
 nav{padding:14px 10px;flex:1}
-nav button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:5px;color:var(--mute);font-size:13px;font-weight:500;text-align:left}
+nav button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:5px;color:var(--mute);font-size:13px;font-weight:500;text-align:left;transition:background .12s,color .12s}
 nav button:hover{background:var(--panel-2);color:var(--bone)}
 nav button.on{background:var(--panel-3);color:var(--bone)}
 nav button .k{font-family:var(--mono);font-size:10px;color:var(--mute-2);margin-left:auto}
@@ -195,6 +199,7 @@ td{padding:11px 14px;border-bottom:1px solid var(--panel-2);vertical-align:middl
 tbody tr:last-child td{border-bottom:none}
 tbody tr.click{cursor:pointer}
 tbody tr.click:hover{background:var(--panel-2)}
+tbody tr.click:focus-visible{outline:2px solid var(--malo);outline-offset:-2px}
 td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
 .strong{font-weight:600}.dim{color:var(--mute)}.tiny{font-size:11px}
 .empty{padding:38px 20px;text-align:center;color:var(--mute)}
@@ -2255,6 +2260,20 @@ function tablasFicha(root){
    que la vista les acaba de poner. Y el estado abierto/cerrado se recuerda,
    porque render() se vuelve a llamar con cada tecla del buscador. */
 let FILTROS_ABIERTOS=false;
+/* Filas clicables accesibles por teclado: tabindex + Enter/Espacio abren la
+   ficha igual que un toque. Corre tras cada render(), como tablasFicha(). */
+function filasTeclado(root){
+  (root||document).querySelectorAll("tbody tr.click").forEach(tr=>{
+    if(tr.hasAttribute("tabindex"))return;
+    tr.setAttribute("tabindex","0");
+    tr.addEventListener("keydown",e=>{
+      if(e.key!=="Enter"&&e.key!==" ")return;
+      if(/^(input|textarea|select|button|a)$/i.test(e.target.tagName))return;
+      e.preventDefault();tr.click();
+    });
+  });
+}
+
 function filtrosPlegables(root){
   /* 700px y no 900: es el mismo corte que usa el CSS de .filtros-extra. Si
      no coinciden, entre 700 y 900 sale el botón y no pliega nada. */
@@ -2309,6 +2328,7 @@ function render(){
     misCanciones:viewMisCanciones,bolsillo:viewBolsillo,redes:viewRedes,
     equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos})[VIEW](el,ta);
   tablasFicha(el);
+  filasTeclado(el);
   filtrosPlegables(el);
   pintaDock();
 }
