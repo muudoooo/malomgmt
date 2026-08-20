@@ -1219,9 +1219,11 @@ const REDES={
   soundcloud:{label:"SoundCloud",base:"https://soundcloud.com/",ph:"URL del perfil"},
   x:        {label:"X",        base:"https://x.com/",        ph:"@usuario"}
 };
-/* Redes con seguimiento de crecimiento en el panel "Redes" (Bolsillo). Las
-   demás de REDES (spotify, soundcloud, x) solo son un enlace en la ficha. */
-const REDES_CRECIMIENTO=["instagram","tiktok","youtube"];
+/* Redes con seguimiento de crecimiento en el panel "Redes" (Bolsillo).
+   soundcloud y x se quedan fuera: solo son un enlace en la ficha. Spotify
+   entró el 20 ago (ya no tiene API pública desde feb 2026 — se actualiza
+   por una revisión mensual programada, no con el botón "Actualizar ahora"). */
+const REDES_CRECIMIENTO=["instagram","tiktok","youtube","spotify"];
 const SERVICIOS=["booking","management","development","sello"];
 /* Ojo: son las categorías del CONTRATANTE (vista Contactos), no las de cliente.
    «evento» = una fecha suelta o ciclo que contrata sin ser sala ni festival. */
@@ -3957,7 +3959,7 @@ function viewRedes(el,ta){
       En cuanto haya uno dado de alta, aparece aquí para llevarle el seguimiento de seguidores.</p></div></div>`;
     return;
   }
-  document.getElementById("viewSub").textContent="Instagram · TikTok · YouTube";
+  document.getElementById("viewSub").textContent="Instagram · TikTok · YouTube · Spotify";
   if(DB.sinRedes){
     el.innerHTML=`<div class="card"><div class="empty"><p><strong>Falta ejecutar el SQL de «redes_snapshots».</strong><br>
       Pide al desarrollador que ejecute <code>supabase/redes_snapshots.sql</code> y recarga la app.</p></div></div>`;
