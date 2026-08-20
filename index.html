@@ -3402,6 +3402,25 @@ function cascadaCancion(cancion){
 }
 /* Participaciones de un cliente (como artista, feat o productor) en todo el catálogo */
 function participacionesDe(clienteId){return (DB.cancionParticipantes||[]).filter(p=>p.clienteId===clienteId)}
+/* Título "de cara al público": añade ft. "colaborador" y prod. "productor" a
+   partir del reparto, sin tocar nunca el título guardado en canciones.titulo.
+   Así el campo del formulario se queda limpio y esto se recalcula solo cada
+   vez que cambia el reparto — no hay riesgo de acumular "ft." repetidos. */
+function nombreParticipante(p){
+  return (p.nombre&&String(p.nombre).trim())||(p.clienteId?nomCliente(p.clienteId):"")||"";
+}
+function construyeTitulo(base,partes){
+  const feats=(partes||[]).filter(p=>p.rol==="feat").map(nombreParticipante).filter(Boolean);
+  const prods=(partes||[]).filter(p=>p.rol==="productor").map(nombreParticipante).filter(Boolean);
+  let t=base||"";
+  feats.forEach(f=>{ t+=` ft. "${f}"`; });
+  prods.forEach(p=>{ t+=` prod. "${p}"`; });
+  return t;
+}
+function tituloConCreditos(cancion){
+  if(!cancion)return "";
+  return construyeTitulo(cancion.titulo,participantesDe(cancion.id));
+}
 /* Ingresos de "bolsillo" de un cliente: mapa "YYYY-MM" → {pool, porCancion:{cancionId:pool}} */
 function bolsilloCancionesPorMes(clienteId){
   const out={};
@@ -3498,7 +3517,7 @@ function viewMisCanciones(el,ta){
   <tbody>${list.map(c=>{
     const bruto=brutoTotalCancion(c.id),suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
     return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
-      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(c.titulo||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
+      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
       <td><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(c.artistaId))}</span></td>
       <td class="dim">${esc(c.distribuidora||"—")}${c.cuentaPortal?`<div class="tiny dim">cta. ${esc(c.cuentaPortal)}</div>`:""}</td>
       <td class="num">${eur0(bruto)}</td>
@@ -3528,7 +3547,8 @@ function formCancion(id){
   <div class="mbody">
     <div class="section-title">El deal</div>
     <div class="fgrid">
-      <div class="f s6"><label>Título</label><input id="cn_tit" value="${esc(o.titulo||"")}" placeholder="Nombre de la canción"></div>
+      <div class="f s6"><label>Título</label><input id="cn_tit" value="${esc(o.titulo||"")}" placeholder="Nombre de la canción">
+        <div class="dim tiny" id="cn_tit_preview" style="margin-top:3px"></div></div>
       <div class="f s3"><label>Artista</label><select id="cn_cli">
         ${DB.clientes.slice().sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""))
           .map(x=>`<option value="${x.id}" ${o.artistaId===x.id?"selected":""}>${esc(x.nombre||x.nombreReal)}</option>`).join("")}
@@ -3613,6 +3633,7 @@ function formCancion(id){
       <datalist id="cn_roles">${CANCION_ROLES.map(r=>`<option value="${r}">`).join("")}</datalist>`
       :`<p class="dim tiny" style="padding:2px 0 4px">Sin reparto definido todavía.</p>`;
     pintaSumaPart();
+    pintaTituloPreview();
   }
   function pintaSumaPart(){
     const p=document.getElementById("cn_sumapill");if(!p)return;
@@ -3620,6 +3641,12 @@ function formCancion(id){
     const bien=Math.abs(s-100)<0.01;
     p.textContent=pct(s)+(bien?" ✓":` · faltan ${pct(100-s)}`);
     p.style.borderColor=bien?"var(--ok)":"var(--alert)";p.style.color=bien?"var(--ok)":"var(--alert)";
+  }
+  function pintaTituloPreview(){
+    const p=document.getElementById("cn_tit_preview");if(!p)return;
+    const base=val("cn_tit");
+    const t=construyeTitulo(base,participantes);
+    p.textContent=(t&&t!==base)?("Se mostrará como: "+t):"";
   }
   function pintaIngresos(){
     const cc=document.getElementById("cn_ingresos");
@@ -3639,9 +3666,11 @@ function formCancion(id){
   const root=document.querySelector(".modal");
   root.addEventListener("input",e=>{
     const i=e.target.dataset.pt,j=e.target.dataset.ing;
+    if(e.target.id==="cn_tit")pintaTituloPreview();
     if(i!==undefined&&participantes[+i]){
       participantes[+i][e.target.dataset.k]=e.target.dataset.k==="pct"?n(e.target.value):e.target.value;
       if(e.target.dataset.k==="pct")pintaSumaPart();
+      if(e.target.dataset.k==="rol"||e.target.dataset.k==="nombre")pintaTituloPreview();
     }
     if(j!==undefined&&ingresos[+j]){
       const k=e.target.dataset.k;
@@ -3650,7 +3679,7 @@ function formCancion(id){
   });
   root.addEventListener("change",e=>{
     if(e.target.dataset.pt!==undefined){const i=+e.target.dataset.pt;
-      if(e.target.dataset.k==="clienteId")participantes[i].clienteId=e.target.value;
+      if(e.target.dataset.k==="clienteId"){participantes[i].clienteId=e.target.value;pintaTituloPreview();}
     }
   });
   root.addEventListener("click",e=>{
@@ -3810,7 +3839,7 @@ function viewBolsillo(el,ta){
   participacionesDe(cli).forEach(p=>{
     const c=(DB.canciones||[]).find(x=>x.id===p.cancionId);if(!c)return;
     ingresosDe(c.id).filter(i=>(i.mes||"").slice(0,7)>=r.desde&&(i.mes||"").slice(0,7)<=r.hasta)
-      .forEach(i=>combinado.push({fecha:i.mes,tipo:"canción",titulo:c.titulo,importe:poolDeMes(c,i.bruto)*n(p.pct)/100}));
+      .forEach(i=>combinado.push({fecha:i.mes,tipo:"canción",titulo:tituloConCreditos(c),importe:poolDeMes(c,i.bruto)*n(p.pct)/100}));
   });
   combinado.sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
 
@@ -3851,7 +3880,7 @@ function viewBolsillo(el,ta){
     <div class="card"><header><h3>Por canción · ${esc(r.label)}</h3></header><div class="body flush">
       ${porCancion.length?`<table><thead><tr><th>Canción</th><th class="num">Generado</th></tr></thead>
       <tbody>${porCancion.map(x=>`<tr class="click" data-cancion="${x.c.id}">
-        <td class="strong">${esc(x.c.titulo)}</td><td class="num v-artist">${eur0(x.total)}</td></tr>`).join("")}</tbody></table>`
+        <td class="strong">${esc(tituloConCreditos(x.c))}</td><td class="num v-artist">${eur0(x.total)}</td></tr>`).join("")}</tbody></table>`
       :`<div class="empty"><p>Sin ingresos de canciones en este periodo.</p></div>`}
     </div></div>
     <div class="card"><header><h3>Shows + Canciones combinado</h3></header><div class="body flush">
