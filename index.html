@@ -1604,6 +1604,24 @@ function normalizaEntidad(tabla,o){
   }
   return o;
 }
+/* Supabase (PostgREST) corta cada select en 1000 filas por defecto, en
+   silencio: no da error, solo devuelve menos de lo que hay. cancion_ingresos
+   ya pasa de 1000 filas (una por canción y mes), así que sin esto algunas
+   canciones cargaban con menos meses de los que tienen en realidad, y el
+   bruto salía mal sin que nada avisara. Se pagina con .range() hasta que una
+   página vuelve más corta que el tamaño pedido. */
+async function fetchTodos(tabla){
+  const pag=1000; let desde=0,todo=[],err=null;
+  for(;;){
+    const r=await sb.from(tabla).select("*").range(desde,desde+pag-1);
+    if(r.error){ err=r.error; break; }
+    const filas=r.data||[];
+    todo=todo.concat(filas);
+    if(filas.length<pag)break;
+    desde+=pag;
+  }
+  return {data:todo,error:err};
+}
 async function loadRemote(){
   const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
@@ -1624,10 +1642,11 @@ async function loadRemote(){
     /* Sondas del generador de contratos: sin las columnas la app va igual */
     sb.from("shows").select("contrato").limit(1),
     sb.from("promotores").select("firmante").limit(1),
-    /* Mis Canciones + Bolsillo */
-    sb.from("canciones").select("*"),
-    sb.from("cancion_participantes").select("*"),
-    sb.from("cancion_ingresos").select("*")
+    /* Mis Canciones + Bolsillo. cancion_ingresos ya pasa de 1000 filas, por
+       eso las tres van paginadas con fetchTodos en vez de select("*") a secas. */
+    fetchTodos("canciones"),
+    fetchTodos("cancion_participantes"),
+    fetchTodos("cancion_ingresos")
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
