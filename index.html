@@ -1219,6 +1219,9 @@ const REDES={
   soundcloud:{label:"SoundCloud",base:"https://soundcloud.com/",ph:"URL del perfil"},
   x:        {label:"X",        base:"https://x.com/",        ph:"@usuario"}
 };
+/* Redes con seguimiento de crecimiento en el panel "Redes" (Bolsillo). Las
+   demás de REDES (spotify, soundcloud, x) solo son un enlace en la ficha. */
+const REDES_CRECIMIENTO=["instagram","tiktok","youtube"];
 const SERVICIOS=["booking","management","development","sello"];
 /* Ojo: son las categorías del CONTRATANTE (vista Contactos), no las de cliente.
    «evento» = una fecha suelta o ciclo que contrata sin ser sala ni festival. */
@@ -1522,7 +1525,8 @@ const TABLE_MAP={
     driveFolderId:"drive_folder_id",portadaDriveId:"portada_drive_id",portadaUrl:"portada_url",
     audioDriveId:"audio_drive_id",audioUrl:"audio_url"},
   cancionParticipantes:{id:"id",cancionId:"cancion_id",clienteId:"cliente_id",nombre:"nombre",rol:"rol",pct:"pct"},
-  cancionIngresos:{id:"id",cancionId:"cancion_id",mes:"mes",bruto:"bruto",unidades:"unidades",canal:"canal"}
+  cancionIngresos:{id:"id",cancionId:"cancion_id",mes:"mes",bruto:"bruto",unidades:"unidades",canal:"canal"},
+  redesSnapshots:{id:"id",clienteId:"cliente_id",red:"red",fecha:"fecha",seguidores:"seguidores",notas:"notas"}
 };
 const NULEA_VACIO=new Set(["cliente_id","promotor_id","venue_id","fecha","fecha_alta","dj_id","dj_defecto_id","asignado_a","vence","autor","creado_por","hecha_en","promotor_id","ultimo_contacto","artista_id","cancion_id","fecha_lanzamiento"]);
 const CON_AUTORIA=new Set(["clientes","promotores","shows","producciones","canciones"]);
@@ -1623,7 +1627,7 @@ async function fetchTodos(tabla){
   return {data:todo,error:err};
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -1646,7 +1650,8 @@ async function loadRemote(){
        eso las tres van paginadas con fetchTodos en vez de select("*") a secas. */
     fetchTodos("canciones"),
     fetchTodos("cancion_participantes"),
-    fetchTodos("cancion_ingresos")
+    fetchTodos("cancion_ingresos"),
+    fetchTodos("redes_snapshots")
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -1680,6 +1685,11 @@ async function loadRemote(){
   if(DB.sinCanciones)console.warn("Tabla «canciones» no disponible:",can.error.message);
   DB.cancionParticipantes=canp.error?[]:(canp.data||[]).map(r=>fromRow("cancionParticipantes",r));
   DB.cancionIngresos=cani.error?[]:(cani.data||[]).map(r=>fromRow("cancionIngresos",r));
+  /* Panel "Redes": historial de seguidores por red. Igual de tolerante si
+     falta el SQL — la app va, pero el panel avisa y no manda nada al guardar. */
+  DB.sinRedes=!!rsn.error;
+  DB.redesSnapshots=DB.sinRedes?[]:(rsn.data||[]).map(r=>fromRow("redesSnapshots",r));
+  if(DB.sinRedes)console.warn("Tabla «redes_snapshots» no disponible:",rsn.error.message);
   DB.googleAuth=ga.data&&ga.data.email?{email:ga.data.email,conectadoEn:ga.data.conectado_en}:null;
   DB.contexto=(ctx.data||[]).map(r=>fromRow("contexto",r));
   DB.mensajes=(msj.data||[]).map(r=>fromRow("mensajes",r));
@@ -1740,6 +1750,7 @@ async function save(){
       (!DB.sinCanciones&&(DB.canciones||[]).length)&&sb.from("canciones").upsert(DB.canciones.map(x=>toRow("canciones",x))),
       (!DB.sinCanciones&&(DB.cancionParticipantes||[]).length)&&sb.from("cancion_participantes").upsert(DB.cancionParticipantes.map(x=>toRow("cancionParticipantes",x))),
       (!DB.sinCanciones&&(DB.cancionIngresos||[]).length)&&sb.from("cancion_ingresos").upsert(DB.cancionIngresos.map(x=>toRow("cancionIngresos",x))),
+      (!DB.sinRedes&&(DB.redesSnapshots||[]).length)&&sb.from("redes_snapshots").upsert(DB.redesSnapshots.map(x=>toRow("redesSnapshots",x))),
       sb.from("empresa").update(Object.assign(
         {nombre:(DB.empresa||{}).nombre||"MALO",logo:(DB.empresa||{}).logo||""},
         DB.sinAjustes?{}:{ajustes:(DB.empresa||{}).ajustes||{}})).eq("id",1)
@@ -2141,6 +2152,7 @@ const VIEWS=[
   {id:"temas",label:"Temas",k:"t"},
   {id:"misCanciones",label:"Mis Canciones",k:"m"},
   {id:"bolsillo",label:"Bolsillo",k:"b"},
+  {id:"redes",label:"Redes",k:"r"},
   {id:"capturas",label:"Capturas",k:"c"},
   {id:"equipo",label:"Equipo",k:"0"},
   {id:"generadores",label:"Generadores",k:"g"},
@@ -2161,6 +2173,7 @@ const ICONO_VIEW={
   temas:"M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3z",
   misCanciones:"M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM3 21h4",
   bolsillo:"M4 8h16v12H4zM4 8l3-5h10l3 5M9 12a3 3 0 0 0 6 0",
+  redes:"M4 20h16M4 16l5-6 4 4 7-8M16 6h4v4",
   capturas:"M4 8h3l2-3h6l2 3h3v12H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   equipo:"M4 5h16v11H9l-5 4z",
   generadores:"M5 19L15 9M14 3l1.4 3.6L19 8l-3.6 1.4L14 13l-1.4-3.6L9 8l3.6-1.4z",
@@ -2173,7 +2186,8 @@ let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",doc
   ordenMailing:"alpha",ordenMapa:"n_desc",anio:String(new Date().getFullYear()),
   temaQ:"",temaCliente:"",temaEstado:"",ordenTemas:"envio_desc",
   cancionQ:"",cancionArtista:"",ordenCanciones:"alpha",
-  bolsilloArtista:"",bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1)};
+  bolsilloArtista:"",bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
+  redesArtista:""};
 const _n=new Date();
 let CAL={y:_n.getFullYear(),m:_n.getMonth(),sel:null,cliente:"",categoria:"",sub:"",tipo:""};
 
@@ -2290,7 +2304,7 @@ function render(){
   ({panel:viewPanel,calendario:viewCalendario,shows:viewShows,eventos:viewEventos,
     clientes:viewClientes,contactos:viewContactos,documentos:viewDocumentos,
     mailing:viewMailing,mapa:viewMapa,temas:viewTemas,
-    misCanciones:viewMisCanciones,bolsillo:viewBolsillo,
+    misCanciones:viewMisCanciones,bolsillo:viewBolsillo,redes:viewRedes,
     equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos})[VIEW](el,ta);
   tablasFicha(el);
   filtrosPlegables(el);
@@ -3450,6 +3464,27 @@ function meses12(){
   for(let i=11;i>=0;i--){const x=new Date(d);x.setMonth(x.getMonth()-i);out.push(`${x.getFullYear()}-${pad(x.getMonth()+1)}`)}
   return out;
 }
+/* ── Redes: seguidores por red y su crecimiento mensual ── */
+function redesSnapshotsDe(clienteId,red){
+  return (DB.redesSnapshots||[]).filter(x=>x.clienteId===clienteId&&x.red===red)
+    .sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||"")||String(a.id).localeCompare(String(b.id)));
+}
+function ultimoSnapshot(clienteId,red){const a=redesSnapshotsDe(clienteId,red);return a.length?a[a.length-1]:null}
+function snapshotAnterior(clienteId,red){const a=redesSnapshotsDe(clienteId,red);return a.length>1?a[a.length-2]:null}
+/* Para cada uno de los últimos 12 meses: el último valor conocido de ese mes
+   (o null si no se registró nada), y su delta contra el último valor conocido
+   de un mes anterior (arrastrando el dato hacia delante si hay meses vacíos). */
+function crecimientoMensualRed(clienteId,red){
+  const arr=redesSnapshotsDe(clienteId,red);
+  const porMes={};arr.forEach(s=>{porMes[(s.fecha||"").slice(0,7)]=n(s.seguidores)});
+  const m12=meses12();let previo=null;
+  return m12.map(k=>{
+    const valor=porMes[k]!==undefined?porMes[k]:null;
+    const delta=(valor!==null&&previo!==null)?valor-previo:null;
+    if(valor!==null)previo=valor;
+    return {mes:k,valor,delta};
+  });
+}
 function rangoBolsillo(){
   const a=filtro.bolsilloAnio;
   if(filtro.bolsilloModo==="mes"){const m=`${a}-${filtro.bolsilloMes}`;return {desde:m,hasta:m,label:"este mes"}}
@@ -3905,6 +3940,106 @@ function viewBolsillo(el,ta){
   if(st)st.addEventListener("change",e=>{filtro.bolsilloTrim=e.target.value;render()});
 }
 
+/* ════════ REDES ════════
+   Instagram, TikTok y YouTube por artista/DJ: último dato guardado, crecimiento
+   del mes y evolución de los últimos 12 meses. Los números se registran a mano
+   (fecha + seguidores) hasta que se conecte cada red por API; con eso ya se
+   puede calcular crecimiento aunque el dato no sea "tiempo real". */
+function viewRedes(el,ta){
+  const artistas=DB.clientes.slice().filter(c=>(c.categoria||"artista")!=="evento")
+    .sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
+  if(!filtro.redesArtista&&artistas.length)filtro.redesArtista=artistas[0].id;
+  ta.innerHTML=`<select id="rdArt" style="background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;padding:6px 10px">
+    ${artistas.map(a=>`<option value="${a.id}" ${filtro.redesArtista===a.id?"selected":""}>${esc(a.nombre||a.nombreReal)}</option>`).join("")}</select>`;
+
+  if(!artistas.length){
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Todavía no hay clientes de artista/DJ.</strong><br>
+      En cuanto haya uno dado de alta, aparece aquí para llevarle el seguimiento de seguidores.</p></div></div>`;
+    return;
+  }
+  document.getElementById("viewSub").textContent="Instagram · TikTok · YouTube";
+  if(DB.sinRedes){
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Falta ejecutar el SQL de «redes_snapshots».</strong><br>
+      Pide al desarrollador que ejecute <code>supabase/redes_snapshots.sql</code> y recarga la app.</p></div></div>`;
+    return;
+  }
+  const cli=filtro.redesArtista,c=DB.clientes.find(x=>x.id===cli);
+  const NOM=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+  const tarjetas=REDES_CRECIMIENTO.map(red=>{
+    const ult=ultimoSnapshot(cli,red),ant=snapshotAnterior(cli,red);
+    const handle=(c&&c.redes&&c.redes[red])||"";
+    const serie=crecimientoMensualRed(cli,red);
+    let deltaMes=null;
+    for(let i=serie.length-1;i>=0;i--){if(serie[i].delta!==null){deltaMes=serie[i].delta;break}}
+    const max=Math.max(1,...serie.map(m=>Math.abs(m.delta||0)));
+    return `<div class="card"><header><h3>${REDES[red].label}</h3><div class="spacer"></div>
+        <button class="btn ghost sm" data-act="new-red-snap" data-cliente="${cli}" data-red="${red}">+ Añadir dato</button></header>
+      <div class="body">
+        ${handle?`<a href="${esc(redUrl(red,handle))}" target="_blank" rel="noopener" class="dim tiny">${esc(handle)}</a>`
+          :`<div class="dim tiny">Sin usuario/canal guardado en la ficha del cliente</div>`}
+        <div style="display:flex;align-items:baseline;gap:10px;margin:8px 0 2px">
+          <div class="val" style="font-size:28px">${ult?n(ult.seguidores).toLocaleString("es-ES"):"—"}</div>
+          ${deltaMes!==null?`<div class="note">${deltaMes>=0?"↑":"↓"} ${Math.abs(deltaMes).toLocaleString("es-ES")} este mes</div>`:""}
+        </div>
+        ${ult?`<div class="dim tiny">Último dato: ${fecha(ult.fecha)}${ant?` · antes ${n(ant.seguidores).toLocaleString("es-ES")} (${fecha(ant.fecha)})`:""}</div>`
+          :`<div class="dim tiny">Sin datos todavía.</div>`}
+        <div style="display:flex;gap:4px;align-items:flex-end;height:70px;margin-top:12px">
+          ${serie.map(m=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end">
+            <div style="width:100%;background:${m.delta==null?"var(--panel-2)":m.delta>=0?"var(--artist,#4FA36B)":"var(--alert)"};
+              border-radius:2px 2px 0 0;height:${m.delta?Math.max(3,Math.abs(m.delta)/max*50):3}px"
+              title="${NOM[+m.mes.slice(5,7)-1]}: ${m.delta==null?"sin dato":(m.delta>=0?"+":"")+m.delta}"></div>
+            <div class="tiny dim" style="font-size:9px">${NOM[+m.mes.slice(5,7)-1]}</div>
+          </div>`).join("")}
+        </div>
+      </div></div>`;
+  }).join("");
+
+  const historial=REDES_CRECIMIENTO.flatMap(red=>redesSnapshotsDe(cli,red).map(s=>Object.assign({},s,{red})))
+    .sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+
+  el.innerHTML=`
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">${tarjetas}</div>
+  <div class="card" style="margin-top:16px"><header><h3>Historial</h3></header><div class="body flush">
+    ${historial.length?`<table><thead><tr><th>Fecha</th><th>Red</th><th class="num">Seguidores</th><th></th></tr></thead>
+    <tbody>${historial.map(s=>`<tr>
+      <td class="tiny dim" style="font-family:var(--mono)">${fecha(s.fecha)}</td>
+      <td><span class="pill">${REDES[s.red].label}</span></td>
+      <td class="num strong">${n(s.seguidores).toLocaleString("es-ES")}</td>
+      <td style="width:1%"><button class="x" data-act="del-red-snap" data-id="${s.id}" type="button">×</button></td>
+    </tr>`).join("")}</tbody></table>`
+    :`<div class="empty"><p>Todavía no hay ningún dato guardado. Usa «+ Añadir dato» en cualquiera de las tres tarjetas.</p></div>`}
+  </div></div>`;
+
+  const sa=document.getElementById("rdArt");
+  if(sa)sa.addEventListener("change",e=>{filtro.redesArtista=e.target.value;render()});
+}
+function formRedSnapshot(clienteId,red){
+  const c=DB.clientes.find(x=>x.id===clienteId);
+  openModal(`
+  <header><h3>Añadir dato de seguidores</h3><div class="spacer"></div>
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    <p class="dim tiny" style="margin-bottom:14px">${esc(c?(c.nombre||c.nombreReal):"")}</p>
+    <div class="fgrid">
+      <div class="f s5"><label>Red</label><select id="rs_red">
+        ${REDES_CRECIMIENTO.map(r=>`<option value="${r}" ${red===r?"selected":""}>${REDES[r].label}</option>`).join("")}
+      </select></div>
+      <div class="f s4"><label>Fecha</label><input id="rs_fecha" type="date" value="${esc(hoy())}"></div>
+      <div class="f s3"><label>Seguidores</label><input id="rs_seg" type="number" min="0" step="1" placeholder="0"></div>
+    </div>
+  </div>
+  <footer><button class="btn ghost" data-act="close">Cancelar</button>
+    <button class="btn primary" data-act="save-red-snap" data-cliente="${clienteId}">Guardar</button></footer>`,true);
+}
+function saveRedSnapshot(clienteId){
+  const red=val("rs_red"),fechaV=val("rs_fecha"),seg=val("rs_seg");
+  if(!fechaV){toast("Hace falta una fecha");return}
+  if(seg===""){toast("Pon el número de seguidores");return}
+  const s={id:uid("rsn"),clienteId,red,fecha:fechaV,seguidores:Math.round(n(seg)),notas:""};
+  DB.redesSnapshots=(DB.redesSnapshots||[]).concat(s);
+  closeModal();toast("Dato guardado");touch();
+}
 
 /* ════════ CLIENTES ════════ */
 function viewClientes(el,ta){
@@ -8966,6 +9101,13 @@ document.addEventListener("click",e=>{
       DB.cancionIngresos=(DB.cancionIngresos||[]).filter(x=>x.cancionId!==idDel);
       closeModal();toast("Canción eliminada");
       if(!DB.sinCanciones)sb.from("canciones").delete().eq("id",idDel).then(({error})=>{if(error)toast("Error al eliminar en el servidor")});
+      return touch()}
+    if(act==="new-red-snap")return formRedSnapshot(el.dataset.cliente,el.dataset.red);
+    if(act==="save-red-snap")return saveRedSnapshot(el.dataset.cliente);
+    if(act==="del-red-snap"){if(!confirm("¿Eliminar este dato de seguidores?"))return;
+      const idDel=el.dataset.id;
+      DB.redesSnapshots=(DB.redesSnapshots||[]).filter(x=>x.id!==idDel);toast("Dato eliminado");
+      if(!DB.sinRedes)sb.from("redes_snapshots").delete().eq("id",idDel).then(({error})=>{if(error)toast("Error al eliminar en el servidor")});
       return touch()}
     if(act==="new-evento")return formEvento(null);
     if(act==="save-evento")return saveEvento(el.dataset.id,el.dataset.new==="1",el.dataset.origen);
