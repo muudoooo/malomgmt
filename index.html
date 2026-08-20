@@ -3973,7 +3973,9 @@ function viewRedes(el,ta){
     let deltaMes=null;
     for(let i=serie.length-1;i>=0;i--){if(serie[i].delta!==null){deltaMes=serie[i].delta;break}}
     const max=Math.max(1,...serie.map(m=>Math.abs(m.delta||0)));
+    const automatizable=red==="instagram"||red==="youtube";
     return `<div class="card"><header><h3>${REDES[red].label}</h3><div class="spacer"></div>
+        ${automatizable?`<button class="btn ghost sm" data-act="act-red-ahora" data-cliente="${cli}" data-red="${red}" data-handle="${esc(handle)}" title="Consulta el dato público en vivo (YouTube/Instagram)">Actualizar ahora</button>`:""}
         <button class="btn ghost sm" data-act="new-red-snap" data-cliente="${cli}" data-red="${red}">+ Añadir dato</button></header>
       <div class="body">
         ${handle?`<a href="${esc(redUrl(red,handle))}" target="_blank" rel="noopener" class="dim tiny">${esc(handle)}</a>`
@@ -9102,6 +9104,7 @@ document.addEventListener("click",e=>{
       closeModal();toast("Canción eliminada");
       if(!DB.sinCanciones)sb.from("canciones").delete().eq("id",idDel).then(({error})=>{if(error)toast("Error al eliminar en el servidor")});
       return touch()}
+    if(act==="act-red-ahora")return actualizarRedAhora(el.dataset.cliente,el.dataset.red,el.dataset.handle,el);
     if(act==="new-red-snap")return formRedSnapshot(el.dataset.cliente,el.dataset.red);
     if(act==="save-red-snap")return saveRedSnapshot(el.dataset.cliente);
     if(act==="del-red-snap"){if(!confirm("¿Eliminar este dato de seguidores?"))return;
@@ -9415,6 +9418,37 @@ async function driveFn(accion,extra){
 
 function driveListar(id){
   return driveFn("listar",id?{carpetaId:id}:{}).then(r=>r.files||[]);
+}
+
+/* Redes: consulta en vivo de seguidores (YouTube/Instagram, vía Edge Function
+   redes-api) y guarda el snapshot. TikTok se queda fuera: sin API oficial
+   para cuentas de terceros, sigue siendo entrada manual. */
+async function redesFn(accion,extra){
+  if(!sb)throw new Error("Sin conexion con Supabase");
+  const ses=await sb.auth.getSession();
+  const tk=ses&&ses.data&&ses.data.session&&ses.data.session.access_token;
+  if(!tk)throw new Error("Sesion caducada, vuelve a entrar");
+  const r=await fetch(SUPA_URL+"/functions/v1/redes-api",{
+    method:"POST",
+    headers:{"Authorization":"Bearer "+tk,"Content-Type":"application/json"},
+    body:JSON.stringify(Object.assign({accion:accion},extra||{}))
+  });
+  const b=await r.json().catch(()=>({}));
+  if(!r.ok||b.error)throw new Error(b.error||("redes-api devolvio "+r.status));
+  return b||{};
+}
+async function actualizarRedAhora(clienteId,red,handle,btn){
+  if(!handle){toast("Falta el usuario/canal de "+REDES[red].label+" en la ficha del cliente");return}
+  const textoOrig=btn?btn.textContent:"";
+  if(btn){btn.disabled=true;btn.textContent="Consultando…"}
+  try{
+    const r=await redesFn("actualizarYGuardar",{clienteId,red,handle});
+    DB.redesSnapshots=(DB.redesSnapshots||[]).filter(x=>!(x.clienteId===clienteId&&x.red===red&&x.fecha===r.fecha))
+      .concat([{id:uid("rsn"),clienteId,red,fecha:r.fecha,seguidores:r.seguidores,notas:"automático"}]);
+    toast(REDES[red].label+": "+n(r.seguidores).toLocaleString("es-ES")+" seguidores");
+    render();
+  }catch(e){toast("Error consultando "+REDES[red].label+": "+e.message)}
+  finally{if(btn){btn.disabled=false;btn.textContent=textoOrig}}
 }
 
 function drivePickerCarpeta(){
