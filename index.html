@@ -162,7 +162,7 @@ nav button.on .k{color:var(--malo)}
 .btn{border:1px solid var(--rule-2);background:var(--panel-2);padding:7px 13px;border-radius:5px;font-size:12.5px;font-weight:500;color:var(--bone);transition:background .12s,border-color .12s;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
 .btn:hover{background:var(--panel-3);border-color:var(--mute-2)}
 .btn.primary{background:var(--malo);border-color:var(--malo);color:#1A1206;font-weight:600}
-.btn.primary:hover{background:#FFB63C;border-color:#FFB63C}
+.btn.primary:hover{background:#F2699E;border-color:#F2699E}
 .btn.ghost{background:none;border-color:transparent;color:var(--mute)}
 .btn.ghost:hover{color:var(--bone);background:var(--panel-2)}
 .btn.danger{border-color:rgba(224,72,77,.4);color:var(--alert)}
@@ -1105,6 +1105,49 @@ select option,select optgroup{background:#1B1E24;color:#E9E7E2}
   .rd-delta.up{color:var(--ok)!important}
   .rd-delta.down{color:var(--alert)!important}
 }
+
+/* ── 7 · Repulido de cuadros y controles (ago 2026) ──
+   Solo CSS, al final del bloque: a igual especificidad gana la última regla,
+   así que esto re-viste tarjetas, botones y campos sin tocar ni una vista.
+   Radios más generosos, bordes más finos con luz arriba, sombras suaves y
+   foco rosa en los campos. Vale para escritorio y móvil. */
+.card{border-radius:14px;border-color:rgba(255,255,255,.07);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035), 0 10px 26px rgba(0,0,0,.22)}
+.card > header{padding:13px 18px;border-bottom-color:rgba(255,255,255,.055)}
+.card .body{padding:18px}
+.strip{border-radius:14px;border-color:rgba(255,255,255,.07);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035), 0 10px 26px rgba(0,0,0,.22)}
+.cell{border-right-color:rgba(255,255,255,.055)}
+.cell .val{letter-spacing:-.03em}
+.modal{border-radius:16px}
+.notebox{border-radius:10px}
+
+.btn{border-radius:10px;transition:background .14s,border-color .14s,transform .1s}
+.btn:active{transform:scale(.97)}
+.btn.primary{box-shadow:0 4px 14px rgba(233,79,135,.28)}
+.btn.sm{border-radius:9px}
+.filtros-btn{border-radius:10px}
+
+.f input,.f select,.f textarea{border-radius:10px;padding:9px 12px;
+  transition:border-color .14s,box-shadow .14s}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--malo);
+  box-shadow:0 0 0 3px rgba(233,79,135,.16);outline:none}
+.filters input,.filters select,.filters .buscable-input{border-radius:10px}
+.liq-bar select{border-radius:10px}
+#anioSel,#rdArt{border-radius:10px!important}
+
+th{padding:10px 16px}
+td{padding:12px 16px}
+tbody tr.click{transition:background .12s}
+
+/* Barras de scroll finas y del mismo mundo que el fondo */
+*{scrollbar-width:thin;scrollbar-color:var(--panel-3) transparent}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--panel-3);border-radius:8px;border:2px solid var(--ink)}
+::-webkit-scrollbar-track{background:transparent}
+
+/* En el papel nada de esto pinta: sin sombras ni radios que gasten tinta */
+@media print{.card,.strip{box-shadow:none;border-radius:0}}
 </style>
 </head>
 <body>
@@ -1372,7 +1415,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.008";
+const APP_VERSION="0.009";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
