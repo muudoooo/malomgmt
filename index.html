@@ -1078,6 +1078,33 @@ select option,select optgroup{background:#1B1E24;color:#E9E7E2}
   .hero-movil .hd{display:block;font-size:12.5px;color:var(--mute);margin-top:3px}
   .hero-movil .hr2{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap}
 }
+
+/* ── 6 · Fase 3 móvil: resumen de la ficha de show y Redes con marca ── */
+.fhm{display:none}
+@media(max-width:900px){
+  .mbar .oculta-movil{display:none}
+  .fhm{display:block;border-radius:14px;padding:14px 15px;margin:0 0 16px;
+    background:linear-gradient(135deg,rgba(233,79,135,.16),rgba(138,107,240,.14)),var(--panel);
+    border:1px solid color-mix(in srgb,var(--malo) 30%,var(--rule-2))}
+  .fhm .eti{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--malo);font-weight:700}
+  .fhm .hq{display:block;font-size:21px;font-weight:900;letter-spacing:-.02em;margin-top:6px}
+  .fhm .hd{display:block;font-size:12.5px;color:var(--mute);margin-top:3px}
+  .fhm .hr2{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+  .fhm .fhm-acc{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:13px}
+  .fhm .fhm-acc .btn{justify-content:center}
+  /* Redes: punto con el color de cada red y delta en verde/rojo — la única
+     excepción a la paleta, como hace Songstats. Solo en el teléfono. */
+  .card[data-red] header h3{display:flex;align-items:center;gap:8px}
+  .card[data-red] header h3::before{content:"";width:9px;height:9px;border-radius:50%;
+    background:var(--rdc,var(--mute-2));flex:0 0 9px}
+  .card[data-red=instagram]{--rdc:#E1306C}
+  .card[data-red=tiktok]{--rdc:#69C9D0}
+  .card[data-red=youtube]{--rdc:#FF4444}
+  .card[data-red=spotify]{--rdc:#1DB954}
+  .card[data-red] .val{font-family:var(--mono);letter-spacing:-.02em}
+  .rd-delta.up{color:var(--ok)!important}
+  .rd-delta.down{color:var(--alert)!important}
+}
 </style>
 </head>
 <body>
@@ -1345,7 +1372,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.007";
+const APP_VERSION="0.008";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -4146,7 +4173,7 @@ function viewRedes(el,ta){
     const max=Math.max(1,...serie.map(m=>Math.abs(m.delta||0)));
     const automatizable=red==="instagram"||red==="youtube";
     const extraPares=formatoExtra(red,ult&&ult.extra);
-    return `<div class="card"><header><h3>${REDES[red].label}</h3><div class="spacer"></div>
+    return `<div class="card" data-red="${red}"><header><h3>${REDES[red].label}</h3><div class="spacer"></div>
         ${automatizable?`<button class="btn ghost sm" data-act="act-red-ahora" data-cliente="${cli}" data-red="${red}" data-handle="${esc(handle)}" title="Consulta el dato público en vivo (YouTube/Instagram)">Actualizar ahora</button>`:""}
         <button class="btn ghost sm" data-act="new-red-snap" data-cliente="${cli}" data-red="${red}">+ Añadir dato</button></header>
       <div class="body">
@@ -4154,7 +4181,7 @@ function viewRedes(el,ta){
           :`<div class="dim tiny">Sin usuario/canal guardado en la ficha del cliente</div>`}
         <div style="display:flex;align-items:baseline;gap:10px;margin:8px 0 2px">
           <div class="val" style="font-size:28px">${ult?n(ult.seguidores).toLocaleString("es-ES"):"—"}</div>
-          ${deltaMes!==null?`<div class="note">${deltaMes>=0?"↑":"↓"} ${Math.abs(deltaMes).toLocaleString("es-ES")} este mes</div>`:""}
+          ${deltaMes!==null?`<div class="note rd-delta ${deltaMes>=0?"up":"down"}">${deltaMes>=0?"↑":"↓"} ${Math.abs(deltaMes).toLocaleString("es-ES")} este mes</div>`:""}
         </div>
         ${ult?`<div class="dim tiny">Último dato: ${fecha(ult.fecha)}${ant?` · antes ${n(ant.seguidores).toLocaleString("es-ES")} (${fecha(ant.fecha)})`:""}</div>`
           :`<div class="dim tiny">Sin datos todavía.</div>`}
@@ -8774,16 +8801,36 @@ function formShow(id,comoNuevo){
     baseComision:c0.baseComision||"bruto",
     cobro:{estado:"pendiente",fechaPrevista:"",fechaCobro:"",factura:""},liq:{estado:"pendiente",fecha:"",factura:""}};
   const co=s.cobro||{},li=s.liq||{};
+  /* Resumen de cabecera para el teléfono (Fase 3 de la propuesta móvil).
+     Solo lo pinta el CSS ≤900px; en escritorio no existe visualmente. Es una
+     foto al abrir: se repinta al volver a entrar, no con cada tecla. */
+  const fhm=esNuevo?"":(()=>{
+    const d=s.fecha?new Date(s.fecha+"T12:00:00"):null;
+    const cobrado=co.estado==="cobrado";
+    return `<div class="fhm">
+      <span class="eti">${d?`${AG_DIAS[d.getDay()]} ${+s.fecha.slice(8,10)} ${AG_MESES[+s.fecha.slice(5,7)-1].toLowerCase()} ${s.fecha.slice(0,4)}`:"Sin fecha"}</span>
+      <span class="hq">${esc(nomCliente(s.clienteId))}</span>
+      <span class="hd">${esc(nomPromotor(s.promotorId))}${s.ciudad?" · "+esc(s.ciudad):""}</span>
+      <span class="hr2"><span class="pill ${AG_PILL[s.estado]||""}">${esc(s.estado)}</span>
+        <span class="pill ${cobrado?"ok":""}">${cobrado?"cobrado":"cobro pendiente"}</span></span>
+      <span class="fhm-acc">
+        <button type="button" class="btn sm" data-act="hoja" data-id="${s.id}">Hoja de ruta</button>
+        <button type="button" class="btn sm" data-act="contrato" data-id="${s.id}">Contrato</button>
+        <button type="button" class="btn sm" data-act="dup-show" data-id="${s.id}">Duplicar</button>
+      </span>
+    </div>`;
+  })();
   openModal(`
   <header class="mbar"><h3>${esNuevo?"Nuevo show":"Editar show"}</h3><div class="spacer"></div>
-    ${esNuevo?"":`<button class="btn sm" data-act="dup-show" data-id="${s.id}">Duplicar</button>`}
-    ${esNuevo?"":`<button class="btn sm" data-act="hoja" data-id="${s.id}">Hoja de ruta</button>`}
-    ${esNuevo?"":`<button class="btn sm" data-act="contrato" data-id="${s.id}">Contrato</button>`}
+    ${esNuevo?"":`<button class="btn sm oculta-movil" data-act="dup-show" data-id="${s.id}">Duplicar</button>`}
+    ${esNuevo?"":`<button class="btn sm oculta-movil" data-act="hoja" data-id="${s.id}">Hoja de ruta</button>`}
+    ${esNuevo?"":`<button class="btn sm oculta-movil" data-act="contrato" data-id="${s.id}">Contrato</button>`}
     <button class="btn sm btn-ajustado" id="s_btnotas" data-act="notas-abrir" data-notas-target="s_notas"
       data-asomo-target="s_notas" aria-label="Notas de esta fecha">Notas${plano(s.notas)?`<span class="pip"></span>`:""}</button>
     ${esNuevo?"":`<button class="btn danger sm" data-act="del-show" data-id="${s.id}">Eliminar</button>`}
     <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
   <div class="mbody">
+    ${fhm}
     <div class="section-title">La fecha</div>
     <div class="fgrid">
       <div class="f s4"><label>Cliente</label><select id="s_cli">
