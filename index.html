@@ -1458,7 +1458,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.010";
+const APP_VERSION="0.011";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -2395,6 +2395,19 @@ const AG_DIAS=["dom","lun","mar","mié","jue","vie","sáb"];
 const AG_MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const AG_RAIL={oferta:"var(--artist)",confirmado:"var(--warn)",contratado:"var(--ok)",ejecutado:"var(--mute-2)",cancelado:"var(--alert)"};
 const AG_PILL={oferta:"artist",confirmado:"warn",contratado:"ok",ejecutado:"",cancelado:"alert"};
+/* Paginación «mostrar más» de las listas largas (Contactos eran 38 pantallas
+   de scroll). El corte va DESPUÉS de filtrar y ordenar: buscar siempre
+   encuentra, y el «N de M» de la cabecera sigue contando el total. El límite
+   ampliado se recuerda por vista mientras dura la sesión. */
+const PAG_TAM=60;
+const VER_N={};
+function paginar(list,vista){
+  const lim=PAG_TAM+(VER_N[vista]||0);
+  if(list.length<=lim)return {list,boton:""};
+  const quedan=list.length-lim;
+  return {list:list.slice(0,lim),
+    boton:`<div style="text-align:center;padding:14px"><button class="btn" data-act="ver-mas" data-vista="${vista}">Mostrar ${Math.min(PAG_TAM,quedan)} más · quedan ${quedan}</button></div>`};
+}
 let VIEW="panel";
 /* Para animar la entrada solo cuando se cambia de apartado (paquete de
    animaciones ago-2026), no en cada re-render del buscador. */
@@ -2998,6 +3011,7 @@ function viewShows(el,ta){
   const tot=list.filter(s=>s.estado!=="cancelado").reduce((t,s)=>{const c=calc(s);
     t.bruto+=c.bruto;t.comis+=c.comis;t.neto+=c.neto;t.gastos+=c.gArt+c.gMalo+c.gProm;return t},
     {bruto:0,comis:0,neto:0,gastos:0});
+  const pag=paginar(list,"shows");list=pag.list;
   document.getElementById("viewSub").textContent=filtro.verAntiguos
     ? `${list.length} registros · con antiguos`
     : `${list.length} próximos${ocultos?` · ${ocultos} antiguos ocultos`:""}`;
@@ -3042,6 +3056,7 @@ function viewShows(el,ta){
       <td><span class="pill ${coCls}">${co.estado||"pendiente"}</span></td>
       <td><span class="pill ${li.estado==="liquidado"?"ok":""}">${li.estado||"pendiente"}</span></td></tr>`}).join("")}</tbody></table>`
   :`<div class="empty"><p>No hay shows con estos filtros.</p><button class="btn primary" data-act="new-show">Nuevo show</button></div>`}
+  ${pag.boton}
   </div></div>`;
 
   document.getElementById("q").addEventListener("input",e=>{filtro.q=e.target.value;render();
@@ -4415,6 +4430,7 @@ function viewClientes(el,ta){
   };
   list=aplicarOrden(list,filtro.ordenClientes,ORD_CLIENTES);
   document.getElementById("viewSub").textContent=`${list.length} de ${DB.clientes.length}`;
+  const pag=paginar(list,"clientes");list=pag.list;
   const subsFiltro=filtro.categoria?subsDe(filtro.categoria):[].concat(...Object.keys(CATEGORIAS).map(k=>subsDe(k)));
 
   el.innerHTML=`
@@ -4456,7 +4472,7 @@ function viewClientes(el,ta){
       <td class="c-red" data-lbl="Redes"><div class="vstack">${redes.length
         ? redes.map(k=>`<a href="${esc(redUrl(k,c.redes[k]))}" target="_blank" rel="noopener" class="red-link" onclick="event.stopPropagation()" title="${esc(c.redes[k])}">${REDES[k].label}</a>`).join("")
         : vacio}</div></td>
-    </tr>`}).join("")}</tbody></table></div></div>`;
+    </tr>`}).join("")}</tbody></table>${pag.boton}</div></div>`;
 
   document.getElementById("cq").addEventListener("input",e=>{filtro.q=e.target.value;render();
     const i=document.getElementById("cq");i.focus();i.setSelectionRange(i.value.length,i.value.length)});
@@ -4492,6 +4508,7 @@ function viewContactos(el,ta){
   list=aplicarOrden(list,filtro.ordenContactos,ORD_CONTACTOS);
   const cuenta={};DB.promotores.forEach(p=>{cuenta[p.categoria]=(cuenta[p.categoria]||0)+1});
   document.getElementById("viewSub").textContent=`${list.length} de ${DB.promotores.length}`;
+  const pag=paginar(list,"contactos");list=pag.list;
 
   el.innerHTML=`
   <div class="strip" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
@@ -4530,7 +4547,7 @@ function viewContactos(el,ta){
         ${p.email?`<a href="mailto:${esc(p.email)}" class="red-link" onclick="event.stopPropagation()" title="${esc(p.email)}">Email</a>`:""}
         ${p.web?`<a href="${esc(p.web)}" target="_blank" rel="noopener" class="red-link" onclick="event.stopPropagation()">${p.web.includes("instagram")?"Instagram":"Web"}</a>`:""}
         ${(!p.telefono&&!p.email&&!p.web)?`<span class="dim tiny">sin contacto</span>`:""}
-      </div>${p.contacto?`<div class="dim tiny" style="margin-top:4px">${esc(p.contacto)}</div>`:""}</td></tr>`}).join("")}</tbody></table></div></div>`;
+      </div>${p.contacto?`<div class="dim tiny" style="margin-top:4px">${esc(p.contacto)}</div>`:""}</td></tr>`}).join("")}</tbody></table>${pag.boton}</div></div>`;
 
   document.getElementById("bq").addEventListener("input",e=>{filtro.q=e.target.value;render();
     const i=document.getElementById("bq");i.focus();i.setSelectionRange(i.value.length,i.value.length)});
@@ -9375,6 +9392,7 @@ document.addEventListener("click",e=>{
       sb.from("promotores").delete().eq("id",idDel).then(({error})=>{if(error)toast("Error al eliminar en el servidor")});
       return touch()}
     if(act==="new-show")return formShow(null);
+    if(act==="ver-mas"){VER_N[el.dataset.vista]=(VER_N[el.dataset.vista]||0)+PAG_TAM;return render()}
     if(act==="save-show")return saveShow(el.dataset.new==="1");
     if(act==="del-show"){if(!confirm("¿Eliminar show?"))return;
       const idDel=el.dataset.id,showBorrado=DB.shows.find(x=>x.id===idDel);
