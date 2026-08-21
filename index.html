@@ -1148,6 +1148,49 @@ tbody tr.click{transition:background .12s}
 
 /* En el papel nada de esto pinta: sin sombras ni radios que gasten tinta */
 @media print{.card,.strip{box-shadow:none;border-radius:0}}
+
+/* ── 8 · Animaciones (ago 2026): cascada, deslizamiento, tacto y hoja ──
+   Solo transform/opacity (GPU, sin reflow). El bloque global de
+   prefers-reduced-motion ya las desactiva todas. */
+@keyframes vSube{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#view.anima > *{animation:vSube .26s cubic-bezier(.2,.7,.3,1) both}
+#view.anima > *:nth-child(2){animation-delay:.05s}
+#view.anima > *:nth-child(3){animation-delay:.09s}
+#view.anima > *:nth-child(4){animation-delay:.13s}
+#view.anima > *:nth-child(5){animation-delay:.16s}
+#view.anima > *:nth-child(n+6){animation-delay:.18s}
+/* La agenda de shows lleva su propia escalera dentro de la tarjeta */
+#view.anima .ag button.ag-card{animation:vSube .24s cubic-bezier(.2,.7,.3,1) both}
+#view.anima .ag button.ag-card:nth-of-type(2){animation-delay:.05s}
+#view.anima .ag button.ag-card:nth-of-type(3){animation-delay:.09s}
+#view.anima .ag button.ag-card:nth-of-type(4){animation-delay:.12s}
+#view.anima .ag button.ag-card:nth-of-type(5){animation-delay:.15s}
+#view.anima .ag button.ag-card:nth-of-type(n+6){animation-delay:.17s}
+
+/* Tacto: lo que se toca, responde (los botones ya encogen desde v0.009) */
+.ag button.ag-card,button.hero-movil,.agenda-item{transition:transform .1s ease,background .12s}
+.ag button.ag-card:active,button.hero-movil:active,.agenda-item:active{transform:scale(.965)}
+
+/* El modal entra, no aparece (escritorio: fundido corto y sobrio) */
+@keyframes modalIn{from{opacity:0;transform:scale(.985) translateY(6px)}to{opacity:1;transform:none}}
+@keyframes fondoIn{from{opacity:0}to{opacity:1}}
+.modal{animation:modalIn .2s ease-out}
+.modal-bg{animation:fondoIn .18s ease-out}
+
+@media(max-width:900px){
+  /* Cambio de apartado: la vista nueva entra deslizando desde la derecha */
+  @keyframes vLado{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+  #view.anima{animation:vLado .2s cubic-bezier(.2,.7,.3,1)}
+  /* La ficha sube desde abajo como una hoja: ancho completo, esquinas
+     superiores redondeadas y estirada hasta el borde inferior. El scroll
+     sigue siendo el del fondo, como siempre. */
+  @keyframes hojaSube{from{opacity:0;transform:translateY(48px)}to{opacity:1;transform:none}}
+  .modal-bg{padding:0}
+  .modal{margin:9vh 0 0;min-height:91vh;border-radius:20px 20px 0 0;border-bottom:none;
+    animation:hojaSube .28s cubic-bezier(.2,.75,.25,1)}
+  .modal > header{border-radius:20px 20px 0 0}
+  .modal > footer{border-radius:0}
+}
 </style>
 </head>
 <body>
@@ -1415,7 +1458,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.009";
+const APP_VERSION="0.010";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -2353,6 +2396,9 @@ const AG_MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto
 const AG_RAIL={oferta:"var(--artist)",confirmado:"var(--warn)",contratado:"var(--ok)",ejecutado:"var(--mute-2)",cancelado:"var(--alert)"};
 const AG_PILL={oferta:"artist",confirmado:"warn",contratado:"ok",ejecutado:"",cancelado:"alert"};
 let VIEW="panel";
+/* Para animar la entrada solo cuando se cambia de apartado (paquete de
+   animaciones ago-2026), no en cada re-render del buscador. */
+let VIEW_PREV_ANIM=null;
 let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",docTipo:"",docAnio:"",mailCliente:"",mailEtiqueta:"",mailSoloConsent:false,verAntiguos:false,mapaCliente:"",mapaAnio:"",mapaCom:"",
   ordenShows:"fecha_asc",ordenClientes:"cat",ordenContactos:"cat",relBD:"",ordenDocs:"fecha_desc",
   ordenMailing:"alpha",ordenMapa:"n_desc",anio:String(new Date().getFullYear()),
@@ -2526,6 +2572,11 @@ function render(){
     mailing:viewMailing,mapa:viewMapa,temas:viewTemas,
     misCanciones:viewMisCanciones,bolsillo:viewBolsillo,redes:viewRedes,
     equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos})[VIEW](el,ta);
+  /* Cascada de entrada solo al cambiar de apartado: los nodos recién
+     insertados arrancan su animación al entrar; si la vista es la misma
+     (tecleo en el buscador) se quita la clase y no parpadea nada. */
+  el.classList.toggle("anima",VIEW!==VIEW_PREV_ANIM);
+  VIEW_PREV_ANIM=VIEW;
   tablasFicha(el);
   filasTeclado(el);
   filtrosPlegables(el);
