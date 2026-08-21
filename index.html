@@ -1113,18 +1113,19 @@ function makeDemoClient(){
   const tab=n=>{if(!Array.isArray(T[n]))T[n]=[];return T[n]};
   const USUARIO={id:"demo-user",email:"demo@ejemplo.com"};
   function query(name){
-    const q={_f:[],_order:null,_limit:null,_single:false};
+    const q={_f:[],_order:null,_limit:null,_range:null,_single:false};
     const filtra=()=>{
       let d=tab(name).slice();
       q._f.forEach(([c,v])=>{d=d.filter(r=>r[c]===v)});
       if(q._order){const [c,asc]=q._order;
         d.sort((a,b)=>String(a[c]||"").localeCompare(String(b[c]||""))*(asc?1:-1))}
+      if(q._range)d=d.slice(q._range[0],q._range[1]+1);
       if(q._limit)d=d.slice(0,q._limit);
       return d;
     };
     const api={
       select(){return api}, order(c,o){q._order=[c,(o&&o.ascending)!==false];return api},
-      limit(n){q._limit=n;return api}, eq(c,v){q._f.push([c,v]);return api},
+      limit(n){q._limit=n;return api}, range(a,b){q._range=[a,b];return api}, eq(c,v){q._f.push([c,v]);return api},
       not(){return api}, maybeSingle(){q._single=true;return api}, single(){q._single=true;return api},
       insert(rows){const r=Array.isArray(rows)?rows:[rows];
         r.forEach(x=>tab(name).push(JSON.parse(JSON.stringify(x))));guardar(T);
@@ -1229,6 +1230,36 @@ const REDES={
    entró el 20 ago (ya no tiene API pública desde feb 2026 — se actualiza
    por una revisión mensual programada, no con el botón "Actualizar ahora"). */
 const REDES_CRECIMIENTO=["instagram","tiktok","youtube","spotify"];
+/* Campos extra por red para el panel "Redes": más allá de seguidores, cada
+   red tiene sus propias métricas típicas (engagement, alcance, audiencia).
+   Todo opcional — si no se rellena no se guarda ni se muestra. Vive junto al
+   snapshot en redes_snapshots.extra (jsonb), sonda DB.sinRedesExtra. */
+const REDES_EXTRA_CAMPOS={
+  instagram:[
+    {key:"alcance",label:"Alcance (30 días)",tipo:"num"},
+    {key:"interacciones",label:"Interacciones (likes+comentarios)",tipo:"num"},
+  ],
+  tiktok:[
+    {key:"likesTotales",label:"Likes totales del perfil",tipo:"num"},
+    {key:"videos",label:"Vídeos publicados",tipo:"num"},
+  ],
+  youtube:[
+    {key:"vistasTotales",label:"Vistas totales del canal",tipo:"num"},
+    {key:"videos",label:"Vídeos publicados",tipo:"num"},
+  ],
+  spotify:[
+    {key:"oyentesMensuales",label:"Oyentes mensuales",tipo:"num"},
+    {key:"topPais",label:"País con más oyentes",tipo:"texto"},
+    {key:"topCiudad",label:"Ciudad con más oyentes",tipo:"texto"},
+    {key:"edadTop",label:"Rango de edad principal",tipo:"texto"},
+    {key:"generoTop",label:"Género de la audiencia (ej. 62% hombres)",tipo:"texto"},
+  ],
+};
+/* Común a las cuatro redes, además de las de arriba. */
+const REDES_EXTRA_COMUN=[
+  {key:"topContenido",label:"Contenido que más ha tirado (canción/vídeo/post)",tipo:"texto"},
+];
+function redesExtraCampos(red){return (REDES_EXTRA_CAMPOS[red]||[]).concat(REDES_EXTRA_COMUN)}
 const SERVICIOS=["booking","management","development","sello"];
 /* Ojo: son las categorías del CONTRATANTE (vista Contactos), no las de cliente.
    «evento» = una fecha suelta o ciclo que contrata sin ser sala ni festival. */
@@ -1533,7 +1564,7 @@ const TABLE_MAP={
     audioDriveId:"audio_drive_id",audioUrl:"audio_url"},
   cancionParticipantes:{id:"id",cancionId:"cancion_id",clienteId:"cliente_id",nombre:"nombre",rol:"rol",pct:"pct"},
   cancionIngresos:{id:"id",cancionId:"cancion_id",mes:"mes",bruto:"bruto",unidades:"unidades",canal:"canal"},
-  redesSnapshots:{id:"id",clienteId:"cliente_id",red:"red",fecha:"fecha",seguidores:"seguidores",notas:"notas"}
+  redesSnapshots:{id:"id",clienteId:"cliente_id",red:"red",fecha:"fecha",seguidores:"seguidores",notas:"notas",extra:"extra"}
 };
 const NULEA_VACIO=new Set(["cliente_id","promotor_id","venue_id","fecha","fecha_alta","dj_id","dj_defecto_id","asignado_a","vence","autor","creado_por","hecha_en","promotor_id","ultimo_contacto","artista_id","cancion_id","fecha_lanzamiento"]);
 const CON_AUTORIA=new Set(["clientes","promotores","shows","producciones","canciones"]);
@@ -1634,7 +1665,7 @@ async function fetchTodos(tabla){
   return {data:todo,error:err};
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -1658,7 +1689,9 @@ async function loadRemote(){
     fetchTodos("canciones"),
     fetchTodos("cancion_participantes"),
     fetchTodos("cancion_ingresos"),
-    fetchTodos("redes_snapshots")
+    fetchTodos("redes_snapshots"),
+    /* Sonda: columna "extra" (engagement, oyentes, demografía, top contenido) */
+    sb.from("redes_snapshots").select("extra").limit(1)
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -1697,6 +1730,10 @@ async function loadRemote(){
   DB.sinRedes=!!rsn.error;
   DB.redesSnapshots=DB.sinRedes?[]:(rsn.data||[]).map(r=>fromRow("redesSnapshots",r));
   if(DB.sinRedes)console.warn("Tabla «redes_snapshots» no disponible:",rsn.error.message);
+  /* Igual con la columna "extra" (engagement/oyentes/demografía/top contenido):
+     sin ella el panel Redes sigue funcionando solo con seguidores. */
+  DB.sinRedesExtra=!!rex.error;
+  if(DB.sinRedesExtra)console.warn("Columna «redes_snapshots.extra» no disponible:",rex.error.message);
   DB.googleAuth=ga.data&&ga.data.email?{email:ga.data.email,conectadoEn:ga.data.conectado_en}:null;
   DB.contexto=(ctx.data||[]).map(r=>fromRow("contexto",r));
   DB.mensajes=(msj.data||[]).map(r=>fromRow("mensajes",r));
@@ -1757,7 +1794,8 @@ async function save(){
       (!DB.sinCanciones&&(DB.canciones||[]).length)&&sb.from("canciones").upsert(DB.canciones.map(x=>toRow("canciones",x))),
       (!DB.sinCanciones&&(DB.cancionParticipantes||[]).length)&&sb.from("cancion_participantes").upsert(DB.cancionParticipantes.map(x=>toRow("cancionParticipantes",x))),
       (!DB.sinCanciones&&(DB.cancionIngresos||[]).length)&&sb.from("cancion_ingresos").upsert(DB.cancionIngresos.map(x=>toRow("cancionIngresos",x))),
-      (!DB.sinRedes&&(DB.redesSnapshots||[]).length)&&sb.from("redes_snapshots").upsert(DB.redesSnapshots.map(x=>toRow("redesSnapshots",x))),
+      (!DB.sinRedes&&(DB.redesSnapshots||[]).length)&&sb.from("redes_snapshots").upsert(DB.redesSnapshots.map(x=>{
+        const r=toRow("redesSnapshots",x);if(DB.sinRedesExtra)delete r.extra;return r})),
       sb.from("empresa").update(Object.assign(
         {nombre:(DB.empresa||{}).nombre||"MALO",logo:(DB.empresa||{}).logo||""},
         DB.sinAjustes?{}:{ajustes:(DB.empresa||{}).ajustes||{}})).eq("id",1)
@@ -3996,6 +4034,7 @@ function viewRedes(el,ta){
     for(let i=serie.length-1;i>=0;i--){if(serie[i].delta!==null){deltaMes=serie[i].delta;break}}
     const max=Math.max(1,...serie.map(m=>Math.abs(m.delta||0)));
     const automatizable=red==="instagram"||red==="youtube";
+    const extraPares=formatoExtra(red,ult&&ult.extra);
     return `<div class="card"><header><h3>${REDES[red].label}</h3><div class="spacer"></div>
         ${automatizable?`<button class="btn ghost sm" data-act="act-red-ahora" data-cliente="${cli}" data-red="${red}" data-handle="${esc(handle)}" title="Consulta el dato público en vivo (YouTube/Instagram)">Actualizar ahora</button>`:""}
         <button class="btn ghost sm" data-act="new-red-snap" data-cliente="${cli}" data-red="${red}">+ Añadir dato</button></header>
@@ -4016,32 +4055,66 @@ function viewRedes(el,ta){
             <div class="tiny dim" style="font-size:9px">${NOM[+m.mes.slice(5,7)-1]}</div>
           </div>`).join("")}
         </div>
+        ${extraPares.length?`<dl class="redes-extra" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--rule-2);display:grid;grid-template-columns:1fr auto;gap:4px 8px">
+          ${extraPares.map(p=>`<dt class="dim tiny">${esc(p.label)}</dt><dd class="tiny strong" style="text-align:right;margin:0">${esc(p.valor)}</dd>`).join("")}
+        </dl>`:""}
       </div></div>`;
   }).join("");
 
   const historial=REDES_CRECIMIENTO.flatMap(red=>redesSnapshotsDe(cli,red).map(s=>Object.assign({},s,{red})))
     .sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
 
+  /* Comparativa: última cifra de seguidores de cada artista, por red — para
+     ver de un vistazo quién va mejor sin tener que cambiar el selector uno
+     por uno. Solo entran artistas con al menos un dato guardado. */
+  const filaComparativa=artistas.map(a=>{
+    const vals=REDES_CRECIMIENTO.map(red=>{const u=ultimoSnapshot(a.id,red);return u?n(u.seguidores):null});
+    const total=vals.reduce((t,v)=>t+(v||0),0);
+    return {artista:a,vals,total};
+  }).filter(f=>f.total>0).sort((a,b)=>b.total-a.total);
+
   el.innerHTML=`
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">${tarjetas}</div>
+  ${filaComparativa.length>1?`<div class="card" style="margin-top:16px"><header><h3>Comparativa entre artistas</h3></header>
+  <div class="body flush"><table><thead><tr><th>Artista</th>${REDES_CRECIMIENTO.map(r=>`<th class="num">${REDES[r].label}</th>`).join("")}</tr></thead>
+  <tbody>${filaComparativa.map(f=>`<tr${f.artista.id===cli?' style="background:var(--panel-2)"':''}>
+    <td>${esc(f.artista.nombre||f.artista.nombreReal)}</td>
+    ${f.vals.map(v=>`<td class="num">${v==null?'<span class="dim">—</span>':v.toLocaleString("es-ES")}</td>`).join("")}
+  </tr>`).join("")}</tbody></table></div></div>`:""}
   <div class="card" style="margin-top:16px"><header><h3>Historial</h3></header><div class="body flush">
-    ${historial.length?`<table><thead><tr><th>Fecha</th><th>Red</th><th class="num">Seguidores</th><th></th></tr></thead>
-    <tbody>${historial.map(s=>`<tr>
+    ${historial.length?`<table><thead><tr><th>Fecha</th><th>Red</th><th class="num">Seguidores</th><th>Detalle</th><th></th></tr></thead>
+    <tbody>${historial.map(s=>{
+      const extraPares=formatoExtra(s.red,s.extra);
+      return `<tr>
       <td class="tiny dim" style="font-family:var(--mono)">${fecha(s.fecha)}</td>
       <td><span class="pill">${REDES[s.red].label}</span></td>
       <td class="num strong">${n(s.seguidores).toLocaleString("es-ES")}</td>
+      <td class="tiny dim">${extraPares.length?esc(extraPares.map(p=>`${p.label}: ${p.valor}`).join(" · ")):""}</td>
       <td style="width:1%"><button class="x" data-act="del-red-snap" data-id="${s.id}" type="button">×</button></td>
-    </tr>`).join("")}</tbody></table>`
+    </tr>`;}).join("")}</tbody></table>`
     :`<div class="empty"><p>Todavía no hay ningún dato guardado. Usa «+ Añadir dato» en cualquiera de las tres tarjetas.</p></div>`}
   </div></div>`;
 
   const sa=document.getElementById("rdArt");
   if(sa)sa.addEventListener("change",e=>{filtro.redesArtista=e.target.value;render()});
 }
+/* Convierte redes_snapshots.extra (jsonb) en pares {label,valor} listos para
+   pintar, en el mismo orden que REDES_EXTRA_CAMPOS+COMUN. Números con
+   separador de miles, todo lo demás tal cual. */
+function formatoExtra(red,extra){
+  if(!extra||typeof extra!=="object")return [];
+  return redesExtraCampos(red).filter(c=>extra[c.key]!==undefined&&extra[c.key]!=="").map(c=>({
+    label:c.label,
+    valor:c.tipo==="num"?n(extra[c.key]).toLocaleString("es-ES"):String(extra[c.key]),
+  }));
+}
 function formRedSnapshot(clienteId,red){
   const c=DB.clientes.find(x=>x.id===clienteId);
+  const bloqueExtra=r=>redesExtraCampos(r).map(campo=>`
+      <div class="f s6"><label>${esc(campo.label)}</label>
+        <input id="rs_x_${r}_${campo.key}" type="${campo.tipo==="num"?"number":"text"}" ${campo.tipo==="num"?'min="0" step="1"':""} placeholder="${campo.tipo==="num"?"0":"opcional"}"></div>`).join("");
   openModal(`
-  <header><h3>Añadir dato de seguidores</h3><div class="spacer"></div>
+  <header><h3>Añadir dato de redes</h3><div class="spacer"></div>
     <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
   <div class="mbody">
     <p class="dim tiny" style="margin-bottom:14px">${esc(c?(c.nombre||c.nombreReal):"")}</p>
@@ -4052,15 +4125,37 @@ function formRedSnapshot(clienteId,red){
       <div class="f s4"><label>Fecha</label><input id="rs_fecha" type="date" value="${esc(hoy())}"></div>
       <div class="f s3"><label>Seguidores</label><input id="rs_seg" type="number" min="0" step="1" placeholder="0"></div>
     </div>
+    <p class="dim tiny" style="margin:14px 0 6px">Opcional — lo que sepas de más, para que el cliente tenga una foto completa (no solo seguidores):</p>
+    ${DB.sinRedesExtra?`<p class="dim tiny">Falta ejecutar <code>supabase/redes_snapshots_extra.sql</code> para guardar estos campos — de momento solo se guardan los seguidores.</p>`
+      :`<div class="fgrid" id="rs_extra">${REDES_CRECIMIENTO.map(r=>bloqueExtra(r)).join("")}</div>`}
   </div>
   <footer><button class="btn ghost" data-act="close">Cancelar</button>
     <button class="btn primary" data-act="save-red-snap" data-cliente="${clienteId}">Guardar</button></footer>`,true);
+  if(!DB.sinRedesExtra){
+    const pinta=()=>{
+      const activa=val("rs_red");
+      REDES_CRECIMIENTO.forEach(r=>redesExtraCampos(r).forEach(campo=>{
+        const el=document.getElementById("rs_x_"+r+"_"+campo.key);
+        if(el)el.closest(".f").style.display=(r===activa)?"":"none";
+      }));
+    };
+    document.getElementById("rs_red").addEventListener("change",pinta);
+    pinta();
+  }
 }
 function saveRedSnapshot(clienteId){
   const red=val("rs_red"),fechaV=val("rs_fecha"),seg=val("rs_seg");
   if(!fechaV){toast("Hace falta una fecha");return}
   if(seg===""){toast("Pon el número de seguidores");return}
   const s={id:uid("rsn"),clienteId,red,fecha:fechaV,seguidores:Math.round(n(seg)),notas:""};
+  if(!DB.sinRedesExtra){
+    const extra={};
+    redesExtraCampos(red).forEach(campo=>{
+      const v=val("rs_x_"+red+"_"+campo.key);
+      if(v!==""&&v!==null&&v!==undefined)extra[campo.key]=campo.tipo==="num"?Math.round(n(v)):v;
+    });
+    if(Object.keys(extra).length)s.extra=extra;
+  }
   DB.redesSnapshots=(DB.redesSnapshots||[]).concat(s);
   closeModal();toast("Dato guardado");touch();
 }
