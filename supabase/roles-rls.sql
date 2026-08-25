@@ -1,37 +1,59 @@
--- MALO · Roles con seguridad de verdad (RLS)
+-- MALO · Roles con seguridad de verdad (RLS) — v2 con rol «artista» (portal cliente)
 --
--- ESTE ARCHIVO NO ESTÁ APLICADO. Es una propuesta para revisar con el
--- desarrollador antes de ejecutarla en producción.
+-- Idempotente: se puede ejecutar dos veces sin efecto. Ejecutar ENTERO en el
+-- SQL Editor de Supabase, con las comprobaciones del PASO 0 y PASO 3 delante.
 --
 -- Por qué existe: la pantalla «Configuración → Equipo y permisos» hoy solo
 -- esconde botones. Esconder un botón no impide nada: cualquiera con la consola
--- del navegador abierta puede llamar a supabase directamente y escribir. Para
--- que un rol signifique algo tiene que decidirlo Postgres, no el navegador.
+-- del navegador abierta puede llamar a supabase directamente y leer/escribir
+-- TODA la base. Para que un rol signifique algo tiene que decidirlo Postgres.
 --
--- Riesgo de aplicarlo mal: si una política queda demasiado estricta, el equipo
--- deja de poder guardar y la app parece rota sin dar un error claro. Por eso
--- va por pasos y con una comprobación entre medias.
+-- Roles:
+--   admin    — todo (malo@malomgmt.com, fijo)
+--   gestor   — lee todo, escribe lo del día a día; empresa y roles no
+--   lectura  — lee todo, no escribe nada
+--   artista  — EL PORTAL DEL CLIENTE: solo lee SUS filas (sus shows, su agenda,
+--              sus canciones, sus redes, su ficha), no escribe nada, y no ve
+--              promotores, contactos, empresa, equipo ni datos de otros artistas.
+--
+-- Requisito de la app (ya desplegado antes de aplicar esto):
+--   · save() solo manda la fila de empresa cuando ha cambiado (v0.018)
+--   · save() no intenta escribir nada si el rol es lectura o artista (v0.018)
 
 -- ─────────────────────────────────────────────────────────────────────────
--- PASO 1 · El rol deja de vivir solo en empresa.ajustes
+-- PASO 0 · Comprobaciones previas (ejecutar y LEER antes de seguir)
 --
--- Hoy los roles están en empresa.ajustes.roles (JSONB). Eso vale para pintar
--- la interfaz, pero es mala base para una política: cualquiera puede escribir
--- en empresa y por tanto ascenderse a sí mismo. El rol tiene que estar en una
--- columna que solo un admin pueda tocar.
+-- a) El tipo de shows.djs tiene que ser jsonb (lo usa la política del artista):
+--   select column_name, data_type from information_schema.columns
+--    where table_name='shows' and column_name in ('djs','dj_id','cliente_id');
+-- b) Que existen todas las tablas del PASO 4 (si falta alguna, el bucle falla):
+--   select table_name from information_schema.tables where table_schema='public';
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- PASO 1 · El rol vive en miembros, no en empresa.ajustes
+--
+-- empresa.ajustes lo puede escribir cualquiera con sesión (hasta que este SQL
+-- se aplique), así que un rol guardado ahí se lo puede poner uno mismo. La
+-- columna de verdad va en miembros, que solo tocará un admin.
 
 alter table public.miembros
-  add column if not exists rol text not null default 'gestor'
-  check (rol in ('admin','gestor','lectura'));
+  add column if not exists rol text not null default 'gestor';
+alter table public.miembros drop constraint if exists miembros_rol_check;
+alter table public.miembros
+  add constraint miembros_rol_check check (rol in ('admin','gestor','lectura','artista'));
 
--- Sembrar desde lo que ya hay configurado en la app:
+-- El artista queda vinculado a su ficha de cliente: de aquí sale «lo suyo».
+alter table public.miembros
+  add column if not exists cliente_id text references public.clientes(id) on delete set null;
+
+-- Sembrar el admin fijo:
 update public.miembros set rol = 'admin' where lower(email) = 'malo@malomgmt.com';
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- PASO 2 · Funciones de ayuda
 --
--- SECURITY DEFINER para que puedan leer «miembros» sin quedar atrapadas en la
--- política de la propia tabla (recursión infinita, un clásico de RLS).
+-- SECURITY DEFINER para que puedan leer «miembros» y «cancion_participantes»
+-- sin quedar atrapadas en la política de la propia tabla (recursión infinita).
 
 create or replace function public.mi_rol() returns text
 language sql stable security definer set search_path = public as $$
@@ -48,76 +70,177 @@ language sql stable security definer set search_path = public as $$
   select public.mi_rol() in ('admin','gestor');
 $$;
 
+create or replace function public.es_artista() returns boolean
+language sql stable security definer set search_path = public as $$
+  select public.mi_rol() = 'artista';
+$$;
+
+create or replace function public.mi_cliente() returns text
+language sql stable security definer set search_path = public as $$
+  select cliente_id from public.miembros where id = auth.uid();
+$$;
+
+-- ¿Participa mi cliente vinculado en esta canción? (para ingresos y ficha)
+create or replace function public.participa_en(p_cancion text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists(
+    select 1 from public.canciones c
+     where c.id = p_cancion and c.artista_id = public.mi_cliente())
+      or exists(
+    select 1 from public.cancion_participantes cp
+     where cp.cancion_id = p_cancion and cp.cliente_id = public.mi_cliente());
+$$;
+
 -- ─────────────────────────────────────────────────────────────────────────
 -- PASO 3 · Comprobar ANTES de activar nada
 --
--- Ejecuta esto con tu sesión y mira que devuelve lo que esperas. Si mi_rol()
--- devuelve 'gestor' para ti, para aquí: falta la fila en miembros o el id no
--- coincide con auth.uid(), y activar RLS ahora te dejaría fuera.
+-- Ejecuta esto con tu sesión (desde la app, en la consola:
+--   (await sb.rpc('mi_rol')).data ) o aquí con un token tuyo. Si mi_rol()
+-- devuelve 'gestor' para ti, PARA: falta tu fila en miembros o el id no
+-- coincide con auth.uid(), y activar RLS te dejaría sin permisos de admin.
 --   select auth.uid(), public.mi_rol(), public.es_admin();
 
 -- ─────────────────────────────────────────────────────────────────────────
--- PASO 4 · Las políticas, tabla por tabla
+-- PASO 4 · Tablas internas de la agencia
 --
--- Modelo: todo el mundo con sesión LEE todo (es una agencia de 5 personas,
--- no hay secretos entre ellos). Escribir lo hacen admin y gestor. Borrar,
--- solo admin.
---
--- Ojo: 'authenticated' incluye a cualquiera que consiga registrarse. Si el
--- registro está abierto, ciérralo o esto no vale de nada.
+-- El equipo (admin/gestor/lectura) LEE todo. El artista NO las ve.
+-- Escriben admin y gestor. Borra solo admin.
+-- Ojo: 'authenticated' incluye a cualquiera con cuenta. El registro está
+-- cerrado (acceso por invitación) — mantenerlo así.
 
 do $$
 declare t text;
 begin
   foreach t in array array[
-    'clientes','promotores','shows','eventos','producciones',
-    'subcategorias','suscriptores','contexto','tareas','temas','generos',
-    'mensajes','localidades'
+    'promotores','producciones','suscriptores','contexto','tareas','mensajes'
   ]
   loop
     execute format('alter table public.%I enable row level security', t);
-
     execute format('drop policy if exists %I on public.%I', t||'_leer', t);
-    execute format('create policy %I on public.%I for select to authenticated using (true)', t||'_leer', t);
-
+    execute format('create policy %I on public.%I for select to authenticated using (not public.es_artista())', t||'_leer', t);
     execute format('drop policy if exists %I on public.%I', t||'_escribir', t);
     execute format('create policy %I on public.%I for insert to authenticated with check (public.puede_escribir())', t||'_escribir', t);
-
     execute format('drop policy if exists %I on public.%I', t||'_actualizar', t);
     execute format('create policy %I on public.%I for update to authenticated using (public.puede_escribir()) with check (public.puede_escribir())', t||'_actualizar', t);
+    execute format('drop policy if exists %I on public.%I', t||'_borrar', t);
+    execute format('create policy %I on public.%I for delete to authenticated using (public.es_admin())', t||'_borrar', t);
+  end loop;
+end $$;
 
+-- Catálogos sin nada sensible (géneros, subcategorías, callejero): los lee
+-- cualquiera con sesión — el portal los necesita para pintar sin romperse.
+do $$
+declare t text;
+begin
+  foreach t in array array['subcategorias','generos','localidades']
+  loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists %I on public.%I', t||'_leer', t);
+    execute format('create policy %I on public.%I for select to authenticated using (true)', t||'_leer', t);
+    execute format('drop policy if exists %I on public.%I', t||'_escribir', t);
+    execute format('create policy %I on public.%I for insert to authenticated with check (public.puede_escribir())', t||'_escribir', t);
+    execute format('drop policy if exists %I on public.%I', t||'_actualizar', t);
+    execute format('create policy %I on public.%I for update to authenticated using (public.puede_escribir()) with check (public.puede_escribir())', t||'_actualizar', t);
     execute format('drop policy if exists %I on public.%I', t||'_borrar', t);
     execute format('create policy %I on public.%I for delete to authenticated using (public.es_admin())', t||'_borrar', t);
   end loop;
 end $$;
 
 -- ─────────────────────────────────────────────────────────────────────────
--- PASO 5 · Las dos tablas que van aparte
+-- PASO 5 · Tablas con vista de artista (el equipo ve todo; el artista, lo suyo)
 --
--- empresa: aquí viven la carpeta madre de Drive y los datos fiscales.
--- Escribirla es un acto de administración, no de gestión diaria.
+-- Escritura y borrado: mismas reglas que arriba (gestor escribe, admin borra).
+-- Lo que cambia es el SELECT, tabla por tabla.
 
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'clientes','shows','eventos','temas',
+    'canciones','cancion_participantes','cancion_ingresos','redes_snapshots'
+  ]
+  loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists %I on public.%I', t||'_leer', t);
+    execute format('drop policy if exists %I on public.%I', t||'_escribir', t);
+    execute format('create policy %I on public.%I for insert to authenticated with check (public.puede_escribir())', t||'_escribir', t);
+    execute format('drop policy if exists %I on public.%I', t||'_actualizar', t);
+    execute format('create policy %I on public.%I for update to authenticated using (public.puede_escribir()) with check (public.puede_escribir())', t||'_actualizar', t);
+    execute format('drop policy if exists %I on public.%I', t||'_borrar', t);
+    execute format('create policy %I on public.%I for delete to authenticated using (public.es_admin())', t||'_borrar', t);
+  end loop;
+end $$;
+
+-- clientes: el artista solo ve SU ficha. Las de los demás llevan IBAN, NIF y
+-- comisiones — ni los nombres: los feats de sus canciones saldrán sin nombre
+-- en el portal hasta que se decida exponer una vista pública (id+nombre).
+create policy clientes_leer on public.clientes
+  for select to authenticated
+  using (not public.es_artista() or id = public.mi_cliente());
+
+-- shows: los suyos como artista principal, como DJ que acompaña (dj_id) o
+-- como miembro del colectivo que va a la fecha (djs, array jsonb de ids).
+create policy shows_leer on public.shows
+  for select to authenticated
+  using (not public.es_artista()
+         or cliente_id = public.mi_cliente()
+         or dj_id = public.mi_cliente()
+         or coalesce(djs,'[]'::jsonb) @> to_jsonb(public.mi_cliente()));
+
+-- eventos (agenda) y temas: filas de su cliente.
+create policy eventos_leer on public.eventos
+  for select to authenticated
+  using (not public.es_artista() or cliente_id = public.mi_cliente());
+create policy temas_leer on public.temas
+  for select to authenticated
+  using (not public.es_artista() or cliente_id = public.mi_cliente());
+
+-- canciones: donde es el artista principal o participa en el reparto.
+create policy canciones_leer on public.canciones
+  for select to authenticated
+  using (not public.es_artista()
+         or artista_id = public.mi_cliente()
+         or public.participa_en(id));
+
+-- cancion_participantes: SOLO sus propias filas de reparto. Decisión de
+-- privacidad: no ve el % de los demás participantes (doc de diseño de
+-- Bolsillo). Su parte se calcula con su fila y el pool, que sí ve.
+create policy cancion_participantes_leer on public.cancion_participantes
+  for select to authenticated
+  using (not public.es_artista() or cliente_id = public.mi_cliente());
+
+-- cancion_ingresos: los ingresos brutos de las canciones donde participa
+-- (los necesita para ver el mes a mes y calcular su parte).
+create policy cancion_ingresos_leer on public.cancion_ingresos
+  for select to authenticated
+  using (not public.es_artista() or public.participa_en(cancion_id));
+
+-- redes_snapshots: su propio histórico de seguidores.
+create policy redes_snapshots_leer on public.redes_snapshots
+  for select to authenticated
+  using (not public.es_artista() or cliente_id = public.mi_cliente());
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- PASO 6 · Las tablas que van aparte
+
+-- empresa: datos fiscales, IBAN, carpeta de Drive, roles de la UI.
+-- La lee el equipo; la escribe solo admin; el artista NO la ve.
 alter table public.empresa enable row level security;
 drop policy if exists empresa_leer on public.empresa;
 create policy empresa_leer on public.empresa
-  for select to authenticated using (true);
+  for select to authenticated using (not public.es_artista());
 drop policy if exists empresa_escribir on public.empresa;
 create policy empresa_escribir on public.empresa
   for update to authenticated using (public.es_admin()) with check (public.es_admin());
+-- (El fix de save() ya está desplegado: solo manda empresa cuando cambia.)
 
--- PERO: la app llama a save() en cada cambio y save() SIEMPRE hace un update
--- de empresa, aunque no haya cambiado nada. Con esta política, a un gestor le
--- fallaría ese update y toda la operación de guardado devolvería error.
--- Antes de activar esto hay que tocar save() en index.html para que solo mande
--- la fila de empresa cuando de verdad haya cambiado. Está anotado a propósito
--- aquí porque es exactamente el tipo de detalle que rompe la app en producción
--- media hora después de aplicar el SQL.
-
--- miembros: cada uno ve el equipo y puede cambiar SU nombre. El rol, solo admin.
+-- miembros: el equipo ve la lista; el artista solo se ve a sí mismo.
+-- Cada uno puede cambiar SU nombre; rol y cliente_id, solo admin (trigger).
 alter table public.miembros enable row level security;
 drop policy if exists miembros_leer on public.miembros;
 create policy miembros_leer on public.miembros
-  for select to authenticated using (true);
+  for select to authenticated
+  using (not public.es_artista() or id = auth.uid());
 drop policy if exists miembros_yo on public.miembros;
 create policy miembros_yo on public.miembros
   for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
@@ -125,38 +248,52 @@ drop policy if exists miembros_admin on public.miembros;
 create policy miembros_admin on public.miembros
   for update to authenticated using (public.es_admin()) with check (public.es_admin());
 
--- Falta lo importante: impedir que alguien se cambie su propio rol con la
--- política miembros_yo. En Postgres eso se hace con un trigger, porque una
--- política no puede comparar columna vieja contra nueva.
+-- Una política no puede comparar el valor viejo contra el nuevo: el bloqueo
+-- de «me asciendo yo mismo» (o «me vinculo al cliente de otro») va en trigger.
 create or replace function public.no_te_asciendas() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if new.rol is distinct from old.rol and not public.es_admin() then
-    raise exception 'Solo un administrador puede cambiar el rol';
+  /* auth.uid() nulo = consola SQL de Supabase o service role, no un usuario
+     de la app: ahí no se bloquea nada (si no, ni el propio SQL Editor podría
+     asignar roles). El bloqueo es para sesiones reales que no son admin. */
+  if auth.uid() is null or public.es_admin() then return new; end if;
+  if new.rol is distinct from old.rol
+     or new.cliente_id is distinct from old.cliente_id then
+    raise exception 'Solo un administrador puede cambiar el rol o el cliente vinculado';
   end if;
   return new;
 end $$;
-
 drop trigger if exists miembros_rol_guardia on public.miembros;
 create trigger miembros_rol_guardia before update on public.miembros
   for each row execute function public.no_te_asciendas();
 
--- ─────────────────────────────────────────────────────────────────────────
--- PASO 6 · google_auth NO se toca desde el navegador, nunca
---
--- Contiene el refresh token de Google. Solo la Edge Function (service role)
--- debe poder leerlo. El service role se salta RLS, así que basta con no dar
--- ninguna política a los usuarios normales.
-
+-- google_auth: contiene el refresh token de Google. El navegador solo necesita
+-- el email de la cuenta conectada; el artista, nada. La Edge Function usa el
+-- service role, que se salta RLS.
 alter table public.google_auth enable row level security;
 drop policy if exists google_auth_leer on public.google_auth;
--- La app solo necesita saber el email de la cuenta conectada, no el token:
+drop policy if exists google_auth_email on public.google_auth;
 create policy google_auth_email on public.google_auth
-  for select to authenticated using (true);
--- Si esta columna preocupa, lo correcto es una vista que exponga solo el email
--- y revocar el select de la tabla. Pendiente de decidir con el desarrollador.
+  for select to authenticated using (not public.es_artista());
+
+-- ig_cuentas: ya tiene RLS activo y CERO políticas (solo service role) desde
+-- ig_cuentas.sql — no se toca, ya es lo más restrictivo posible.
 
 -- ─────────────────────────────────────────────────────────────────────────
--- CÓMO DESHACERLO si algo se rompe
+-- PASO 7 · Verificación después de aplicar (ejecutar tal cual)
+--
+--   select tablename, policyname, cmd from pg_policies
+--    where schemaname='public' order by tablename, policyname;
+--
+-- Y desde la app: entrar como admin y comprobar que todo carga y guarda.
+-- Después crear el usuario de prueba artista (invitación + fila en miembros
+-- con rol='artista' y su cliente_id) y comprobar EN LA CONSOLA del navegador:
+--   (await sb.from("promotores").select("*")).data        → []
+--   (await sb.from("empresa").select("*")).data           → []
+--   (await sb.from("clientes").select("*")).data          → solo su ficha
+--   (await sb.from("shows").select("*")).data             → solo sus fechas
+--   (await sb.from("shows").insert({id:"shw_hack"})).error → violación RLS
+--
+-- ─────────────────────────────────────────────────────────────────────────
+-- CÓMO DESHACERLO si algo se rompe (por tabla):
 --   alter table public.<tabla> disable row level security;
--- Tabla por tabla, o con el mismo bucle del PASO 4 cambiando el execute.
