@@ -1537,7 +1537,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.015";
+const APP_VERSION="0.016";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -4297,17 +4297,28 @@ function viewBolsillo(el,ta){
     <div class="cell"><div class="lab">Shows</div><div class="val">${eur0(totalShows)}</div></div>
   </div>
 
-  <div class="card"><header><h3>Últimos 12 meses</h3></header><div class="body">
-    <div style="display:flex;gap:8px;align-items:flex-end;height:130px">
-      ${m12.map((k,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
-        <div class="tiny dim" style="font-family:var(--mono)">${(serieCanc[i]+serieShows[i])?eur0(serieCanc[i]+serieShows[i]):""}</div>
-        <div style="width:100%;display:flex;flex-direction:column-reverse;height:88px;border-radius:3px 3px 0 0;overflow:hidden">
-          <div style="width:100%;background:var(--artist,#34D399);height:${maxBar?Math.max(0,serieShows[i]/maxBar*88):0}px" title="Shows: ${eur(serieShows[i])}"></div>
-          <div style="width:100%;background:var(--malo);height:${maxBar?Math.max(0,serieCanc[i]/maxBar*88):0}px" title="Canciones: ${eur(serieCanc[i])}"></div>
-        </div>
-        <div class="tiny dim">${NOM[+k.slice(5,7)-1]}</div>
-      </div>`).join("")}
-    </div>
+  <div class="card"><header><h3>Evolución mensual · 12 meses</h3><div class="spacer"></div>
+    ${(()=>{const tot=m12.map((k,i)=>serieCanc[i]+serieShows[i]);const a=tot[tot.length-1],b=tot[tot.length-2]||0;
+      return (a||b)?`<span class="tiny ${a>=b?"v-ok":"v-alert"}" style="font-family:var(--mono)">${a>=b?"▲":"▼"} ${eur0(Math.abs(a-b))} vs mes anterior</span>`:""})()}
+  </header><div class="body">
+  ${(()=>{
+    const tot=m12.map((k,i)=>serieCanc[i]+serieShows[i]);
+    if(!tot.some(v=>v>0))return `<div class="empty"><p>Sin movimientos en los últimos 12 meses.</p></div>`;
+    const W=320,H=100,vmax=Math.max(...tot);
+    const ey=v=>H-12-(v/Math.max(1,vmax))*(H-26);
+    const pts=tot.map((v,i)=>[(i/(tot.length-1))*W,ey(v)]);
+    const linea=pts.map((pt,i)=>(i?"L":"M")+pt[0].toFixed(1)+","+pt[1].toFixed(1)).join(" ");
+    const area=`${linea} L${W},${H} L0,${H} Z`;
+    return `<svg width="100%" height="100" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Ingresos mensuales">
+      <defs><linearGradient id="gradBolsillo" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#F0568F" stop-opacity=".32"/><stop offset="1" stop-color="#F0568F" stop-opacity="0"/></linearGradient></defs>
+      <path d="${area}" fill="url(#gradBolsillo)"/>
+      <path d="${linea}" fill="none" stroke="var(--malo)" stroke-width="2.5" stroke-linecap="round"/>
+      ${pts.map((pt,i)=>`<circle cx="${pt[0].toFixed(1)}" cy="${pt[1].toFixed(1)}" r="3" fill="var(--malo)"><title>${NOM[+m12[i].slice(5,7)-1]}: ${eur(tot[i])} · canciones ${eur(serieCanc[i])} · shows ${eur(serieShows[i])}</title></circle>`).join("")}
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mute-2);margin-top:6px">
+      ${m12.map((k,ix)=>`<span>${ix%2?"":NOM[+k.slice(5,7)-1]}</span>`).join("")}</div>`;
+  })()}
   </div></div>
 
   <div class="grid2">
@@ -4404,9 +4415,9 @@ function viewRedes(el,ta){
   /* Total agregado 6 meses: último dato de cada red hasta el fin de cada mes
      (si un mes no tiene dato nuevo se arrastra el anterior). Solo se pinta
      con al menos dos meses con algún dato. */
-  const MES6=[...Array(6)].map((_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-(5-i));
+  const MES12=[...Array(12)].map((_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-(11-i));
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`});
-  const serieTotal=MES6.map(mes=>{
+  const serieTotal=MES12.map(mes=>{
     let t=0,hay=false;
     REDES_CRECIMIENTO.forEach(red=>{
       const sn=redesSnapshotsDe(cli,red).filter(x=>(x.fecha||"").slice(0,7)<=mes)
@@ -4426,7 +4437,7 @@ function viewRedes(el,ta){
     const area=`${linea} L${pts[pts.length-1][0].toFixed(1)},${H} L${pts[0][0].toFixed(1)},${H} Z`;
     const ult=conDatos[conDatos.length-1].total,pri=conDatos[0].total;
     const NOMm=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-    return `<div class="card" style="margin-bottom:16px"><header><h3>Crecimiento total · 6 meses</h3><div class="spacer"></div>
+    return `<div class="card" style="margin-bottom:16px"><header><h3>Crecimiento total · 12 meses</h3><div class="spacer"></div>
         <span class="tiny ${ult>=pri?"v-ok":"v-alert"}" style="font-family:var(--mono)">${ult>=pri?"▲":"▼"} ${Math.abs(ult-pri).toLocaleString("es-ES")}</span></header>
       <div class="body">
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
@@ -4441,7 +4452,46 @@ function viewRedes(el,ta){
           <path d="${linea}" fill="none" stroke="var(--malo)" stroke-width="2.5" stroke-linecap="round"/>
         </svg>
         <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mute-2);margin-top:6px">
-          ${serieTotal.map(x=>`<span>${NOMm[+x.mes.slice(5,7)-1]}</span>`).join("")}</div>
+          ${serieTotal.map((x,ix)=>`<span>${ix%2?"":NOMm[+x.mes.slice(5,7)-1]}</span>`).join("")}</div>
+      </div></div>`;
+  })();
+
+  /* Mes a mes por red: una línea por plataforma con su color de marca —
+     misma excepción de paleta que los puntos de las tarjetas. Escala común
+     min-max entre todas las redes con datos; los huecos se arrastran. */
+  const REDES_COLOR={instagram:"#E1306C",tiktok:"#69C9D0",youtube:"#FF4444",spotify:"#1DB954"};
+  const seriesRed=REDES_CRECIMIENTO.map(red=>{
+    const pts=MES12.map(mes=>{
+      const sn=redesSnapshotsDe(cli,red).filter(x=>(x.fecha||"").slice(0,7)<=mes)
+        .sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
+      return sn.length?n(sn[sn.length-1].seguidores):null;
+    });
+    return {red,pts,ult:[...pts].reverse().find(v=>v!==null)};
+  }).filter(s=>s.pts.some(v=>v!==null));
+  const graficaRedes=(()=>{
+    if(seriesRed.length<1||conDatos.length<2)return "";
+    const W=320,H=110,NOMr=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    const vals=seriesRed.flatMap(s=>s.pts.filter(v=>v!==null));
+    const vmin=Math.min(...vals),vmax=Math.max(...vals),rango=Math.max(1,vmax-vmin);
+    const linea=s=>{
+      let d="",dentro=false;
+      s.pts.forEach((v,i)=>{if(v===null)return;
+        const x=(i/(MES12.length-1))*W,y=H-10-((v-vmin)/rango)*(H-22);
+        d+=(dentro?" L":"M")+x.toFixed(1)+","+y.toFixed(1);dentro=true});
+      return d;
+    };
+    return `<div class="card" style="margin-bottom:16px"><header><h3>Mes a mes por red</h3></header>
+      <div class="body">
+        <svg width="100%" height="110" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+          ${seriesRed.map(s=>`<path d="${linea(s)}" fill="none" stroke="${REDES_COLOR[s.red]||"#8A94B0"}" stroke-width="2" stroke-linecap="round" opacity=".92"/>`).join("")}
+        </svg>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mute-2);margin-top:6px">
+          ${MES12.map((m,ix)=>`<span>${ix%2?"":NOMr[+m.slice(5,7)-1]}</span>`).join("")}</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:12px">
+          ${seriesRed.map(s=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mute)">
+            <i style="width:9px;height:9px;border-radius:50%;background:${REDES_COLOR[s.red]||"#8A94B0"};display:inline-block"></i>
+            ${REDES[s.red].label} · <b style="color:var(--bone)">${(s.ult||0).toLocaleString("es-ES")}</b></span>`).join("")}
+        </div>
       </div></div>`;
   })();
 
@@ -4459,6 +4509,7 @@ function viewRedes(el,ta){
 
   el.innerHTML=`
   ${graficaTotal}
+  ${graficaRedes}
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">${tarjetas}</div>
   ${filaComparativa.length>1?`<div class="card" style="margin-top:16px"><header><h3>Comparativa entre artistas</h3></header>
   <div class="body flush"><table><thead><tr><th>Artista</th>${REDES_CRECIMIENTO.map(r=>`<th class="num">${REDES[r].label}</th>`).join("")}</tr></thead>
