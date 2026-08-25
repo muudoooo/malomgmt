@@ -30,12 +30,12 @@
 }
 :root{
   --ink:#0D1220; --panel:#151C2E; --panel-2:#1D2740; --panel-3:#26324F;
-  /* Grises subidos un punto (antes #7C818C/#565B65): los rótulos pequeños en
+  /* Grises subidos un punto respecto a los originales: los rótulos pequeños en
      --mute-2 quedaban a 2.8:1 de contraste y el mínimo legible es 4.5:1.
      La impresión no cambia: la hoja de ruta fuerza #000/#555 en @media print. */
   --rule:#202841; --rule-2:#2C3855; --bone:#EEF1F8; --mute:#98A2BC; --mute-2:#7D88A6;
   --artist:#8F79F2; --malo:#F0568F; --alert:#ED5564; --ok:#34D399; --warn:#F5B93E; --violet:#8F79F2;
-  --c-artista:#3FB6CC; --c-dj:#8A6BF0; --c-soundsystem:#D94F8C; --c-evento:#4FA36B; --c-creador:#6B8FE8;
+  --c-artista:#3FB6CC; --c-dj:#8F79F2; --c-soundsystem:#D94F8C; --c-evento:#34D399; --c-creador:#6B8FE8;
   --sans:'Archivo','Helvetica Neue',Arial,sans-serif;
   --cond:'Archivo Narrow','Archivo','Helvetica Neue',Arial,sans-serif;
   --poster:'Anton','Archivo Narrow','Arial Narrow','Helvetica Neue',Arial,sans-serif;
@@ -165,8 +165,8 @@ nav button.on .k{color:var(--malo)}
 .btn.primary:hover{background:#F878A6;border-color:#F878A6}
 .btn.ghost{background:none;border-color:transparent;color:var(--mute)}
 .btn.ghost:hover{color:var(--bone);background:var(--panel-2)}
-.btn.danger{border-color:rgba(224,72,77,.4);color:var(--alert)}
-.btn.danger:hover{background:rgba(224,72,77,.1)}
+.btn.danger{border-color:rgba(237,85,100,.4);color:var(--alert)}
+.btn.danger:hover{background:rgba(237,85,100,.1)}
 .btn.sm{padding:4px 9px;font-size:11.5px}
 .btn:focus-visible,nav button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.day:focus-visible{outline:2px solid var(--malo);outline-offset:2px}
 
@@ -208,7 +208,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 .pill{display:inline-block;padding:2.5px 8px;border-radius:20px;font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;border:1px solid var(--rule-2);color:var(--mute);white-space:nowrap}
 .pill.ok{border-color:rgba(63,163,91,.45);color:var(--ok)}
 .pill.warn{border-color:rgba(217,130,43,.45);color:var(--warn)}
-.pill.alert{border-color:rgba(224,72,77,.45);color:var(--alert)}
+.pill.alert{border-color:rgba(237,85,100,.45);color:var(--alert)}
 .pill.malo{border-color:rgba(240,86,143,.45);color:var(--malo)}
 .pill.artist{border-color:rgba(143,121,242,.45);color:var(--artist)}
 .pill.violet{border-color:rgba(143,121,242,.45);color:var(--violet)}
@@ -341,14 +341,14 @@ table.tfix td,table.tfix th{overflow:hidden;text-overflow:ellipsis}
 .pipe{display:flex;gap:3px;align-items:center}
 .pipe span{height:3px;width:15px;border-radius:2px;background:var(--rule-2)}
 .pipe span.on{background:var(--malo)}
-.pipe span.dead{background:rgba(224,72,77,.55)}
+.pipe span.dead{background:rgba(237,85,100,.55)}
 
 .strip-bar{display:flex;height:34px;border-radius:5px;overflow:hidden;border:1px solid var(--rule);background:var(--panel-2)}
 .strip-bar div{display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:var(--mono);font-size:10px;transition:flex-basis .25s ease}
 .seg-artist{background:rgba(143,121,242,.9);color:#170B3D}
 .seg-malo{background:rgba(240,86,143,.92);color:#2A0714}
 .seg-gastos{background:var(--rule-2);color:var(--bone)}
-.seg-ret{background:rgba(224,72,77,.75);color:#2A0709}
+.seg-ret{background:rgba(237,85,100,.75);color:#2A0709}
 .strip-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
 .strip-legend div{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mute)}
 .sw{width:9px;height:9px;border-radius:2px;flex:0 0 9px}
@@ -383,9 +383,9 @@ table.tfix td,table.tfix th{overflow:hidden;text-overflow:ellipsis}
 .ctx{font-size:9px;line-height:1.3;padding:1px 4px;border-radius:3px;margin-bottom:2px;overflow:hidden;
   white-space:nowrap;text-overflow:ellipsis;background:color-mix(in srgb,var(--cc) 14%,transparent);color:var(--cc);
   border-left:2px solid var(--cc);max-width:100%}
-.day.festivo{background:rgba(224,72,77,.05)}
-.day.festivo .dn{color:#E0484D}
-.clash{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 3px rgba(224,72,77,.18)}
+.day.festivo{background:rgba(237,85,100,.05)}
+.day.festivo .dn{color:#ED5564}
+.clash{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 3px rgba(237,85,100,.18)}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
 .legend div{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mute)}
 .agenda-item{padding:11px 14px;border-bottom:1px solid var(--panel-2);cursor:pointer;display:flex;gap:10px;align-items:flex-start}
@@ -587,7 +587,7 @@ html.dw-sin-scroll-x{overflow-x:hidden}
 .buscable-vacio{padding:8px 10px;font-size:12.5px;color:var(--mute-2)}
 
 .modal-x:hover{color:var(--bone);background:var(--panel-3)}
-.x:hover{color:var(--alert);background:rgba(224,72,77,.1)}
+.x:hover{color:var(--alert);background:rgba(237,85,100,.1)}
 .filters{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
 .filters input,.filters select{background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;padding:7px 11px;color:var(--bone)}
 .calbar select{background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;padding:7px 11px;color:var(--bone);font-size:13px}
@@ -1219,6 +1219,16 @@ th{border-bottom-color:rgba(255,255,255,.06)}
 td{border-bottom-color:rgba(255,255,255,.045)}
 .ag button.ag-card{border-color:rgba(255,255,255,.045)}
 .fhm,.hero-movil{border-color:color-mix(in srgb,var(--malo) 24%,transparent)}
+
+/* ── 10 · Propuesta completa (25 ago): un acento por pantalla + aire ──
+   Las columnas de dinero dejan de ir teñidas fila a fila (la cabecera ya
+   dice qué es cada una); el rosa y el violeta quedan para la marca, las
+   acciones y lo semántico (alertas/avisos siguen en su color). */
+td.v-malo,td.v-artist{color:var(--bone)}
+.cell .val.v-malo,.cell .val.v-artist{color:var(--bone)}
+@media(min-width:901px){.content{padding:30px 32px}}
+.filters{margin-bottom:20px}
+.strip{margin-bottom:26px}
 </style>
 </head>
 <body>
@@ -1384,9 +1394,9 @@ function initSupabase(){ if(modoActual()==="demo"){sb=makeDemoClient();return}
    la columna y empujaban las demás fuera del recuadro. */
 const CATEGORIAS={
   artista:    {label:"Artista",                 corto:"Artista",     color:"#3FB6CC"},
-  dj:         {label:"DJ",                      corto:"DJ",          color:"#8A6BF0"},
+  dj:         {label:"DJ",                      corto:"DJ",          color:"#8F79F2"},
   soundsystem:{label:"Disobey Soundsystem",     corto:"Soundsystem", color:"#D94F8C"},
-  evento:     {label:"Evento",                  corto:"Evento",      color:"#4FA36B"},
+  evento:     {label:"Evento",                  corto:"Evento",      color:"#34D399"},
   creador:    {label:"Creadores de Contenido",  corto:"Creador",     color:"#6B8FE8"}
 };
 /* Punto de partida del catálogo de géneros. Se gestiona desde Datos → Géneros:
@@ -1466,8 +1476,8 @@ const CONTACTO_CAT={
    El estado va en orden: así el desplegable y la lista siempre coinciden. */
 const TEMA_ESTADOS=["recibido","en revisión","aceptado","descartado","publicado"];
 const TEMA_ESTADO_COLOR={
-  "recibido":"#7C818C","en revisión":"#D9822B","aceptado":"#3FA35B",
-  "descartado":"#565B65","publicado":"#8A6BF0"
+  "recibido":"#8A94B0","en revisión":"#F5B93E","aceptado":"#34D399",
+  "descartado":"#5D6884","publicado":"#8F79F2"
 };
 /* Roles del reparto. Texto libre también vale, esto es solo para no escribirlo. */
 const TEMA_ROLES=["Producción","Composición","Letra","Voz","Mezcla","Máster","Featuring","Sello","Otro"];
@@ -1476,32 +1486,32 @@ const TEMA_ENLACE_TIPOS=["Máster","Maqueta","Portada","Promo","Stems","Contrato
 /* Las que pueden contratar un show: salen en el desplegable del formulario */
 const CONTRATANTE_CAT=["sala","promotor","fiesta","fiestas_mayores","festival","evento"];
 const ESTADO_REL={
-  sin_contactar:{label:"Sin contactar",color:"#7C818C"},
+  sin_contactar:{label:"Sin contactar",color:"#8A94B0"},
   contactado:{label:"Contactado",color:"#6B8FE8"},
   negociando:{label:"Negociando",color:"#F0A322"},
-  cerrado:{label:"Fecha cerrada",color:"#4FA36B"},
-  sin_respuesta:{label:"Sin respuesta",color:"#E0484D"},
-  descartado:{label:"Descartado",color:"#565B65"}
+  cerrado:{label:"Fecha cerrada",color:"#34D399"},
+  sin_respuesta:{label:"Sin respuesta",color:"#ED5564"},
+  descartado:{label:"Descartado",color:"#5D6884"}
 };
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.013";
+const APP_VERSION="0.014";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
 const ESTADO_PROD={
-  borrador:{label:"Borrador",color:"#7C818C"},
+  borrador:{label:"Borrador",color:"#8A94B0"},
   cerrando:{label:"Cerrando",color:"#F0A322"},
-  confirmado:{label:"Confirmado",color:"#4FA36B"},
-  cancelado:{label:"Cancelado",color:"#E0484D"}
+  confirmado:{label:"Confirmado",color:"#34D399"},
+  cancelado:{label:"Cancelado",color:"#ED5564"}
 };
 /* Estado de cada artista del line-up, equivalente a la columna «Status» */
 const ESTADO_LINEUP={
-  pendiente:{label:"Pendiente",color:"#7C818C"},
+  pendiente:{label:"Pendiente",color:"#8A94B0"},
   reserva:{label:"Reserva pend.",color:"#F0A322"},
-  confirmado:{label:"Confirmado",color:"#4FA36B"},
-  descartado:{label:"Descartado",color:"#565B65"}
+  confirmado:{label:"Confirmado",color:"#34D399"},
+  descartado:{label:"Descartado",color:"#5D6884"}
 };
 const HORARIOS=[["llegada","Llegada"],["soundcheck","Prueba de sonido"],["puertas","Apertura de puertas"],["show","Hora de show"],["fin","Fin"]];
 const RUTA_FILAS=["LLEGADA + DESCARGA","MONTAJE","PRUEBAS","PRUEBAS","SHOW 1","SHOW 2","SHOW 3","SHOW 4"];
@@ -2287,11 +2297,11 @@ function mapaContexto(anio){
   return m;
 }
 const CTX_ESTILO={
-  festivo:{color:"#E0484D",label:"Festivo nacional"},
+  festivo:{color:"#ED5564",label:"Festivo nacional"},
   vispera:{color:"#F0A322",label:"Víspera de festivo"},
   escolar:{color:"#6B8FE8",label:"Calendario escolar"},
-  festival:{color:"#4FA36B",label:"Festival / competencia"},
-  otro:{color:"#7C818C",label:"Otros"}
+  festival:{color:"#34D399",label:"Festival / competencia"},
+  otro:{color:"#8A94B0",label:"Otros"}
 };
 
 
@@ -2822,7 +2832,7 @@ function viewPanel(el,ta){
       </div>`;})()}
   </div></div>
 
-  ${huerfanos().length?`<div class="card" style="border-color:rgba(224,72,77,.4)"><div class="body" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  ${huerfanos().length?`<div class="card" style="border-color:rgba(237,85,100,.4)"><div class="body" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
     <div style="flex:1;min-width:240px"><strong style="color:var(--alert)">${huerfanos().length} shows sin cliente</strong>
       <div class="tiny dim" style="margin-top:4px">Quedaron sueltos al eliminar un cliente. Están contando en tus totales pero no se pueden liquidar. Ábrelos y reasígnalos, o bórralos.</div></div>
     <button class="btn danger sm" data-act="ver-huerfanos">Ver cuáles son</button>
@@ -2862,7 +2872,7 @@ function viewPanel(el,ta){
           <td style="width:1%;white-space:nowrap"><span class="dim tiny" style="font-family:var(--mono)">${fecha(i.fecha)}</span></td>
           <td><div class="strong" style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(i.clienteId))}</div>
               <div class="dim tiny">${esc(i.titulo)}${i.lugar?" · "+esc(i.lugar):""}</div></td>
-          <td style="width:1%">${i.t==="show"?(i.esDj?`<span class="pill artist">${i.parte?eur0(i.parte):"DJ"}</span>`:`<span class="pill malo">${eur0(i.importe)}</span>`):i.t==="prod"?`<span class="pill" style="border-color:rgba(79,163,107,.5);color:#4FA36B">${eur0(i.importe)}</span>`:`<span class="pill">agenda</span>`}</td></tr>`}).join("")}</tbody></table>`
+          <td style="width:1%">${i.t==="show"?(i.esDj?`<span class="pill artist">${i.parte?eur0(i.parte):"DJ"}</span>`:`<span class="pill malo">${eur0(i.importe)}</span>`):i.t==="prod"?`<span class="pill" style="border-color:rgba(52,211,153,.5);color:#34D399">${eur0(i.importe)}</span>`:`<span class="pill">agenda</span>`}</td></tr>`}).join("")}</tbody></table>`
         :`<div class="empty"><p>No hay nada próximo en la agenda.</p></div>`}
       </div></div>
       <div class="card"><header><h3>Por liquidar a clientes</h3><div class="spacer"></div>${porLiquidar.length?`<span class="pill artist">${porLiquidar.length}</span>`:""}</header><div class="body flush">
@@ -2978,7 +2988,7 @@ function viewCalendario(el,ta){
                   ${sh.allIn?`<span class="dim">ALL IN</span>`:`<span class="dim">+ gastos cubiertos</span>`}
                   <span class="dim">${esc(sh.estado)}</span></div>`;})()}
             </div>
-            ${i.t==="show"?(i.esDj?`<span class="pill artist">${i.parte?eur0(i.parte):"DJ"}</span>`:`<span class="pill malo">${eur0(i.importe)}</span>`):i.t==="prod"?`<span class="pill" style="border-color:rgba(79,163,107,.5);color:#4FA36B">${eur0(i.importe)}</span>`:`<span class="pill">agenda</span>`}
+            ${i.t==="show"?(i.esDj?`<span class="pill artist">${i.parte?eur0(i.parte):"DJ"}</span>`:`<span class="pill malo">${eur0(i.importe)}</span>`):i.t==="prod"?`<span class="pill" style="border-color:rgba(52,211,153,.5);color:#34D399">${eur0(i.importe)}</span>`:`<span class="pill">agenda</span>`}
           </div>`}).join("")
         :`<div class="empty"><p>${CAL.sel?"Nada este día.":"Nada próximo."}</p>
            <button class="btn sm" data-act="new-evento">Añadir a la agenda</button></div>`}
@@ -3494,7 +3504,7 @@ function viewTemas(el,ta){
     : "";
 
   const aviso=DB.sinTemas
-    ? `<div class="card" style="border-color:rgba(224,72,77,.4)"><div class="body">
+    ? `<div class="card" style="border-color:rgba(237,85,100,.4)"><div class="body">
         <strong style="color:var(--alert)">Falta ejecutar el SQL de temas.</strong>
         <div class="tiny dim" style="margin-top:5px">Se puede usar el apartado, pero <strong>nada se guarda</strong>:
         al recargar la página se pierde. Ejecuta <code>08-temas-y-whatsapp.sql</code> en Supabase.</div>
@@ -3543,7 +3553,7 @@ function viewTemas(el,ta){
     <th>Título</th><th>Artista</th><th>Estado</th><th>Recibido</th><th>Salida</th>
     <th class="num">Reparto</th><th>Enlaces</th></tr></thead>
   <tbody>${list.map(t=>{
-    const ca=catDe(t.clienteId),col=TEMA_ESTADO_COLOR[t.estado]||"#7C818C";
+    const ca=catDe(t.clienteId),col=TEMA_ESTADO_COLOR[t.estado]||"#8A94B0";
     const suma=sumaSplits(t),vacio=splitsSinCerrar(t);
     return `<tr class="click" data-tema="${t.id}" style="--c:${ca.color}">
       <td class="strong">${esc(t.titulo||"(sin título)")}
@@ -4238,7 +4248,7 @@ function viewBolsillo(el,ta){
       ${m12.map((k,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
         <div class="tiny dim" style="font-family:var(--mono)">${(serieCanc[i]+serieShows[i])?eur0(serieCanc[i]+serieShows[i]):""}</div>
         <div style="width:100%;display:flex;flex-direction:column-reverse;height:88px;border-radius:3px 3px 0 0;overflow:hidden">
-          <div style="width:100%;background:var(--artist,#4FA36B);height:${maxBar?Math.max(0,serieShows[i]/maxBar*88):0}px" title="Shows: ${eur(serieShows[i])}"></div>
+          <div style="width:100%;background:var(--artist,#34D399);height:${maxBar?Math.max(0,serieShows[i]/maxBar*88):0}px" title="Shows: ${eur(serieShows[i])}"></div>
           <div style="width:100%;background:var(--malo);height:${maxBar?Math.max(0,serieCanc[i]/maxBar*88):0}px" title="Canciones: ${eur(serieCanc[i])}"></div>
         </div>
         <div class="tiny dim">${NOM[+k.slice(5,7)-1]}</div>
@@ -4324,7 +4334,7 @@ function viewRedes(el,ta){
           :`<div class="dim tiny">Sin datos todavía.</div>`}
         <div style="display:flex;gap:4px;align-items:flex-end;height:70px;margin-top:12px">
           ${serie.map(m=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end">
-            <div style="width:100%;background:${m.delta==null?"var(--panel-2)":m.delta>=0?"var(--artist,#4FA36B)":"var(--alert)"};
+            <div style="width:100%;background:${m.delta==null?"var(--panel-2)":m.delta>=0?"var(--artist,#34D399)":"var(--alert)"};
               border-radius:2px 2px 0 0;height:${m.delta?Math.max(3,Math.abs(m.delta)/max*50):3}px"
               title="${NOM[+m.mes.slice(5,7)-1]}: ${m.delta==null?"sin dato":(m.delta>=0?"+":"")+m.delta}"></div>
             <div class="tiny dim" style="font-size:9px">${NOM[+m.mes.slice(5,7)-1]}</div>
@@ -4759,7 +4769,7 @@ function viewMapa(el,ta){
     const r=max?n_/max:0;
     if(r>=.75)return "#F0568F";
     if(r>=.45)return "#B95CA8";
-    if(r>=.2) return "#8A6BF0";
+    if(r>=.2) return "#8F79F2";
     return "#3C4250";
   };
 
@@ -4769,20 +4779,20 @@ function viewMapa(el,ta){
   const maxCom=Math.max(1,...Object.values(porCom));
   const colorCom=c=>{
     const v=porCom[c]||0;
-    if(!v)return "#1B1E24";
+    if(!v)return "#1D2740";
     const r=v/maxCom;
     if(r>=.75)return "#F0568F";
     if(r>=.45)return "#B95CA8";
-    if(r>=.2) return "#8A6BF0";
+    if(r>=.2) return "#8F79F2";
     return "#4A4270";
   };
   const svgMapa=`<svg viewBox="0 0 860 740" style="width:100%;height:auto;max-height:62vh" xmlns="http://www.w3.org/2000/svg">
     ${Object.entries(COM_PATH).map(([nom,d])=>`<path d="${d}" fill="${colorCom(nom)}"
-      stroke="${filtro.mapaCom===nom?"#E9E7E2":"var(--ink)"}" stroke-width="${filtro.mapaCom===nom?3.5:2.5}"
+      stroke="${filtro.mapaCom===nom?"#EEF1F8":"var(--ink)"}" stroke-width="${filtro.mapaCom===nom?3.5:2.5}"
       style="cursor:pointer" data-com="${esc(nom)}"><title>${esc(nom)}: ${porCom[nom]||0} shows</title></path>`).join("")}
     ${Object.entries(COM_ETIQ).map(([nom,xy])=>{const v=porCom[nom]||0;
       return `<text x="${xy[0]}" y="${xy[1]}" text-anchor="middle" font-size="12" font-family="Archivo,sans-serif"
-        fill="${v?"#E9E7E2":"#565B65"}" style="pointer-events:none">${esc(nom)}</text>
+        fill="${v?"#EEF1F8":"#5D6884"}" style="pointer-events:none">${esc(nom)}</text>
         ${v?`<text x="${xy[0]}" y="${xy[1]+15}" text-anchor="middle" font-size="11" font-family="IBM Plex Mono,monospace"
         fill="var(--ink)" font-weight="600" style="pointer-events:none">${v}</text>`:""}`}).join("")}
   </svg>`;
@@ -4800,7 +4810,7 @@ function viewMapa(el,ta){
       <div class="note">Pulsa para asignarlas y que cuenten</div></div>`:""}
   </div>
 
-  ${sinMapear.length?`<div class="card" style="border-color:rgba(224,72,77,.4)"><div class="body" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  ${sinMapear.length?`<div class="card" style="border-color:rgba(237,85,100,.4)"><div class="body" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
     <div style="flex:1;min-width:250px">
       <strong style="color:var(--alert)">${new Set(sinMapear).size} localidades sin asignar</strong>
       <div class="tiny dim" style="margin-top:4px">${esc([...new Set(sinMapear)].slice(0,6).join(" · "))}${new Set(sinMapear).size>6?"…":""}<br>
@@ -4814,7 +4824,7 @@ function viewMapa(el,ta){
     <div class="strip-legend" style="margin-top:12px">
       <div><span class="sw" style="background:var(--panel-2);border:1px solid var(--rule-2)"></span>Sin actividad</div>
       <div><span class="sw" style="background:#4A4270"></span>Baja</div>
-      <div><span class="sw" style="background:#8A6BF0"></span>Media</div>
+      <div><span class="sw" style="background:#8F79F2"></span>Media</div>
       <div><span class="sw" style="background:#B95CA8"></span>Alta</div>
       <div><span class="sw" style="background:#E94F87"></span>Máxima</div>
       <div style="margin-left:auto" class="dim">Mapa esquemático, no a escala real</div>
@@ -5310,7 +5320,7 @@ function redactarEnvio(){
   <header><h3>Redactar envío</h3><span class="dim tiny">${l.length} destinatarios</span>
     <div class="spacer"></div><button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
   <div class="mbody">
-    ${sinConsent?`<div class="card" style="border-color:rgba(224,72,77,.4);margin-bottom:16px"><div class="body">
+    ${sinConsent?`<div class="card" style="border-color:rgba(237,85,100,.4);margin-bottom:16px"><div class="body">
       <p style="font-size:12.5px;color:var(--alert);margin:0">${sinConsent} de estos ${l.length} contactos no tienen marcado el consentimiento.
       Enviarles comunicación comercial puede infringir el RGPD. Marca «Solo con consentimiento» en los filtros para excluirlos.</p>
     </div></div>`:""}
@@ -5391,7 +5401,7 @@ function contactoTarea(t){
   if(p&&(p.telefono||p.email))return {tel:p.telefono||"",email:p.email||"",de:p.nombre};
   return {tel:"",email:"",de:""};
 }
-const PRIORIDADES={alta:{label:"Alta",color:"#E0484D"},normal:{label:"Normal",color:"#7C818C"},baja:{label:"Baja",color:"#4FA36B"}};
+const PRIORIDADES={alta:{label:"Alta",color:"#ED5564"},normal:{label:"Normal",color:"#8A94B0"},baja:{label:"Baja",color:"#34D399"}};
 
 function viewEquipo(el,ta){
   ta.innerHTML=`<button class="btn primary sm" data-act="new-tarea">Nueva tarea</button>`;
@@ -5763,7 +5773,7 @@ function viewCapturas(el,ta){
       Lo que salga marcado como <strong style="color:var(--bone)">confianza media</strong> es donde más suele equivocarse.</p>`:""}
   </div></div>`:""}
 
-  ${CAP.enviado?`<div class="card" style="border-color:rgba(79,163,107,.4)"><div class="body">
+  ${CAP.enviado?`<div class="card" style="border-color:rgba(52,211,153,.4)"><div class="body">
     <strong style="color:var(--ok)">${CAP.enviado.creadas.length} tareas creadas en ClickUp</strong>
     ${CAP.enviado.creadas.length?`<div style="margin-top:9px;display:flex;gap:7px;flex-wrap:wrap">
       ${CAP.enviado.creadas.map((c,i)=>`<a href="${esc(c.url)}" target="_blank" rel="noopener" class="red-link">Tarea ${i+1}</a>`).join("")}</div>`:""}
@@ -6001,7 +6011,7 @@ function cfgTabDatos(el){
   </div></div>
 
   ${esAdmin()?`
-  <div class="card" style="border-color:rgba(224,72,77,.25)"><header><h3>Zona de riesgo</h3></header>
+  <div class="card" style="border-color:rgba(237,85,100,.25)"><header><h3>Zona de riesgo</h3></header>
     <div class="body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <p style="flex:1;min-width:240px;color:var(--mute);font-size:12.5px">Borra <strong style="color:var(--alert)">todos los datos de todo el equipo</strong> en la base compartida. Exporta antes una copia.</p>
       <button class="btn danger" id="wipe">Borrar todos los datos</button>
@@ -6236,7 +6246,7 @@ function cfgTabEquipo(el){
       y sin forma de recuperarlo.</p>
   </div></div>
 
-  <div class="card" style="border-color:rgba(224,72,77,.25)"><header><h3>Aviso: esto todavía no es seguridad</h3></header><div class="body">
+  <div class="card" style="border-color:rgba(237,85,100,.25)"><header><h3>Aviso: esto todavía no es seguridad</h3></header><div class="body">
     <p style="color:var(--mute);font-size:12.5px;line-height:1.65;margin:0">
       Hoy los roles <strong style="color:var(--bone)">esconden botones</strong>, nada más. Quien tenga acceso a MALO
       y sepa abrir la consola del navegador puede seguir escribiendo en la base de datos, porque Supabase todavía
@@ -9262,7 +9272,7 @@ function formShow(id,comoNuevo){
         <div class="seg-malo" style="flex:0 0 ${w(c.comis)}%">${w(c.comis)>9?eur0(c.comis):""}</div>
         <div class="seg-artist" style="flex:1">${w(c.neto)>14?eur0(c.neto):""}</div></div>
       <div class="strip-legend">
-        ${c.reten>0?`<div><span class="sw" style="background:rgba(224,72,77,.75)"></span>Retención ${pct(c.retPct)}</div>`:""}
+        ${c.reten>0?`<div><span class="sw" style="background:rgba(237,85,100,.75)"></span>Retención ${pct(c.retPct)}</div>`:""}
         ${c.gArt>0?`<div><span class="sw" style="background:var(--rule-2)"></span>Gastos del cliente</div>`:""}
         <div><span class="sw" style="background:rgba(240,86,143,.92)"></span>Comisión MALO</div>
         <div><span class="sw" style="background:rgba(143,121,242,.9)"></span>Neto cliente</div></div>
