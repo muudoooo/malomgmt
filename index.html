@@ -1923,7 +1923,7 @@ async function fetchTodos(tabla){
   return {data:todo,error:err};
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -1949,7 +1949,10 @@ async function loadRemote(){
     fetchTodos("cancion_ingresos"),
     fetchTodos("redes_snapshots"),
     /* Sonda: columna "extra" (engagement, oyentes, demografía, top contenido) */
-    sb.from("redes_snapshots").select("extra").limit(1)
+    sb.from("redes_snapshots").select("extra").limit(1),
+    /* Sonda de roles RLS: columnas rol y cliente_id en miembros. Sin el SQL de
+       roles aplicado devuelven error y la app sigue exactamente como antes. */
+    sb.from("miembros").select("id,rol,cliente_id")
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -2022,11 +2025,33 @@ async function loadRemote(){
   DB.empresa=emp.data
     ?{nombre:emp.data.nombre||"MALO",logo:emp.data.logo||"",ajustes:emp.data.ajustes||{}}
     :{nombre:"MALO",logo:"",ajustes:{}};
+  /* Foto de la fila de empresa tal y como llegó del servidor: save() solo la
+     manda cuando de verdad ha cambiado. Sin esto, cada guardado de cualquier
+     cosa hacía un update de empresa — y con RLS (empresa solo admin) eso se
+     convertiría en un fallo o un no-op silencioso para los gestores. */
+  window.__empresaSnap=JSON.stringify(filaEmpresa());
+  /* Mi rol de verdad (columna miembros.rol, la que valida RLS) y mi cliente
+     vinculado si soy un artista con portal. Sonda: sin el SQL de roles, las
+     columnas no existen y todo sigue como antes. */
+  DB.miRol=null;DB.miClienteId=null;DB.sinRolRls=!rolp||!!rolp.error;
+  if(!DB.sinRolRls){
+    const yo=(rolp.data||[]).find(m=>CURRENT_USER&&m.id===CURRENT_USER.id);
+    if(yo){DB.miRol=yo.rol||null;DB.miClienteId=yo.cliente_id||null}
+  }
+}
+/* La fila de empresa que manda save(), en un solo sitio para poder compararla. */
+function filaEmpresa(){
+  return Object.assign(
+    {nombre:(DB.empresa||{}).nombre||"MALO",logo:(DB.empresa||{}).logo||""},
+    DB.sinAjustes?{}:{ajustes:(DB.empresa||{}).ajustes||{}});
 }
 let saveTimer=null,saving=false;
 function touch(){ render(); clearTimeout(saveTimer); saveTimer=setTimeout(save,350); }
 async function save(){
   if(saving){ clearTimeout(saveTimer); saveTimer=setTimeout(save,350); return; }
+  /* Solo lectura y artista no escriben nada: con RLS cada upsert suyo fallaría
+     y la app parecería rota. Se corta aquí, antes de intentar nada. */
+  if(DB.miRol==="lectura"||DB.miRol==="artista"){ setConn("ok",CURRENT_NAME); return; }
   saving=true;
   try{
     /* Sin la columna «generos» en Postgres, mandarla haría fallar todo el upsert
@@ -2054,9 +2079,14 @@ async function save(){
       (!DB.sinCanciones&&(DB.cancionIngresos||[]).length)&&sb.from("cancion_ingresos").upsert(DB.cancionIngresos.map(x=>toRow("cancionIngresos",x))),
       (!DB.sinRedes&&(DB.redesSnapshots||[]).length)&&sb.from("redes_snapshots").upsert(DB.redesSnapshots.map(x=>{
         const r=toRow("redesSnapshots",x);if(DB.sinRedesExtra)delete r.extra;return r})),
-      sb.from("empresa").update(Object.assign(
-        {nombre:(DB.empresa||{}).nombre||"MALO",logo:(DB.empresa||{}).logo||""},
-        DB.sinAjustes?{}:{ajustes:(DB.empresa||{}).ajustes||{}})).eq("id",1)
+      /* empresa solo viaja cuando ha cambiado desde la última carga/guardado.
+         Con RLS, escribirla es cosa de admin: mandarla siempre convertía
+         cualquier guardado de un gestor en fallo o en no-op silencioso. */
+      (()=>{const fila=filaEmpresa();
+        if(JSON.stringify(fila)===window.__empresaSnap)return null;
+        return sb.from("empresa").update(fila).eq("id",1)
+          .then(r=>{if(!r.error)window.__empresaSnap=JSON.stringify(fila);return r});
+      })()
     ].filter(Boolean);
     const subRows=[];Object.keys(DB.subcategorias||{}).forEach(k=>(DB.subcategorias[k]||[]).forEach(nom=>subRows.push({categoria:k,nombre:nom})));
     if(subRows.length) ops.push(sb.from("subcategorias").upsert(subRows,{onConflict:"categoria,nombre"}));
