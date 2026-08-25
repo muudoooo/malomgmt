@@ -1229,6 +1229,47 @@ td.v-malo,td.v-artist{color:var(--bone)}
 @media(min-width:901px){.content{padding:30px 32px}}
 .filters{margin-bottom:20px}
 .strip{margin-bottom:26px}
+
+/* ── 11 · Propuesta de escritorio (25 ago): drawer, sidebar agrupada, panel 2 col ──
+   Todo dentro de min-width:901px salvo estilos neutros; el móvil no cambia. */
+.nav-grupo{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute-2);
+  font-weight:800;padding:16px 10px 5px}
+nav{overflow-y:auto}
+nav button{position:relative;border-radius:9px;font-weight:600;padding:7.5px 10px 7.5px 12px}
+nav button svg{width:15px;height:15px;flex:0 0 15px;stroke:currentColor;fill:none;
+  stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+nav button.on{background:color-mix(in srgb,var(--malo) 12%,transparent);color:var(--bone)}
+nav button.on::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;
+  border-radius:3px;background:var(--malo)}
+
+tr.fila-activa td{background:color-mix(in srgb,var(--malo) 7%,transparent)}
+
+.p-cab{display:block}
+@media(min-width:901px){
+  /* D1 · la ficha entra como panel lateral; la lista queda visible detrás */
+  @keyframes drawerIn{from{opacity:.35;transform:translateX(48px)}to{opacity:1;transform:none}}
+  .modal-bg{justify-content:flex-end;align-items:flex-start;padding:0}
+  .modal{margin:0;width:640px;max-width:94vw;min-height:100vh;border-radius:0;border:none;
+    border-left:1px solid var(--panel-3);animation:drawerIn .24s cubic-bezier(.2,.7,.3,1);
+    box-shadow:-28px 0 70px rgba(0,0,0,.5)}
+  .modal.narrow{width:520px}
+  .modal > header{border-radius:0}
+  .modal > footer{border-radius:0}
+
+  /* D3 · Panel: héroe + KPIs lado a lado */
+  .p-cab.con-hero{display:grid;grid-template-columns:340px 1fr;gap:14px;align-items:stretch;margin-bottom:26px}
+  .p-cab.con-hero .strip{margin-bottom:0}
+  .p-cab.con-hero button.hero-movil{display:block;width:100%;text-align:left;margin:0;
+    border-radius:16px;padding:17px 18px;
+    background:linear-gradient(135deg,rgba(240,86,143,.16),rgba(143,121,242,.14)),var(--panel);
+    border:1px solid color-mix(in srgb,var(--malo) 24%,transparent);color:var(--bone);cursor:pointer}
+  .p-cab.con-hero .hero-movil .eti{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--malo);font-weight:700}
+  .p-cab.con-hero .hero-movil .hf{display:block;font-size:13.5px;margin-top:10px;font-weight:600}
+  .p-cab.con-hero .hero-movil .hq{display:block;font-size:24px;font-weight:900;letter-spacing:-.02em;margin-top:2px}
+  .p-cab.con-hero .hero-movil .hd{display:block;font-size:12.5px;color:var(--mute);margin-top:3px}
+  .p-cab.con-hero .hero-movil .hr2{display:flex;gap:7px;margin-top:13px;flex-wrap:wrap}
+}
 </style>
 </head>
 <body>
@@ -1496,7 +1537,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.014";
+const APP_VERSION="0.015";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -2427,6 +2468,13 @@ const HOME_POR_PAGINA=5;
 /* El dock reordena: primera página con lo del día a día (propuesta móvil
    ago-2026); el resto sigue el orden de VIEWS y se pasa con el dedo. */
 const DOCK_PRIMERO=["panel","shows","contactos","redes","calendario"];
+/* Barra lateral de escritorio en 4 grupos (propuesta de escritorio, ago-26).
+   Deben cubrir TODOS los ids de VIEWS: lo que falte no saldría en el menú. */
+const NAV_GRUPOS=[
+  ["Día a día",["panel","calendario","shows","contactos","clientes"]],
+  ["Música",["temas","misCanciones","bolsillo","redes"]],
+  ["Gestión",["eventos","documentos","mailing","mapa","capturas"]],
+  ["Sistema",["equipo","generadores","datos"]]];
 const DOCK_VIEWS=[...DOCK_PRIMERO.map(id=>VIEWS.find(v=>v.id===id)),...VIEWS.filter(v=>!DOCK_PRIMERO.includes(v.id))];
 /* Días y meses de la agenda y del héroe del panel */
 const AG_DIAS=["dom","lun","mar","mié","jue","vie","sáb"];
@@ -2609,11 +2657,15 @@ function filtrosPlegables(root){
 function render(){
   if(VIEW==="equipo")marcarLeido();
   const nl=noLeidos();
-  document.getElementById("nav").innerHTML=VIEWS.map(v=>{
-    const badge=(v.id==="equipo"&&nl)?`<span class="badge">${nl>99?"99+":nl}</span>`:"";
-    /* El atajo de teclado sigue funcionando; solo se quita el rótulo, que
-       llenaba la barra de números y letras sueltas. */
-    return `<button data-view="${v.id}" class="${VIEW===v.id?"on":""}">${v.label}${badge}</button>`}).join("");
+  document.getElementById("nav").innerHTML=NAV_GRUPOS.map(([titulo,ids])=>
+    `<div class="nav-grupo">${titulo}</div>`+ids.map(id=>{
+      const v=VIEWS.find(x=>x.id===id);
+      if(!v)return "";
+      const badge=(v.id==="equipo"&&nl)?`<span class="badge">${nl>99?"99+":nl}</span>`:"";
+      return `<button data-view="${v.id}" class="${VIEW===v.id?"on":""}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONO_VIEW[v.id]||""}"/></svg>
+        <span class="lbl">${v.label}</span>${badge}<span class="k">${esc(v.k||"")}</span></button>`;
+    }).join("")).join("");
   if("setAppBadge" in navigator){try{nl?navigator.setAppBadge(nl):navigator.clearAppBadge()}catch(e){}}
   document.getElementById("viewTitle").textContent=VIEWS.find(x=>x.id===VIEW).label;
   const el=document.getElementById("view"),ta=document.getElementById("topActions");
@@ -2805,6 +2857,7 @@ function viewPanel(el,ta){
   })();
 
   el.innerHTML=`
+  <div class="p-cab${proxShow?" con-hero":""}">
   ${heroHTML}
   <div class="strip">
     <div class="cell"><div class="lab">Ingreso MALO ${filtro.anio}</div><div class="val v-malo">${eur0(K.ingresoMalo)}</div>
@@ -2817,6 +2870,7 @@ function viewPanel(el,ta){
       <div class="note">${porLiquidar.length} shows ejecutados sin liquidar</div></div>
     <div class="cell"><div class="lab">Saldo de terceros</div><div class="val ${K.terceros>0?"v-artist":"v-mute"}">${eur0(K.terceros)}</div>
       <div class="note">Cobrado y aún no liquidado. <span class="dim">No es tuyo.</span></div></div>
+  </div>
   </div>
 
   <div class="card"><header><h3>Comisión MALO por mes · ${filtro.anio}</h3></header><div class="body">
@@ -6350,7 +6404,8 @@ function openModal(html,narrow){
   document.getElementById("mbg").addEventListener("mousedown",e=>{if(e.target.id==="mbg")closeModal()});
   const f=document.querySelector(".modal input,.modal select");if(f)f.focus();
 }
-function closeModal(){cerrarNotas(true);document.getElementById("modalRoot").innerHTML=""}
+function closeModal(){cerrarNotas(true);document.getElementById("modalRoot").innerHTML="";
+  document.querySelectorAll(".fila-activa").forEach(x=>x.classList.remove("fila-activa"))}
 function toast(m){document.getElementById("toastRoot").innerHTML=`<div class="toast">${esc(m)}</div>`;setTimeout(()=>{document.getElementById("toastRoot").innerHTML=""},5000)}
 function val(id){const e=document.getElementById(id);return e?e.value.trim():""}
 function num(id){return n(val(id))}
@@ -9675,7 +9730,11 @@ document.addEventListener("click",e=>{
   if(el.dataset.tema)return formTema(el.dataset.tema);
   if(el.dataset.cancion)return formCancion(el.dataset.cancion);
   if(el.dataset.prod)return formProduccion(el.dataset.prod);
-  if(el.dataset.show)return formShow(el.dataset.show);
+  if(el.dataset.show){
+    const tr=el.closest("tr.click");
+    if(tr){document.querySelectorAll(".fila-activa").forEach(x=>x.classList.remove("fila-activa"));tr.classList.add("fila-activa")}
+    return formShow(el.dataset.show);
+  }
   if(el.dataset.cliente)return fichaCliente(el.dataset.cliente);
   if(el.dataset.promotor)return fichaPromotor(el.dataset.promotor);
   if(el.dataset.evento)return formEvento(el.dataset.evento);
