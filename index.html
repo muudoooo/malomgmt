@@ -1583,6 +1583,24 @@ let DB=blank();
 
 /* ════════ MOTOR FINANCIERO ════════ */
 function n(v){const x=parseFloat(v);return isFinite(x)?x:0}
+/* Caché base del DJ que acompaña. La fuente buena es la ficha del artista
+   (comisiones.djFee, campo «Caché del DJ»), que aplica cuando el DJ del show
+   es su DJ habitual. Las parejas históricas tienen un valor de arranque por
+   nombre para que funcione desde ya; en cuanto la ficha tenga el suyo, manda
+   la ficha. Se desconta del neto como gasto a cargo del cliente (_dj:true). */
+const DJ_FEE_PAREJAS=[["ynestrosa","wiwi",300],["8belial","virtual flavor",400],
+  ["cybernene","wiwi",250],["roomtrash6","johnnyfuu",250]];
+function djFeeBase(c,dj){
+  if(!c||!dj)return 0;
+  if(c.djDefectoId===dj.id){
+    const propio=n(c.comisiones&&c.comisiones.djFee);
+    if(propio>0)return propio;
+  }
+  const na=String(c.nombre||c.nombreReal||"").toLowerCase();
+  const nd=String(dj.nombre||dj.nombreReal||"").toLowerCase();
+  const p=DJ_FEE_PAREJAS.find(x=>na.includes(x[0])&&nd.includes(x[1]));
+  return p?p[2]:0;
+}
 function calcShow(s){
   const tc=n(s.tipoCambio)||1, bruto=n(s.cacheBruto)*tc;
   const retPct=n(s.retencionOrigen), reten=bruto*retPct/100;
@@ -3493,6 +3511,17 @@ function formProduccion(id){
       if(b){arr.splice(+b.dataset[k],1);fn();pintaPL();return}
     }
   });
+  /* La sala ya tiene ciudad y aforo en su ficha: se autorrellenan si están
+     vacíos (el aforo alimenta el % de ocupación del P&L). */
+  document.getElementById("p_venue").addEventListener("change",()=>{
+    const v=DB.promotores.find(x=>x.id===val("p_venue"));
+    if(!v)return;
+    const ci=document.getElementById("p_ciudad");
+    if(ci&&!ci.value.trim()&&v.ciudad)ci.value=v.ciudad;
+    const af=document.getElementById("p_aforo");
+    if(af&&!n(af.value)&&n(v.aforo))af.value=n(v.aforo);
+    pintaPL();
+  });
   buscable("p_venue");
   document.getElementById("addEnt").addEventListener("click",()=>{entradas.push({concepto:"",precio:0,vendidas:0});pintaEntradas();pintaPL()});
   document.getElementById("addOtro").addEventListener("click",()=>{otros.push({concepto:"",importe:0});pintaOtros();pintaPL()});
@@ -3649,7 +3678,7 @@ function viewTemas(el,ta){
 
 function formTema(id){
   const t=id?(DB.temas||[]).find(x=>x.id===id):null;
-  const o=t||{id:uid("tem"),clienteId:(DB.clientes[0]||{}).id||"",titulo:"",version:"",
+  const o=t||{id:uid("tem"),clienteId:(cliente(filtro.temaCliente)||DB.clientes[0]||{}).id||"",titulo:"",version:"",
     estado:TEMA_ESTADOS[0],fechaEnvio:hoy(),fechaSalida:"",sello:"",isrc:"",bpm:0,tonalidad:"",
     generos:[],enlaces:[],splits:[],notas:"",origen:"interno",creadoEn:new Date().toISOString()};
   openModal(`
@@ -3971,7 +4000,7 @@ function viewMisCanciones(el,ta){
 
 function formCancion(id){
   const c=id?(DB.canciones||[]).find(x=>x.id===id):null;
-  const o=c||{id:uid("can"),titulo:"",artistaId:(DB.clientes[0]||{}).id||"",fechaLanzamiento:"",isrc:"",
+  const o=c||{id:uid("can"),titulo:"",artistaId:(cliente(filtro.cancionArtista)||DB.clientes[0]||{}).id||"",fechaLanzamiento:"",isrc:"",
     distribuidora:"ADA",feeDistribucionPct:30,mgmtPct:21,cuentaPortal:"",notas:""};
   const cascada=c?cascadaCancion(c):{bruto:0,trasDist:0,pool:0};
   openModal(`
@@ -3996,9 +4025,9 @@ function formCancion(id){
       <div class="f s3"><label>Género</label><input id="cn_genero" value="${esc(o.genero||"")}" placeholder="Trap, reggaetón…"></div>
     </div>
     <div class="card" style="margin:14px 0"><div class="body" style="display:flex;gap:22px;flex-wrap:wrap">
-      <div><div class="lab">Bruto acumulado</div><div class="val">${eur0(cascada.bruto)}</div></div>
-      <div><div class="lab">Tras distribución</div><div class="val">${eur0(cascada.trasDist)}</div></div>
-      <div><div class="lab">Pool a repartir</div><div class="val v-artist">${eur0(cascada.pool)}</div></div>
+      <div><div class="lab">Bruto acumulado</div><div class="val" id="cn_c_bruto">${eur0(cascada.bruto)}</div></div>
+      <div><div class="lab">Tras distribución</div><div class="val" id="cn_c_dist">${eur0(cascada.trasDist)}</div></div>
+      <div><div class="lab">Pool a repartir</div><div class="val v-artist" id="cn_c_pool">${eur0(cascada.pool)}</div></div>
     </div></div>
 
     <div class="section-title">Portada y audio</div>
@@ -4096,11 +4125,21 @@ function formCancion(id){
       </div>`}).join("")}`
       :`<p class="dim tiny" style="padding:2px 0 4px">Sin ingresos registrados. Se importan de la liquidación de la distribuidora o se añaden a mano.</p>`;
   }
-  pintaParticipantes();pintaIngresos();
+  /* La tarjeta económica se recalcula con lo que hay EN el formulario (fees e
+     ingresos sin guardar), no con la foto de apertura: antes cambiabas el deal
+     y los tres números seguían enseñando el cálculo viejo. */
+  function pintaCascadaCancion(){
+    const b=ingresos.reduce((a,x)=>a+n(x.bruto),0);
+    const td=b*(1-n(val("cn_fee"))/100),pool=td*(1-n(val("cn_mgmt"))/100);
+    const e1=document.getElementById("cn_c_bruto"),e2=document.getElementById("cn_c_dist"),e3=document.getElementById("cn_c_pool");
+    if(e1){e1.textContent=eur0(b);e2.textContent=eur0(td);e3.textContent=eur0(pool)}
+  }
+  pintaParticipantes();pintaIngresos();pintaCascadaCancion();
   const root=document.querySelector(".modal");
   root.addEventListener("input",e=>{
     const i=e.target.dataset.pt,j=e.target.dataset.ing;
     if(e.target.id==="cn_tit")pintaTituloPreview();
+    if(e.target.id==="cn_fee"||e.target.id==="cn_mgmt")pintaCascadaCancion();
     if(i!==undefined&&participantes[+i]){
       participantes[+i][e.target.dataset.k]=e.target.dataset.k==="pct"?n(e.target.value):e.target.value;
       if(e.target.dataset.k==="pct")pintaSumaPart();
@@ -4109,9 +4148,17 @@ function formCancion(id){
     if(j!==undefined&&ingresos[+j]){
       const k=e.target.dataset.k;
       ingresos[+j][k]=(k==="bruto"||k==="unidades")?n(e.target.value):(k==="mes"?e.target.value+"-01":e.target.value);
+      if(k==="bruto")pintaCascadaCancion();
     }
   });
   root.addEventListener("change",e=>{
+    /* Cambiar el artista arrastra su parte del reparto: si no, el 100 % inicial
+       se quedaba apuntando al primer cliente de la lista y se guardaba mal. */
+    if(e.target.id==="cn_cli"){
+      const p0=participantes[0];
+      if(p0&&p0.rol==="artista")p0.clienteId=e.target.value;
+      pintaParticipantes();
+    }
     if(e.target.dataset.pt!==undefined){const i=+e.target.dataset.pt;
       if(e.target.dataset.k==="clienteId"){participantes[i].clienteId=e.target.value;pintaTituloPreview();}
     }
@@ -4120,7 +4167,7 @@ function formCancion(id){
     const bp=e.target.closest("[data-del-pt]");
     if(bp){participantes.splice(+bp.dataset.delPt,1);pintaParticipantes();return}
     const bi=e.target.closest("[data-del-ing]");
-    if(bi){ingresos.splice(+bi.dataset.delIng,1);pintaIngresos()}
+    if(bi){ingresos.splice(+bi.dataset.delIng,1);pintaIngresos();pintaCascadaCancion()}
   });
   document.getElementById("cn_addpart").addEventListener("click",()=>{
     const falta=Math.max(0,100-participantes.reduce((a,x)=>a+n(x.pct),0));
@@ -7019,10 +7066,12 @@ function formCliente(id){
       <div class="f s12"><label>Servicios contratados</label>
         <div id="c_servicios" style="padding-top:4px"></div></div>
       ${SERVICIOS.map(s=>`<div class="f s3"><label>% ${s}</label><input id="cm_${s}" type="number" step="0.5" min="0" max="100" value="${n(co[s])}"></div>`).join("")}
-      <div class="f s12"><label>DJ vinculado por defecto</label><select id="c_dj">
+      <div class="f s8"><label>DJ vinculado por defecto</label><select id="c_dj">
         <option value="">— ninguno —</option>
         ${DB.clientes.filter(x=>x.id!==c.id).map(x=>`<option value="${x.id}" ${c.djDefectoId===x.id?"selected":""}>${esc(x.nombre||x.nombreReal)}${x.categoria==="dj"?" · DJ":""}</option>`).join("")}
       </select><span class="hint">Al crear un show de este cliente, se propone este DJ automáticamente y la fecha le aparece también a él en el calendario.</span></div>
+      <div class="f s4"><label>Caché del DJ (€)</label><input id="c_djfee" type="number" step="10" min="0" value="${n(co.djFee)||""}">
+        <span class="hint">Fee base por fecha de su DJ habitual. Se descuenta del neto en el reparto del show (editable en cada show).</span></div>
       <div id="bloqueRoster"></div>
       <div class="f s12"><label>Base de cálculo por defecto</label><select id="c_base">
         <option value="bruto" ${c.baseComision!=="neto"?"selected":""}>Sobre el caché bruto (antes de gastos)</option>
@@ -7322,7 +7371,7 @@ function saveCliente(id,isNew){
     razonSocial:val("c_razon"),codigoPostal:val("c_cp"),ciudad:val("c_ciu"),
     redes:Object.fromEntries(Object.keys(REDES).map(k=>[k,val("rd_"+k)])),
     servicios:(window.__leerServicios?window.__leerServicios():[]),
-    comisiones:Object.fromEntries(SERVICIOS.map(s=>[s,num("cm_"+s)])),
+    comisiones:Object.assign(Object.fromEntries(SERVICIOS.map(s=>[s,num("cm_"+s)])),{djFee:num("c_djfee")}),
     baseComision:val("c_base"),djDefectoId:val("c_dj"),roster:(window.__leerRoster?window.__leerRoster():[]),nif:val("c_nif"),direccion:val("c_dir"),
     facturacion:val("c_fact"),ivaPct:num("c_iva"),irpfPct:num("c_irpf"),iban:val("c_iban"),
     ical:{url:val("c_icalurl"),ultima:icsPend?new Date().toISOString():((cliente(id)||{}).ical||{}).ultima||"",
@@ -7561,8 +7610,12 @@ function fichaCliente(id){
 }
 
 /* ── Promotor ── */
-function formPromotor(id){
-  const p=id?DB.promotores.find(x=>x.id===id):{id:uid("prm"),categoria:"promotor",subtipo:"",pais:"ES",estadoRelacion:"sin_contactar"};
+function formPromotor(id,semilla){
+  /* semilla: valores iniciales para un contacto nuevo (p. ej. la categoría y la
+     ciudad ya elegidas en el show desde el que se crea). Solo aplica sin id. */
+  const p=id?DB.promotores.find(x=>x.id===id)
+    :Object.assign({id:uid("prm"),categoria:"promotor",subtipo:"",pais:"ES",estadoRelacion:"sin_contactar"},
+      Object.fromEntries(Object.entries(semilla||{}).filter(([k,v])=>v)));
   openModal(`
   <header><h3>${id?"Editar contacto":"Nuevo contacto"}</h3><div class="spacer"></div>
     ${id?`<button class="btn danger sm" data-act="del-promotor" data-id="${p.id}">Eliminar</button>`:""}
@@ -7681,7 +7734,9 @@ function fichaPromotor(id){
 /* ── Evento de agenda ── */
 function formEvento(id){
   if(!DB.clientes.length){toast("Primero da de alta un cliente");return}
-  const e=id?DB.eventos.find(x=>x.id===id):{id:uid("evt"),clienteId:DB.clientes[0].id,
+  const e=id?DB.eventos.find(x=>x.id===id):{id:uid("evt"),
+    /* hereda el artista del filtro del calendario, igual que el show nuevo */
+    clienteId:(cliente(CAL.cliente)||DB.clientes[0]).id,
     fecha:CAL.sel||hoy(),hora:"",titulo:"",lugar:"",descripcion:"",origen:"manual"};
   openModal(`
   <header><h3>${id?"Evento de agenda":"Añadir a la agenda"}</h3>
@@ -9175,7 +9230,7 @@ function formShow(id,comoNuevo){
         <span class="hint">Ajusta la retención en origen</span></div>
       <div class="f s4"><label>DJ que acompaña</label><select id="s_dj">
         <option value="">— ninguno —</option>
-        ${DB.clientes.map(x=>`<option value="${x.id}" ${s.djId===x.id?"selected":""}>${esc(x.nombre||x.nombreReal)}</option>`).join("")}
+        ${DB.clientes.filter(x=>x.id!==s.clienteId).map(x=>`<option value="${x.id}" ${s.djId===x.id?"selected":""}>${esc(x.nombre||x.nombreReal)}</option>`).join("")}
       </select><span class="hint" id="s_djhint"></span></div>
       <div class="f s4"><label>Servicio</label><select id="s_serv">${SERVICIOS.map(x=>`<option ${s.servicio===x?"selected":""}>${x}</option>`).join("")}</select></div>
       <div class="f s4"><label>Estado</label><select id="s_estado">${ESTADOS.map(x=>`<option ${s.estado===x?"selected":""}>${x}</option>`).join("")}</select></div>
@@ -9356,6 +9411,20 @@ function formShow(id,comoNuevo){
         <button class="x" data-del-g="${i}" title="Quitar">×</button></div>`).join("")
       :`<p class="dim tiny" style="padding:4px 0">Sin gastos. Los que marques «promotor» no afectan al reparto.</p>`;
   }
+  /* El caché del DJ que acompaña entra como un gasto a cargo del cliente
+     marcado con _dj, así que se ve en Gastos, se puede editar o quitar, y el
+     reparto lo descuenta sin tocar el motor. soloSiFalta=true (al abrir) solo
+     lo añade si no existe, para no pisar un importe editado a mano. */
+  function sincronizaGastoDj(soloSiFalta){
+    const c=cliente(val("s_cli")),dj=cliente(val("s_dj"));
+    const i=gastos.findIndex(g=>g._dj);
+    if(!dj||(c&&c.categoria==="soundsystem")){
+      if(i>=0&&!soloSiFalta){gastos.splice(i,1);pintaGastos()}
+      return}
+    const fee=djFeeBase(c,dj),nom="Caché DJ · "+(dj.nombre||dj.nombreReal||"");
+    if(i<0){if(fee>0){gastos.push({concepto:nom,importe:fee,cargo:"artista",_dj:true});pintaGastos()}}
+    else if(!soloSiFalta){gastos[i].concepto=nom;gastos[i].importe=fee;gastos[i].cargo="artista";pintaGastos()}
+  }
   function leerShow(){
     return {id:s.id,clienteId:val("s_cli"),promotorId:val("s_prm"),fecha:val("s_fecha"),
       ciudad:val("s_ciudad"),pais:val("s_pais"),servicio:val("s_serv"),estado:val("s_estado"),
@@ -9406,7 +9475,12 @@ function formShow(id,comoNuevo){
         <div class="f s6"><table class="cascade">
           <tr><td class="lbl">Caché bruto${sh.moneda!=="EUR"?` <span class="dim">(${n(sh.cacheBruto).toLocaleString("es-ES")} ${esc(sh.moneda)})</span>`:""}</td><td>${eur(c.bruto)}</td></tr>
           ${c.reten>0?`<tr class="sub"><td class="lbl">− Retención en origen ${pct(c.retPct)}</td><td>−${eur(c.reten)}</td></tr>`:""}
-          ${c.gArt>0?`<tr class="sub"><td class="lbl">− Gastos a cargo del cliente</td><td>−${eur(c.gArt)}</td></tr>`:""}
+          ${(()=>{/* el caché del DJ sale con nombre propio; el resto, agregado */
+            const gDj=(sh.gastos||[]).filter(x=>x._dj&&x.cargo==="artista").reduce((a,b)=>a+n(b.importe),0);
+            const gOtros=c.gArt-gDj;
+            return (gDj>0?`<tr class="sub"><td class="lbl">− Caché DJ${sh.djId?` <span class="dim">(${esc(nomCliente(sh.djId))})</span>`:""}</td><td>−${eur(gDj)}</td></tr>`:"")+
+                   (gOtros>0?`<tr class="sub"><td class="lbl">− Gastos a cargo del cliente</td><td>−${eur(gOtros)}</td></tr>`:"");
+          })()}
           <tr class="sub"><td class="lbl">− Comisión MALO ${pct(sh.comisionPct)} <span class="dim">sobre ${sh.baseComision==="neto"?"neto":"bruto"} (${eur0(c.baseCom)})</span></td><td>−${eur(c.comis)}</td></tr>
           <tr class="total"><td class="lbl" style="color:var(--artist)">Neto cliente</td><td style="color:var(--artist)">${eur(c.neto)}</td></tr>
         </table></div>
@@ -9439,13 +9513,19 @@ function formShow(id,comoNuevo){
     if(e.target.id==="s_cli"){const c=cliente(e.target.value);
       if(c){document.getElementById("s_com").value=n(c.comisiones&&c.comisiones[val("s_serv")]);
             document.getElementById("s_base").value=c.baseComision||"bruto";
-            document.getElementById("s_dj").value=c.djDefectoId||"";
-            /* refresca el buscador visible: sin esto el select real ya tenía el
-               DJ habitual pero el campo seguía mostrando «— ninguno —». */
+            /* la lista de DJs se reconstruye sin el propio artista (nadie es su
+               propio DJ) y se propone su DJ habitual. refrescaBuscable actualiza
+               el buscador visible: sin él, el select real ya tenía el DJ pero el
+               campo seguía mostrando «— ninguno —». */
+            const dsel=document.getElementById("s_dj");
+            dsel.innerHTML=`<option value="">— ninguno —</option>`+
+              DB.clientes.filter(x=>x.id!==c.id).map(x=>`<option value="${x.id}">${esc(x.nombre||x.nombreReal)}</option>`).join("");
+            dsel.value=c.djDefectoId||"";
             refrescaBuscable("s_dj");
             /* los DJs marcados del colectivo anterior no viajan al cliente
                nuevo: si no, entraban ocultos en el reparto. */
             djsSel=djsSel.filter(id=>(c.roster||[]).includes(id));
+            sincronizaGastoDj();
             pintaDjHint();pintaDjs()}}
     if(e.target.id==="s_serv"){const c=cliente(val("s_cli"));
       if(c)document.getElementById("s_com").value=n(c.comisiones&&c.comisiones[e.target.value])}
@@ -9476,9 +9556,14 @@ function formShow(id,comoNuevo){
       ? `<span style="color:var(--ok)">DJ habitual de ${esc(c.nombre||"")}. La fecha le aparecerá también a él.</span>`
       : `<span style="color:var(--warn)">DJ distinto al habitual. La fecha le aparecerá a ${esc(dj.nombre||"")}.</span>`;
   }
-  root.addEventListener("change",e=>{if(e.target.id==="s_dj")pintaDjHint()});
+  /* pintaCascada explícito: el listener general ya repintó antes de que este
+     sincronizara el gasto del DJ, así que hay que repintar otra vez. */
+  root.addEventListener("change",e=>{if(e.target.id==="s_dj"){sincronizaGastoDj();pintaDjHint();pintaCascada()}});
   document.getElementById("s_fee_allin").addEventListener("change",pintaCascada);
   document.getElementById("s_fee_gastos").addEventListener("change",pintaCascada);
+  /* Al abrir: si hay DJ y aún no está su caché entre los gastos, se añade con
+     su fee base (solo si el show no está ya liquidado). */
+  if(((s.liq||{}).estado)!=="liquidado")sincronizaGastoDj(true);
   window.__leerShow=leerShow;pintaGastos();pintaAdjuntos();pintaDjs();pintaCascada();pintaDjHint();
   buscable("s_cli");buscable("s_dj");buscable("s_prm");
 }
@@ -9617,8 +9702,11 @@ document.addEventListener("click",e=>{
       const btnG=document.querySelector('[data-act="save-show"]');
       window.__showBorradorNuevo=btnG?btnG.dataset.new==="1":true;
       window.__volverAlShow=true;
+      /* La categoría y la ciudad ya elegidas en el show viajan como semilla
+         para no reteclearlas. Se leen ANTES de cerrar el modal. */
+      const semilla={categoria:val("s_prmcat"),ciudad:val("s_ciudad")};
       closeModal();
-      return formPromotor(null);
+      return formPromotor(null,semilla);
     }
     if(act==="edit-promotor")return formPromotor(el.dataset.id);
     if(act==="save-promotor")return savePromotor(el.dataset.id,el.dataset.new==="1");
