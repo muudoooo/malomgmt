@@ -7577,6 +7577,10 @@ function savePromotor(id,isNew){
         const cat=document.getElementById("s_prmcat");
         if(cat){cat.value=p.categoria||"";cat.dispatchEvent(new Event("change"))}
         sel.value=p.id;
+        /* Sin esto el buscador visible seguía diciendo «— sin asignar —» y no
+           corrían pintaColabs/pintaCascada ni el autorrelleno de ciudad. */
+        sel.dispatchEvent(new Event("change",{bubbles:true}));
+        refrescaBuscable("s_prm");
       }
       toast("Contacto creado y seleccionado");
     },120);
@@ -9061,10 +9065,15 @@ function saveContexto(id,isNew){
 function formShow(id,comoNuevo){
   if(!DB.clientes.length){toast("Primero da de alta un cliente");return}
   const esNuevo=!id||!!comoNuevo;
-  const c0=DB.clientes[0];
+  /* El cliente por defecto hereda el contexto: si el calendario o la lista de
+     shows están filtrados por un artista, el show nuevo nace para ese artista
+     (antes salía siempre DB.clientes[0]). El servicio inicial es el primero
+     contratado por ese cliente, no «booking» a pelo — igual que en 3237. */
+  const c0=cliente(CAL.cliente)||cliente(filtro.cliente)||DB.clientes[0];
+  const serv0=(c0.servicios&&c0.servicios[0])||"booking";
   const s=id?DB.shows.find(x=>x.id===id):{id:uid("shw"),clienteId:c0.id,promotorId:"",fecha:CAL.sel||hoy(),
-    ciudad:"",pais:"ES",servicio:"booking",estado:"oferta",cacheBruto:0,moneda:"EUR",tipoCambio:1,
-    retencionOrigen:0,ivaPct:21,gastos:[],djId:c0.djDefectoId||"",comisionPct:n(c0.comisiones&&c0.comisiones.booking),
+    ciudad:"",pais:"ES",servicio:serv0,estado:"oferta",cacheBruto:0,moneda:"EUR",tipoCambio:1,
+    retencionOrigen:0,ivaPct:21,gastos:[],djId:c0.djDefectoId||"",comisionPct:n(c0.comisiones&&c0.comisiones[serv0]),
     baseComision:c0.baseComision||"bruto",
     cobro:{estado:"pendiente",fechaPrevista:"",fechaCobro:"",factura:""},liq:{estado:"pendiente",fecha:"",factura:""}};
   const co=s.cobro||{},li=s.liq||{};
@@ -9182,7 +9191,17 @@ function formShow(id,comoNuevo){
   document.getElementById("s_prmcat").addEventListener("change",pintaPromotores);
   /* Si eligen como pagador a uno que estaba colaborando, hay que repintar o se
      quedaría en las dos listas a la vez. */
-  document.getElementById("s_prm").addEventListener("change",()=>{pintaColabs();pintaCascada()});
+  document.getElementById("s_prm").addEventListener("change",()=>{
+    /* El contratante ya tiene ciudad y país en su ficha: se autorrellenan si el
+       show aún no lleva ciudad (si la ciudad estaba escrita, no se pisa nada).
+       El change de s_pais recalcula retención e IVA como siempre. */
+    const p=DB.promotores.find(x=>x.id===val("s_prm"));
+    if(p){const ci=document.getElementById("s_ciudad");
+      if(ci&&!ci.value.trim()&&p.ciudad){ci.value=p.ciudad;
+        const pa=document.getElementById("s_pais");
+        if(pa&&p.pais&&RETENCIONES[p.pais]!==undefined&&pa.value!==p.pais){
+          pa.value=p.pais;pa.dispatchEvent(new Event("change",{bubbles:true}))}}}
+    pintaColabs();pintaCascada()});
   let gastos=JSON.parse(JSON.stringify(s.gastos||[]));
   let adjuntos=JSON.parse(JSON.stringify(s.adjuntos||[]));
   function pintaAdjuntos(){
@@ -9370,12 +9389,22 @@ function formShow(id,comoNuevo){
       if(c){document.getElementById("s_com").value=n(c.comisiones&&c.comisiones[val("s_serv")]);
             document.getElementById("s_base").value=c.baseComision||"bruto";
             document.getElementById("s_dj").value=c.djDefectoId||"";
+            /* refresca el buscador visible: sin esto el select real ya tenía el
+               DJ habitual pero el campo seguía mostrando «— ninguno —». */
+            refrescaBuscable("s_dj");
+            /* los DJs marcados del colectivo anterior no viajan al cliente
+               nuevo: si no, entraban ocultos en el reparto. */
+            djsSel=djsSel.filter(id=>(c.roster||[]).includes(id));
             pintaDjHint();pintaDjs()}}
     if(e.target.id==="s_serv"){const c=cliente(val("s_cli"));
       if(c)document.getElementById("s_com").value=n(c.comisiones&&c.comisiones[e.target.value])}
     if(e.target.id==="s_pais"){const r=RETENCIONES[e.target.value];
       if(r!==undefined)document.getElementById("s_ret").value=r;
       document.getElementById("s_iva").value=e.target.value==="ES"?21:0}
+    if(e.target.id==="c_est"&&e.target.value==="cobrado"){
+      /* al marcar cobrado, la fecha de cobro se pone sola a hoy si está vacía:
+         el rating de puntualidad del promotor la necesita. */
+      const f=document.getElementById("c_cob");if(f&&!f.value)f.value=hoy()}
     const g=e.target.dataset.g;if(g!==undefined)gastos[+g][e.target.dataset.k]=e.target.value;
     const a=e.target.dataset.a;if(a!==undefined)adjuntos[+a][e.target.dataset.k]=e.target.dataset.k==="importe"?n(e.target.value):e.target.value;
     pintaCascada();
