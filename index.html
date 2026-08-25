@@ -4321,6 +4321,7 @@ function viewRedes(el,ta){
     const automatizable=red==="instagram"||red==="youtube";
     const extraPares=formatoExtra(red,ult&&ult.extra);
     return `<div class="card" data-red="${red}"><header><h3>${REDES[red].label}</h3><div class="spacer"></div>
+        ${red==="instagram"?`<button class="btn ghost sm" data-act="ig-enlace" data-cliente="${cli}" title="Copia el enlace personal para que este artista conecte su Instagram (una sola vez). Después, «Actualizar ahora» lee sus seguidores al momento.">Enlace conexión</button>`:""}
         ${automatizable?`<button class="btn ghost sm" data-act="act-red-ahora" data-cliente="${cli}" data-red="${red}" data-handle="${esc(handle)}" title="Consulta el dato público en vivo (YouTube/Instagram)">Actualizar ahora</button>`:""}
         <button class="btn ghost sm" data-act="new-red-snap" data-cliente="${cli}" data-red="${red}">+ Añadir dato</button></header>
       <div class="body">
@@ -9592,6 +9593,7 @@ document.addEventListener("click",e=>{
       if(!DB.sinCanciones)sb.from("canciones").delete().eq("id",idDel).then(({error})=>{if(error)toast("Error al eliminar en el servidor")});
       return touch()}
     if(act==="act-red-ahora")return actualizarRedAhora(el.dataset.cliente,el.dataset.red,el.dataset.handle,el);
+    if(act==="ig-enlace")return igEnlaceConexion(el.dataset.cliente,el);
     if(act==="new-red-snap")return formRedSnapshot(el.dataset.cliente,el.dataset.red);
     if(act==="save-red-snap")return saveRedSnapshot(el.dataset.cliente);
     if(act==="del-red-snap"){if(!confirm("¿Eliminar este dato de seguidores?"))return;
@@ -9924,8 +9926,26 @@ async function redesFn(accion,extra){
   if(!r.ok||b.error)throw new Error(b.error||("redes-api devolvio "+r.status));
   return b||{};
 }
+/* Enlace personal de "Iniciar sesión con Instagram" para un artista: se copia
+   al portapapeles y MALO se lo manda (WhatsApp, etc.). El artista lo abre,
+   autoriza una vez y desde entonces sus seguidores se leen al momento. */
+async function igEnlaceConexion(clienteId,btn){
+  const textoOrig=btn?btn.textContent:"";
+  if(btn){btn.disabled=true;btn.textContent="Generando…"}
+  try{
+    const r=await redesFn("igEnlace",{clienteId});
+    let copiado=false;
+    try{await navigator.clipboard.writeText(r.enlace);copiado=true}catch(e){}
+    if(copiado)toast("Enlace copiado — mándaselo al artista para que conecte su Instagram");
+    else prompt("Copia este enlace y mándaselo al artista:",r.enlace);
+  }catch(e){toast("Error generando el enlace: "+e.message)}
+  finally{if(btn){btn.disabled=false;btn.textContent=textoOrig}}
+}
+
 async function actualizarRedAhora(clienteId,red,handle,btn){
-  if(!handle){toast("Falta el usuario/canal de "+REDES[red].label+" en la ficha del cliente");return}
+  /* Instagram puede ir sin usuario en la ficha: si el artista conectó su
+     cuenta (ig_cuentas), el backend no necesita el handle. */
+  if(!handle&&red!=="instagram"){toast("Falta el usuario/canal de "+REDES[red].label+" en la ficha del cliente");return}
   const textoOrig=btn?btn.textContent:"";
   if(btn){btn.disabled=true;btn.textContent="Consultando…"}
   try{
