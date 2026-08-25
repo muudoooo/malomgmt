@@ -1458,7 +1458,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.011";
+const APP_VERSION="0.012";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -2762,7 +2762,7 @@ function viewPanel(el,ta){
       <span class="hq">${esc(nomCliente(s.clienteId))}</span>
       <span class="hd">${esc(nomPromotor(s.promotorId))}${s.ciudad?" · "+esc(s.ciudad):""}</span>
       <span class="hr2"><span class="pill ${AG_PILL[s.estado]||""}">${esc(s.estado)}</span>
-        <span class="pill ${cobrado?"ok":""}">${cobrado?"cobrado":"cobro pendiente"}</span></span>
+        <span class="pill ${cobrado?"ok":""}">${cobrado?"cobrado":"cobro pendiente"}</span>${(()=>{const pc=rutaPct(s);return pc===null?"":`<span class="pill ${pc>=80?"ok":"warn"}">ruta ${pc}%</span>`})()}</span>
     </button>`;
   })();
 
@@ -4308,6 +4308,50 @@ function viewRedes(el,ta){
       </div></div>`;
   }).join("");
 
+  /* Total agregado 6 meses: último dato de cada red hasta el fin de cada mes
+     (si un mes no tiene dato nuevo se arrastra el anterior). Solo se pinta
+     con al menos dos meses con algún dato. */
+  const MES6=[...Array(6)].map((_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-(5-i));
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`});
+  const serieTotal=MES6.map(mes=>{
+    let t=0,hay=false;
+    REDES_CRECIMIENTO.forEach(red=>{
+      const sn=redesSnapshotsDe(cli,red).filter(x=>(x.fecha||"").slice(0,7)<=mes)
+        .sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
+      if(sn.length){t+=n(sn[sn.length-1].seguidores);hay=true}
+    });
+    return {mes,total:hay?t:null};
+  });
+  const conDatos=serieTotal.filter(x=>x.total!==null);
+  const graficaTotal=(()=>{
+    if(conDatos.length<2)return "";
+    const W=320,H=90,vmin=Math.min(...conDatos.map(x=>x.total)),vmax=Math.max(...conDatos.map(x=>x.total));
+    const rango=Math.max(1,vmax-vmin);
+    const pts=[];
+    serieTotal.forEach((x,i)=>{if(x.total!==null)pts.push([i/(serieTotal.length-1)*W,H-10-((x.total-vmin)/rango)*(H-24)])});
+    const linea=pts.map((pt,i)=>(i?"L":"M")+pt[0].toFixed(1)+","+pt[1].toFixed(1)).join(" ");
+    const area=`${linea} L${pts[pts.length-1][0].toFixed(1)},${H} L${pts[0][0].toFixed(1)},${H} Z`;
+    const ult=conDatos[conDatos.length-1].total,pri=conDatos[0].total;
+    const NOMm=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    return `<div class="card" style="margin-bottom:16px"><header><h3>Crecimiento total · 6 meses</h3><div class="spacer"></div>
+        <span class="tiny ${ult>=pri?"v-ok":"v-alert"}" style="font-family:var(--mono)">${ult>=pri?"▲":"▼"} ${Math.abs(ult-pri).toLocaleString("es-ES")}</span></header>
+      <div class="body">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+          <div class="val" style="font-size:24px;font-family:var(--mono)">${ult.toLocaleString("es-ES")}</div>
+          <div class="dim tiny">seguidores sumando las cuatro redes</div>
+        </div>
+        <svg width="100%" height="90" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+          <defs><linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#E94F87" stop-opacity=".32"/>
+            <stop offset="1" stop-color="#E94F87" stop-opacity="0"/></linearGradient></defs>
+          <path d="${area}" fill="url(#gradTotal)"/>
+          <path d="${linea}" fill="none" stroke="var(--malo)" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mute-2);margin-top:6px">
+          ${serieTotal.map(x=>`<span>${NOMm[+x.mes.slice(5,7)-1]}</span>`).join("")}</div>
+      </div></div>`;
+  })();
+
   const historial=REDES_CRECIMIENTO.flatMap(red=>redesSnapshotsDe(cli,red).map(s=>Object.assign({},s,{red})))
     .sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
 
@@ -4321,6 +4365,7 @@ function viewRedes(el,ta){
   }).filter(f=>f.total>0).sort((a,b)=>b.total-a.total);
 
   el.innerHTML=`
+  ${graficaTotal}
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">${tarjetas}</div>
   ${filaComparativa.length>1?`<div class="card" style="margin-top:16px"><header><h3>Comparativa entre artistas</h3></header>
   <div class="body flush"><table><thead><tr><th>Artista</th>${REDES_CRECIMIENTO.map(r=>`<th class="num">${REDES[r].label}</th>`).join("")}</tr></thead>
@@ -7695,6 +7740,23 @@ function rutaDe(s){
   return r;
 }
 
+/* % de la hoja de ruta relleno: cuenta, sobre la ruta EFECTIVA (rutaDe, la
+   que se imprime), cuántas casillas de lugar/contactos/alojamiento/
+   hospitalidad/técnico, horarios y viaje llevan algo. Alimenta el chip
+   «ruta N%» de la ficha y del héroe del Panel. */
+function rutaPct(s){
+  try{
+    const r=rutaDe(s);
+    let tot=0,ok=0;
+    [[r.lugar,RUTA_LUGAR],[r.contactos,RUTA_CONTACTOS],[r.alojamiento,RUTA_ALOJ],
+     [r.hospitalidad,RUTA_HOSP],[r.tecnico,RUTA_TEC]].forEach(([o,filas])=>
+      filas.forEach(([k])=>{tot++;if(o&&String(o[k]||"").trim())ok++}));
+    (r.horarios||[]).forEach(h=>{tot++;if(String(h.inicio||h.fin||"").trim())ok++});
+    (r.viaje||[]).forEach(v=>{tot++;if(String(v.trayecto||v.detalle||"").trim())ok++});
+    return tot?Math.round(ok/tot*100):0;
+  }catch(e){return null}
+}
+
 /* ════════ REPORTE DE LIQUIDACIÓN ════════
    Documento imprimible para mandar al cliente antes de pagarle. Dos bloques:
    el mes elegido, y aparte TODO lo que está cobrado del promotor y sin liquidar,
@@ -8923,7 +8985,7 @@ function formShow(id,comoNuevo){
       <span class="hq">${esc(nomCliente(s.clienteId))}</span>
       <span class="hd">${esc(nomPromotor(s.promotorId))}${s.ciudad?" · "+esc(s.ciudad):""}</span>
       <span class="hr2"><span class="pill ${AG_PILL[s.estado]||""}">${esc(s.estado)}</span>
-        <span class="pill ${cobrado?"ok":""}">${cobrado?"cobrado":"cobro pendiente"}</span></span>
+        <span class="pill ${cobrado?"ok":""}">${cobrado?"cobrado":"cobro pendiente"}</span>${(()=>{const pc=rutaPct(s);return pc===null?"":`<span class="pill ${pc>=80?"ok":"warn"}">ruta ${pc}%</span>`})()}</span>
       <span class="fhm-acc">
         <button type="button" class="btn sm" data-act="hoja" data-id="${s.id}">Hoja de ruta</button>
         <button type="button" class="btn sm" data-act="contrato" data-id="${s.id}">Contrato</button>
