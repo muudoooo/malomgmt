@@ -563,15 +563,22 @@ html.dw-sin-scroll-x{overflow-x:hidden}
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--sans)}
 .demo-barra button{background:rgba(0,0,0,.18);border:0;color:#231704;padding:3px 10px;
   border-radius:4px;font-size:11.5px;cursor:pointer;font-family:var(--sans)}
-.lu-cab,.lu-row{display:grid;grid-template-columns:88px minmax(150px,1.4fr) 78px 108px 106px 66px 106px 66px 62px 30px;
-  gap:5px;align-items:center;margin-bottom:5px}
-.lu-cab.crew,.lu-row.crew{grid-template-columns:minmax(150px,1.4fr) 78px 108px 106px 66px 106px 66px 62px 30px}
-.lu-cab{font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--mute-2);margin-bottom:6px}
-.lu-row input,.lu-row select{padding:5px 7px;font-size:12px;min-width:0;width:100%}
-.lu-art{display:flex;flex-direction:column;gap:3px;min-width:0}
-@media(max-width:900px){.lu-cab{display:none}
-  .lu-row,.lu-row.crew{grid-template-columns:1fr 1fr;padding:9px;border:1px solid var(--rule);border-radius:6px}}
+.lu-cab{display:none}
+/* Una ficha por persona: el rotulo va pegado a cada campo (data-l). Antes eran
+   diez columnas de 60-100 px dentro de un modal estrecho, con el select de
+   artista pisando el input del nombre. */
+.lu-row,.lu-row.crew{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 8px;
+  padding:11px;margin-bottom:10px;border:1px solid var(--rule);border-radius:7px;background:var(--panel-2)}
+.lu-row input,.lu-row select{padding:6px 8px;font-size:12px;min-width:0;width:100%}
+.lu-c{display:flex;flex-direction:column;min-width:0}
+.lu-c::before{content:attr(data-l);font-family:var(--mono);font-size:8.5px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-bottom:3px;white-space:nowrap}
+.lu-c.wide{grid-column:1/-1}
+.lu-x{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:-4px}
+.lu-link{border-color:var(--artist)!important}
+.lu-tag{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--artist);margin-top:3px}
+@media(max-width:640px){.lu-row,.lu-row.crew{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .buscable-wrap{position:relative}
 .buscable-input{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;
@@ -631,9 +638,16 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
 .adj-row{display:grid;grid-template-columns:120px 1fr 110px 1.6fr 34px;gap:8px;margin-bottom:8px;align-items:center}
 @media(max-width:700px){.adj-row{grid-template-columns:1fr 1fr}}
 .adj-row input,.adj-row select{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:7px 9px;width:100%}
-.ent-row{display:grid;grid-template-columns:1fr 110px 110px 120px 34px;gap:8px;margin-bottom:8px;align-items:center}
-@media(max-width:700px){.ent-row{grid-template-columns:1fr 1fr}}
-.ent-row input,.ent-row select{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:7px 9px;width:100%}
+.ent-cab{display:none}
+.ent-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 30px;gap:10px 8px;
+  padding:11px;margin-bottom:10px;align-items:end;
+  border:1px solid var(--rule);border-radius:7px;background:var(--panel-2)}
+.ent-row input{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:6px 8px;width:100%;font-size:12px}
+.ent-c{display:flex;flex-direction:column;min-width:0}
+.ent-c::before{content:attr(data-l);font-family:var(--mono);font-size:8.5px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-bottom:3px;white-space:nowrap}
+.ent-c.wide{grid-column:1/-1}
+@media(max-width:640px){.ent-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .bar-be{position:relative;height:26px;border-radius:5px;background:var(--panel-2);border:1px solid var(--rule);overflow:hidden}
 .bar-be .fill{height:100%;background:rgba(143,121,242,.55)}
 .bar-be .be{position:absolute;top:0;bottom:0;width:2px;background:var(--malo)}
@@ -1665,6 +1679,11 @@ function calcProd(p){
   const ivaE=n(p.ivaEntrada!==undefined?p.ivaEntrada:IVA_ENTRADA);
   const ent=modoFee?[]:(p.entradas||[]);
   const vendidas=ent.reduce((t,e)=>t+n(e.vendidas),0);
+  /* Poner un tipo de entrada con su precio NO significa haberla vendido. Solo
+     hay ventas si alguna fila trae un numero en «vendidas»: mientras no lo
+     traiga, el P&L habla de prevision, no de resultado. */
+  const hayVentas=ent.some(e=>String(e.vendidas??"").trim()!==""&&n(e.vendidas)>0);
+  const cupo=ent.reduce((t,e)=>t+n(e.cupo),0);
   const taquillaPVP=ent.reduce((t,e)=>t+n(e.precio)*n(e.vendidas),0);   // precios con IVA incluido
   const taquillaNeta=taquillaPVP/(1+ivaE/100);
   const feeFijo=modoFee?n(p.feeFijo):0;
@@ -1692,7 +1711,13 @@ function calcProd(p){
   // toFixed(6) evita que 200.00000000000003 se redondee a 201 por coma flotante
   const beEntradas=(!modoFee&&precioMedio>0)?Math.ceil(+(aCubrir/precioMedio).toFixed(6)):null;
   const aforo=n(p.aforo);
-  return {modoFee,feeFijo,ivaE,vendidas,taquillaPVP,taquillaNeta,otros,sponsor,ingresos,cacheArtistas,
+  /* Prevision: taquilla si se llenara el cupo declarado (y si no hay cupo, el
+     aforo). Sirve para juzgar la produccion antes de vender una sola entrada. */
+  const objetivo=(!modoFee)?(cupo||aforo||0):0;
+  const previsionNeta=objetivo*precioMedio;
+  const previsionBeneficio=previsionNeta+otros+sponsor-costes;
+  return {modoFee,feeFijo,ivaE,vendidas,hayVentas,cupo,objetivo,previsionNeta,previsionBeneficio,
+    taquillaPVP,taquillaNeta,otros,sponsor,ingresos,cacheArtistas,
     viajesLineup,crewFees,viajesCrew,costeCrew,costesOtros,costes,beneficio,
     precioMedio,beEntradas,aforo,
     ocupacion:(!modoFee&&aforo)?vendidas/aforo*100:null,
@@ -2671,6 +2696,26 @@ function tablasFicha(root){
 let FILTROS_ABIERTOS=false;
 /* Filas clicables accesibles por teclado: tabindex + Enter/Espacio abren la
    ficha igual que un toque. Corre tras cada render(), como tablasFicha(). */
+/* Un input[type=date] solo abre el calendario si aciertas en el iconito. Con
+   esto se abre pulsando en cualquier parte del campo (y con Enter), que es lo
+   que espera cualquiera. showPicker no existe en Safari < 16: si falla, el
+   campo sigue funcionando como siempre. */
+document.addEventListener("pointerup",e=>{
+  const t=e.target;
+  if(!t||t.tagName!=="INPUT")return;
+  if(t.type!=="date"&&t.type!=="month"&&t.type!=="time")return;
+  if(t.readOnly||t.disabled)return;
+  if(typeof t.showPicker!=="function")return;
+  try{t.showPicker()}catch(_){}
+},true);
+document.addEventListener("keydown",e=>{
+  const t=e.target;
+  if(e.key!=="Enter"||!t||t.tagName!=="INPUT")return;
+  if(t.type!=="date"&&t.type!=="month"&&t.type!=="time")return;
+  if(typeof t.showPicker!=="function")return;
+  e.preventDefault();try{t.showPicker()}catch(_){}
+});
+
 function filasTeclado(root){
   (root||document).querySelectorAll("tbody tr.click").forEach(tr=>{
     if(tr.hasAttribute("tabindex"))return;
@@ -3442,7 +3487,7 @@ function crearShowsDeProduccion(id){
 
 function formProduccion(id){
   const p=id?DB.producciones.find(x=>x.id===id):{id:uid("prd"),nombre:"",fecha:CAL.sel||hoy(),ciudad:"",venueId:"",
-    aforo:0,ivaEntrada:IVA_ENTRADA,modoFee:false,feeFijo:0,entradas:[{concepto:"Anticipada",precio:0,vendidas:0}],
+    aforo:0,ivaEntrada:IVA_ENTRADA,modoFee:false,feeFijo:0,entradas:[{concepto:"Anticipada",precio:0,cupo:0,vendidas:""}],
     otrosIngresos:[],lineup:[],costes:[],notas:""};
   openModal(`
   <header><h3>${id?"Editar producción":"Nueva producción"}</h3><div class="spacer"></div>
@@ -3481,6 +3526,9 @@ function formProduccion(id){
 
     <div id="bloqueEntradas">
       <div class="section-title">Entradas · precios con IVA incluido (PVP)</div>
+      <p class="dim tiny" style="margin:0 0 10px">Define aquí los tipos de entrada y su precio: esto <b>no</b> cuenta como vendido.
+        «Cupo» son las entradas puestas a la venta a ese precio (opcional, alimenta la previsión).
+        Deja <b>Vendidas</b> en blanco hasta que tengas la venta real.</p>
       <div id="entradas"></div>
       <button class="btn sm" id="addEnt" style="margin-top:4px">Añadir tipo de entrada</button>
     </div>
@@ -3535,13 +3583,15 @@ function formProduccion(id){
   let crew=JSON.parse(JSON.stringify(p.crew||[]));
 
   function pintaEntradas(){
+    const vac=v=>(v===undefined||v===null||String(v).trim()===""||n(v)===0)?"":n(v);
     document.getElementById("entradas").innerHTML=entradas.length?entradas.map((e,i)=>`
       <div class="ent-row">
-        <input placeholder="Concepto (anticipada, taquilla, VIP…)" value="${esc(e.concepto||"")}" data-e="${i}" data-k="concepto">
-        <input type="number" step="0.5" min="0" placeholder="PVP" value="${n(e.precio)}" data-e="${i}" data-k="precio">
-        <input type="number" step="1" min="0" placeholder="Vendidas" value="${n(e.vendidas)}" data-e="${i}" data-k="vendidas">
-        <div class="dim tiny" style="text-align:right;font-family:var(--mono)">${eur0(n(e.precio)*n(e.vendidas))}</div>
-        <button class="x" data-del-e="${i}">×</button></div>`).join("")
+        <label class="ent-c wide" data-l="Concepto"><input placeholder="Anticipada, taquilla, VIP…" value="${esc(e.concepto||"")}" data-e="${i}" data-k="concepto"></label>
+        <label class="ent-c" data-l="PVP €"><input type="number" step="0.5" min="0" placeholder="0" value="${vac(e.precio)}" data-e="${i}" data-k="precio"></label>
+        <label class="ent-c" data-l="Cupo"><input type="number" step="1" min="0" placeholder="—" value="${vac(e.cupo)}" data-e="${i}" data-k="cupo"></label>
+        <label class="ent-c" data-l="Vendidas (real)"><input type="number" step="1" min="0" placeholder="sin datos" value="${vac(e.vendidas)}" data-e="${i}" data-k="vendidas" style="border-color:var(--artist)"></label>
+        <div class="ent-c" data-l="Recaudado"><div class="dim tiny" data-sub-e="${i}" style="text-align:right;font-family:var(--mono);padding:7px 0">${n(e.vendidas)?eur0(n(e.precio)*n(e.vendidas)):"—"}</div></div>
+        <div style="display:flex;justify-content:flex-end"><button class="x" data-del-e="${i}" title="Quitar" aria-label="Quitar">×</button></div></div>`).join("")
       :`<p class="dim tiny" style="padding:4px 0">Sin entradas definidas. Sin precio no se puede calcular el punto de equilibrio.</p>`;
   }
   function pintaLista(campo,arr,cont,ph1,extra){
@@ -3563,41 +3613,47 @@ function formProduccion(id){
      el crew no tiene sentido. */
   function pintaPersonas(campo,arr,cont,esLineup){
     const salasUsadas=[...new Set(lineup.map(x=>String(x.sala||"").trim()).filter(Boolean))];
-    document.getElementById(cont).innerHTML=arr.length?`
-      <div class="lu-cab">
-        ${esLineup?`<div>Sala</div>`:""}
-        <div>${esLineup?"Artista":"Persona"}</div><div>Fee</div><div>Estado</div>
-        <div>Alojamiento</div><div>€</div><div>Transporte</div><div>€</div>${esLineup?`<div>Set</div>`:"<div></div>"}<div></div>
-      </div>`+arr.map((x,i)=>`
+    const nomCli=c=>String(c.nombre||c.nombreReal||"").trim();
+    const vac=v=>n(v)?n(v):"";
+    const selEstado=(x,k,i)=>`<select data-${campo}="${i}" data-k="${k}">
+          <option value="">—</option><option value="na" ${x[k]==="na"?"selected":""}>N/A</option>
+          <option value="pend" ${x[k]==="pend"?"selected":""}>Pendiente</option>
+          <option value="ok" ${x[k]==="ok"?"selected":""}>Confirmado</option></select>`;
+    document.getElementById(cont).innerHTML=arr.length?arr.map((x,i)=>{
+      /* Un solo campo para el artista: escribes y, si el nombre coincide con un
+         cliente de MALO, se enlaza solo (y se marca en violeta); si no, queda
+         como externo. Antes eran un select y un input pisandose. */
+      const cli=esLineup&&x.clienteId?DB.clientes.find(c=>c.id===x.clienteId):null;
+      const valArt=cli?nomCli(cli):(x.nombre||"");
+      return `
       <div class="lu-row${esLineup?"":" crew"}">
-        ${esLineup?`<input placeholder="—" list="salasLista" value="${esc(x.sala||"")}" data-${campo}="${i}" data-k="sala">`:""}
-        ${esLineup?`<div class="lu-art">
-          <select data-${campo}="${i}" data-k="clienteId"><option value="">— externo —</option>
-            ${DB.clientes.map(c=>`<option value="${c.id}" ${x.clienteId===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}
-          </select>
-          ${!x.clienteId?`<input placeholder="Nombre del artista externo" value="${esc(x.nombre||"")}" data-${campo}="${i}" data-k="nombre">`:""}
-        </div>`
-        :`<input placeholder="Nombre" value="${esc(x.nombre||"")}" data-${campo}="${i}" data-k="nombre">`}
-        <input type="number" step="10" placeholder="0" value="${n(x.cache)}" data-${campo}="${i}" data-k="cache">
-        <select data-${campo}="${i}" data-k="status">
+        <label class="lu-c wide" data-l="${esLineup?"Artista":"Persona"}">
+          <input placeholder="${esLineup?"Nombre del artista":"Nombre"}" ${esLineup?`list="clientesLista" class="${cli?"lu-link":""}" data-art="${i}"`:""}
+            value="${esc(valArt)}" data-${campo}="${i}" data-k="${esLineup?"artista":"nombre"}">
+          ${cli?`<span class="lu-tag">Cliente MALO</span>`:(esLineup&&valArt?`<span class="lu-tag" style="color:var(--mute)">Externo</span>`:"")}
+        </label>
+        ${esLineup?`<label class="lu-c" data-l="Sala"><input placeholder="—" list="salasLista" value="${esc(x.sala||"")}" data-${campo}="${i}" data-k="sala"></label>`:""}
+        <label class="lu-c" data-l="Fee €"><input type="number" step="10" placeholder="0" value="${vac(x.cache)}" data-${campo}="${i}" data-k="cache"></label>
+        <label class="lu-c" data-l="Estado"><select data-${campo}="${i}" data-k="status">
           ${Object.entries(ESTADO_LINEUP).map(([k,v])=>`<option value="${k}" ${(x.status||"pendiente")===k?"selected":""}>${v.label}</option>`).join("")}
-        </select>
-        <select data-${campo}="${i}" data-k="alojEstado">
-          <option value="">—</option><option value="na" ${x.alojEstado==="na"?"selected":""}>N/A</option>
-          <option value="pend" ${x.alojEstado==="pend"?"selected":""}>Pendiente</option>
-          <option value="ok" ${x.alojEstado==="ok"?"selected":""}>Confirmado</option>
-        </select>
-        <input type="number" step="1" placeholder="0" value="${n(x.alojImporte)}" data-${campo}="${i}" data-k="alojImporte">
-        <select data-${campo}="${i}" data-k="transEstado">
-          <option value="">—</option><option value="na" ${x.transEstado==="na"?"selected":""}>N/A</option>
-          <option value="pend" ${x.transEstado==="pend"?"selected":""}>Pendiente</option>
-          <option value="ok" ${x.transEstado==="ok"?"selected":""}>Confirmado</option>
-        </select>
-        <input type="number" step="1" placeholder="0" value="${n(x.transImporte)}" data-${campo}="${i}" data-k="transImporte">
-        ${esLineup?`<input placeholder="1:30" value="${esc(x.setDuracion||"")}" data-${campo}="${i}" data-k="setDuracion">`:`<div></div>`}
-        <button class="x" data-del-${campo}="${i}">×</button></div>`).join("")
+        </select></label>
+        <label class="lu-c" data-l="Alojamiento">${selEstado(x,"alojEstado",i)}</label>
+        <label class="lu-c" data-l="Alojamiento €"><input type="number" step="1" placeholder="0" value="${vac(x.alojImporte)}" data-${campo}="${i}" data-k="alojImporte"></label>
+        <label class="lu-c" data-l="Transporte">${selEstado(x,"transEstado",i)}</label>
+        <label class="lu-c" data-l="Transporte €"><input type="number" step="1" placeholder="0" value="${vac(x.transImporte)}" data-${campo}="${i}" data-k="transImporte"></label>
+        ${esLineup?`<label class="lu-c" data-l="Set"><input placeholder="1:30" value="${esc(x.setDuracion||"")}" data-${campo}="${i}" data-k="setDuracion"></label>`:""}
+        <div class="lu-x"><button class="x" data-del-${campo}="${i}" title="Quitar" aria-label="Quitar">×</button></div></div>`}).join("")
       +`<datalist id="salasLista">${salasUsadas.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>`
+      +(esLineup?`<datalist id="clientesLista">${DB.clientes.map(c=>`<option value="${esc(nomCli(c))}">`).join("")}</datalist>`:"")
       :`<p class="dim tiny" style="padding:4px 0">${esLineup?"Sin artistas todavía.":"Sin equipo asignado."}</p>`;
+  }
+  /* Resuelve el texto del campo Artista a clienteId (si coincide con un cliente)
+     o a nombre libre. Se llama al salir del campo, no en cada tecla. */
+  function resuelveArtista(i,txt){
+    const t=String(txt||"").trim();
+    const c=DB.clientes.find(x=>String(x.nombre||x.nombreReal||"").trim().toLowerCase()===t.toLowerCase());
+    if(c){lineup[i].clienteId=c.id;lineup[i].nombre=""}
+    else {lineup[i].clienteId="";lineup[i].nombre=t}
   }
   const pintaLineup=()=>pintaPersonas("l",lineup,"lineup",true);
   const pintaCrew  =()=>pintaPersonas("cw",crew,"crewLista",false);
@@ -3607,7 +3663,7 @@ function formProduccion(id){
     return {id:p.id,nombre:val("p_nombre"),fecha:val("p_fecha"),ciudad:val("p_ciudad"),venueId:val("p_venue"),
       aforo:num("p_aforo"),ivaEntrada:num("p_iva"),
       modoFee:document.getElementById("p_modo_fee").checked,feeFijo:num("p_fee"),
-      entradas:entradas.filter(e=>e.concepto||n(e.precio)||n(e.vendidas)),
+      entradas:entradas.filter(e=>e.concepto||n(e.precio)||n(e.cupo)||n(e.vendidas)),
       otrosIngresos:otros.filter(x=>x.concepto||n(x.importe)),
       estado:val("p_estado"),horario:val("p_horario"),
       sponsor:val("p_sponsor"),sponsorAportacion:num("p_sponsorimp"),
@@ -3618,13 +3674,23 @@ function formProduccion(id){
   }
   function pintaPL(){
     const d=leer(),c=calcProd(d);
-    const ancho=c.aforo?Math.min(100,c.vendidas/c.aforo*100):0;
-    const bePos=(c.aforo&&c.beEntradas!==null)?Math.min(100,c.beEntradas/c.aforo*100):null;
-    document.getElementById("pl").innerHTML=`
-      ${(!c.modoFee&&c.aforo)?`<div class="bar-be">
+    const base=c.aforo||c.cupo||0;
+    const ancho=base?Math.min(100,c.vendidas/base*100):0;
+    const bePos=(base&&c.beEntradas!==null)?Math.min(100,c.beEntradas/base*100):null;
+    const avisoPrev=(!c.modoFee&&!c.hayVentas)?`
+      <div class="pill" style="font-size:11px;border-color:var(--artist);color:var(--artist)">
+        Sin ventas registradas — lo de abajo es previsión, no resultado</div>
+      ${c.objetivo&&c.precioMedio?`<table class="cascade" style="margin:12px 0 0">
+        <tr><td class="lbl">Previsión a cupo lleno <span class="dim">${c.objetivo} entradas · ${eur(c.precioMedio)} netos c/u</span></td><td>${eur(c.previsionNeta)}</td></tr>
+        <tr class="sub"><td class="lbl">Resultado en ese escenario</td>
+          <td style="color:${c.previsionBeneficio>=0?"var(--malo)":"var(--alert)"}">${eur(c.previsionBeneficio)}</td></tr>
+        ${c.beEntradas!==null?`<tr class="sub"><td class="lbl">Hace falta vender</td><td>${c.beEntradas} entradas</td></tr>`:""}
+      </table>`:`<p class="dim tiny" style="margin:8px 0 0">Pon precio (y cupo o aforo) para ver la previsión y el punto de equilibrio.</p>`}`:"";
+    document.getElementById("pl").innerHTML=avisoPrev+`
+      ${(!c.modoFee&&base&&c.hayVentas)?`<div class="bar-be">
         <div class="fill" style="width:${ancho}%"></div>
         ${bePos!==null?`<div class="be" style="left:${bePos}%" title="Punto de equilibrio"></div>`:""}
-        <div class="lbl">${c.vendidas} / ${c.aforo} · ${Math.round(ancho)} % de aforo</div></div>
+        <div class="lbl">${c.vendidas} / ${base} · ${Math.round(ancho)} % ${c.aforo?"de aforo":"del cupo"}</div></div>
       <div class="strip-legend"><div><span class="sw" style="background:rgba(143,121,242,.55)"></span>Vendidas</div>
         ${bePos!==null?`<div><span class="sw" style="background:var(--malo)"></span>Punto de equilibrio: ${c.beEntradas} entradas (${Math.round(c.beOcupacion)} % del aforo)</div>`:""}</div>`
       :c.modoFee?`<div class="pill malo" style="font-size:11px">Fee fijo pactado — el resultado no depende de la asistencia</div>`:""}
@@ -3635,7 +3701,7 @@ function formProduccion(id){
           ${c.otros?`<tr><td class="lbl">+ Otros ingresos</td><td>${eur(c.otros)}</td></tr>`:""}
           <tr class="total"><td class="lbl">Ingresos</td><td>${eur(c.ingresos)}</td></tr>`
           :`
-          <tr><td class="lbl">Taquilla PVP <span class="dim">${c.vendidas} entradas</span></td><td>${eur(c.taquillaPVP)}</td></tr>
+          <tr><td class="lbl">Taquilla PVP <span class="dim">${c.hayVentas?c.vendidas+" entradas vendidas":"sin ventas registradas"}</span></td><td>${eur(c.taquillaPVP)}</td></tr>
           <tr class="sub"><td class="lbl">− IVA ${pct(c.ivaE)}</td><td>−${eur(c.taquillaPVP-c.taquillaNeta)}</td></tr>
           <tr><td class="lbl">Taquilla sin IVA</td><td>${eur(c.taquillaNeta)}</td></tr>
           ${c.otros?`<tr><td class="lbl">+ Otros ingresos</td><td>${eur(c.otros)}</td></tr>`:""}
@@ -3655,22 +3721,40 @@ function formProduccion(id){
       </div>`;
   }
   const root=document.querySelector(".modal");
+  /* CLAVE: mientras escribes NO se repinta ningun bloque que contenga el campo
+     que tienes enfocado. Antes `pintaEntradas()` reescribia el innerHTML en
+     cada tecla, el input desaparecia y perdias el foco: solo dejaba teclear un
+     caracter. Ahora en `input` se actualiza el modelo, el subtotal de la fila y
+     el P&L (que no contiene campos), y el repintado se reserva para anadir,
+     borrar o resolver el artista, que si cambian la estructura. */
   function aplica(e){
     const t=e.target,v=t.value;
-    const num_=k=>["precio","vendidas","importe","cache","alojImporte","transImporte"].includes(k);
-    if(t.dataset.e!==undefined)entradas[+t.dataset.e][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.o!==undefined)otros[+t.dataset.o][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.l!==undefined)lineup[+t.dataset.l][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.cw!==undefined)crew[+t.dataset.cw][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.c!==undefined&&t.dataset.cw===undefined)costes[+t.dataset.c][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.e!==undefined)pintaEntradas();
-    /* Al enlazar (o desenlazar) un cliente hay que repintar la fila: si es
-       externo aparece el campo de nombre libre, y si es cliente sobra. */
-    if(t.dataset.l!==undefined&&t.dataset.k==="clienteId")pintaLineup();
+    const num_=k=>["precio","cupo","vendidas","importe","cache","alojImporte","transImporte"].includes(k);
+    const k=t.dataset.k;
+    if(t.dataset.e!==undefined){
+      const i=+t.dataset.e;
+      /* «vendidas» y «cupo» vacios se guardan como "" para distinguir
+         «no lo se todavia» de «cero vendidas». */
+      entradas[i][k]=num_(k)?((k==="vendidas"||k==="cupo")&&String(v).trim()===""?"":n(v)):v;
+      const sub=root.querySelector(`[data-sub-e="${i}"]`);
+      if(sub)sub.textContent=n(entradas[i].vendidas)?eur0(n(entradas[i].precio)*n(entradas[i].vendidas)):"—";
+    }
+    if(t.dataset.o!==undefined)otros[+t.dataset.o][k]=num_(k)?n(v):v;
+    if(t.dataset.l!==undefined){
+      if(k==="artista")resuelveArtista(+t.dataset.l,v);
+      else lineup[+t.dataset.l][k]=num_(k)?n(v):v;
+    }
+    if(t.dataset.cw!==undefined)crew[+t.dataset.cw][k]=num_(k)?n(v):v;
+    if(t.dataset.c!==undefined&&t.dataset.cw===undefined)costes[+t.dataset.c][k]=num_(k)?n(v):v;
     pintaPL();
   }
   root.addEventListener("input",aplica);
   root.addEventListener("change",aplica);
+  /* Al salir del campo de artista se repinta la fila para mostrar la etiqueta
+     «Cliente MALO» / «Externo». Nunca mientras se escribe. */
+  root.addEventListener("focusout",e=>{
+    if(e.target.dataset&&e.target.dataset.art!==undefined){pintaLineup();pintaPL()}
+  });
   root.addEventListener("click",e=>{
     const map=[["delE",entradas,pintaEntradas],["delO",otros,pintaOtros],["delL",lineup,pintaLineup],
       ["delCw",crew,pintaCrew],["delC",costes,pintaCostes]];
@@ -3691,11 +3775,12 @@ function formProduccion(id){
     pintaPL();
   });
   buscable("p_venue");
-  document.getElementById("addEnt").addEventListener("click",()=>{entradas.push({concepto:"",precio:0,vendidas:0});pintaEntradas();pintaPL()});
+  document.getElementById("addEnt").addEventListener("click",()=>{entradas.push({concepto:"",precio:0,cupo:"",vendidas:""});pintaEntradas();pintaPL()});
   document.getElementById("addOtro").addEventListener("click",()=>{otros.push({concepto:"",importe:0});pintaOtros();pintaPL()});
   document.getElementById("addLine").addEventListener("click",()=>{
     lineup.push({clienteId:"",nombre:"",cache:0,sala:"",status:"pendiente",alojEstado:"",alojImporte:0,transEstado:"",transImporte:0,setDuracion:""});
-    pintaLineup();pintaPL()});
+    pintaLineup();pintaPL();
+    const f=document.querySelector('#lineup .lu-row:last-of-type [data-art]');if(f)f.focus();});
   document.getElementById("addCrew").addEventListener("click",()=>{
     crew.push({nombre:"",cache:0,status:"confirmado",alojEstado:"",alojImporte:0,transEstado:"",transImporte:0});
     pintaCrew();pintaPL()});
