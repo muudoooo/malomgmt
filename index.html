@@ -3741,18 +3741,22 @@ const DIST_TIPO=["Original","Live","Acústico","Cover","Remix"];
 const DIST_PARENTAL=["No","Sí"];
 function distDe(c){return (c&&c.distribucion)||{}}
 function distribEnviada(c){return !!distDe(c).enviado}
+/* Solo entran en «Distribuir canción» las canciones que pasan por este flujo
+   (tienen datos de distribución). El catálogo antiguo ya distribuido vive en
+   «Mis Canciones» y no debe aparecer aquí como «por preparar». */
+function enDistribucion(c){const d=c&&c.distribucion;return !!(d&&typeof d==="object"&&Object.keys(d).length)}
 
 function viewDistribuir(el,ta){
   const portal=esArtistaPortal();
   ta.innerHTML=`<button class="btn primary" data-act="new-distrib">Nueva distribución</button>`;
-  let list=(DB.canciones||[]).slice();
+  let list=(DB.canciones||[]).filter(enDistribucion);
   if(portal&&DB.miClienteId)list=list.filter(c=>c.artistaId===DB.miClienteId);
   if(filtro.distQ){const q=filtro.distQ.toLowerCase();
     list=list.filter(c=>[c.titulo,nomCliente(c.artistaId),c.genero,c.isrc].join(" ").toLowerCase().includes(q))}
   list.sort((a,b)=>(b.fechaLanzamiento||"zzz").localeCompare(a.fechaLanzamiento||"zzz")||(b.creadoEn||"").localeCompare(a.creadoEn||""));
   document.getElementById("viewSub").textContent=portal
     ? "Rellena la info y envíala; el equipo se encarga de la distribución."
-    : `${list.length} canción${list.length===1?"":"es"}`;
+    : `${list.length} canci${list.length===1?"ón":"ones"} en distribución`;
   if(DB.sinCanciones){
     el.innerHTML=`<div class="card"><div class="empty"><p><strong>Falta ejecutar el SQL de canciones.</strong><br>
       Pide al desarrollador que ejecute <code>supabase/canciones.sql</code> y recarga.</p></div></div>`;return;
