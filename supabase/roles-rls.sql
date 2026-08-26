@@ -101,6 +101,33 @@ $$;
 --   select auth.uid(), public.mi_rol(), public.es_admin();
 
 -- ─────────────────────────────────────────────────────────────────────────
+-- PASO 3.5 · Limpieza de las políticas antiguas (INVENTARIO REAL, 25 ago 2026)
+--
+-- En producción ya hay RLS activo en muchas tablas con políticas del tipo
+-- «equipo todo <tabla> | ALL | authenticated using(true)» (y «temas
+-- autenticados», «generos_autenticado», «wa autenticados», «equipo lee
+-- miembros»). Las políticas se combinan en OR: si estas se quedan, un artista
+-- seguiría leyéndolo TODO aunque las nuevas digan lo contrario. Se borran
+-- todas las políticas de las tablas que este script gestiona y se recrean.
+-- push_subs se trata aparte (tiene políticas por-usuario que se conservan) y
+-- contactos se deja como está (RLS activo sin políticas = nadie la lee desde
+-- el navegador, que es lo más restrictivo).
+
+do $$
+declare r record;
+begin
+  for r in select policyname, tablename from pg_policies
+            where schemaname='public'
+              and tablename in ('clientes','promotores','shows','eventos','producciones',
+                'subcategorias','suscriptores','contexto','tareas','temas','generos',
+                'mensajes','mensajes_wa','localidades','canciones','cancion_participantes',
+                'cancion_ingresos','redes_snapshots','empresa','miembros','google_auth')
+  loop
+    execute format('drop policy %I on public.%I', r.policyname, r.tablename);
+  end loop;
+end $$;
+
+-- ─────────────────────────────────────────────────────────────────────────
 -- PASO 4 · Tablas internas de la agencia
 --
 -- El equipo (admin/gestor/lectura) LEE todo. El artista NO las ve.
@@ -112,7 +139,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'promotores','producciones','suscriptores','contexto','tareas','mensajes'
+    'promotores','producciones','suscriptores','contexto','tareas','mensajes','mensajes_wa'
   ]
   loop
     execute format('alter table public.%I enable row level security', t);
@@ -278,6 +305,22 @@ create policy google_auth_email on public.google_auth
 
 -- ig_cuentas: ya tiene RLS activo y CERO políticas (solo service role) desde
 -- ig_cuentas.sql — no se toca, ya es lo más restrictivo posible.
+-- contactos: igual — RLS activo sin políticas; se deja tal cual.
+
+-- push_subs: suscripciones de notificaciones push, una fila por usuario.
+-- Se conservan las políticas por-usuario existentes y solo se retira la
+-- general «equipo todo push_subs» (que lo abría todo) y se acota el select
+-- y el update para que un artista solo vea/toque su propia fila.
+drop policy if exists "equipo todo push_subs" on public.push_subs;
+drop policy if exists push_subs_propias_select on public.push_subs;
+create policy push_subs_propias_select on public.push_subs
+  for select to authenticated using (not public.es_artista() or usuario = auth.uid());
+drop policy if exists push_subs_propias_update on public.push_subs;
+create policy push_subs_propias_update on public.push_subs
+  for update to authenticated
+  using (not public.es_artista() or usuario = auth.uid())
+  with check (usuario = auth.uid());
+-- (insert y delete ya estaban limitados a la fila propia; se quedan.)
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- PASO 7 · Verificación después de aplicar (ejecutar tal cual)
