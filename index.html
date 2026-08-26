@@ -3042,9 +3042,12 @@ function viewInicioPortal(el,ta){
   const c=cliente(DB.miClienteId)||{};
   const nombre=c.nombre||c.nombreReal||CURRENT_NAME||"";
   const H=hoy(),anio=H.slice(0,4);
-  const prox=DB.shows.filter(s=>s.fecha&&s.fecha>=H&&s.estado!=="cancelado")
+  /* RLS ya solo entrega sus filas, pero se filtra igual en local: así los
+     números son correctos también si un admin previsualiza el portal. */
+  const mios=DB.shows.filter(s=>s.clienteId===c.id||s.djId===c.id||(s.djs||[]).includes(c.id));
+  const prox=mios.filter(s=>s.fecha&&s.fecha>=H&&s.estado!=="cancelado")
     .sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,6);
-  const anioShows=DB.shows.filter(s=>s.fecha&&s.fecha.slice(0,4)===anio&&s.estado!=="cancelado").length;
+  const anioShows=mios.filter(s=>s.fecha&&s.fecha.slice(0,4)===anio&&s.estado!=="cancelado").length;
   const rangoAnio={desde:anio+"-01",hasta:anio+"-12"};
   const genAnio=sumaEnRango(bolsilloCancionesPorMes(c.id),rangoAnio)+sumaEnRango(bolsilloShowsPorMes(c.id),rangoAnio);
   const redes=REDES_CRECIMIENTO.map(red=>{
@@ -3098,7 +3101,8 @@ function viewInicioPortal(el,ta){
     </div></div></div>
     <div class="f s6"><div class="card" style="height:100%"><header><h3>Tu música</h3><div class="spacer"></div>
       <button class="btn ghost sm" data-ir="misCanciones">Ver canciones</button></header><div class="body">
-      <p style="margin:0">${(DB.canciones||[]).length} ${(DB.canciones||[]).length===1?"canción":"canciones"} en tu catálogo.</p>
+      ${(()=>{const nc=(DB.canciones||[]).filter(x=>x.artistaId===c.id||participacionesDe(c.id).some(p=>p.cancionId===x.id)).length;
+        return `<p style="margin:0">${nc} ${nc===1?"canción":"canciones"} en tu catálogo.</p>`})()}
       <p class="dim tiny" style="margin-top:8px">En <strong>Bolsillo</strong> puedes ver cuánto genera cada una, mes a mes,
         y el total combinado con tus shows.</p>
       <button class="btn sm" data-ir="bolsillo" style="margin-top:10px">Abrir Bolsillo</button>
