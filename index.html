@@ -654,6 +654,21 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
 .rt-grain-b{left:-262.6mm}
 .rt-in{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
   padding:9.4mm 7.4mm 0 8.75mm}
+/* ── Portal del cliente (rol artista): capa visual de solo-lectura.
+   La seguridad de verdad la pone RLS; esto solo esconde los mandos de
+   edición para que el portal no enseñe botones que no van a ninguna parte. */
+body.portal #topActions,
+body.portal [data-act="new-red-snap"],body.portal [data-act="act-red-ahora"],
+body.portal [data-act="ig-enlace"],body.portal [data-act="del-red-snap"],
+body.portal [data-act="dup-show"],body.portal [data-act="hoja"],
+body.portal [data-act="contrato"],body.portal [data-act="del-show"],
+body.portal [data-act="new-promotor-inline"],
+body.portal .modal footer .btn.primary,body.portal .modal .fbar .btn.primary,
+body.portal .modal .btn.danger,body.portal #s_btnotas,
+body.portal #cn_portada_btn,body.portal #cn_audio_btn,
+body.portal #cn_addpart,body.portal #cn_addmes,
+body.portal #addGasto,body.portal #addAdj{display:none!important}
+
 /* Cruz de registro arriba a la derecha */
 .rt-cross{position:absolute;z-index:1;right:8.8mm;top:4.5mm;width:18mm;height:14mm;pointer-events:none}
 .rt-cross:before,.rt-cross:after{content:"";position:absolute;background:#000}
@@ -2037,6 +2052,12 @@ async function loadRemote(){
   if(!DB.sinRolRls){
     const yo=(rolp.data||[]).find(m=>CURRENT_USER&&m.id===CURRENT_USER.id);
     if(yo){DB.miRol=yo.rol||null;DB.miClienteId=yo.cliente_id||null}
+    /* El rol y el cliente vinculado de cada miembro, fusionados en la lista
+       para la pestaña «Equipo y permisos» y para rolDe(). */
+    (rolp.data||[]).forEach(r=>{
+      const m=(DB.miembrosLista||[]).find(x=>x.id===r.id);
+      if(m){m.rol=r.rol||"gestor";m.cliente_id=r.cliente_id||null}
+    });
   }
 }
 /* La fila de empresa que manda save(), en un solo sitio para poder compararla. */
@@ -2524,6 +2545,19 @@ const NAV_GRUPOS=[
   ["Gestión",["eventos","documentos","mailing","mapa","capturas"]],
   ["Sistema",["equipo","generadores","datos"]]];
 const DOCK_VIEWS=[...DOCK_PRIMERO.map(id=>VIEWS.find(v=>v.id===id)),...VIEWS.filter(v=>!DOCK_PRIMERO.includes(v.id))];
+/* ── Portal del cliente (rol artista) ──
+   Menú reducido: lo que el artista ve de sí mismo. La seguridad la pone RLS
+   en Postgres (solo recibe sus filas); esto es la capa de UX encima. */
+const PORTAL_VIEWS=[
+  {id:"inicio",label:"Inicio",k:""},
+  {id:"calendario",label:"Agenda",k:""},
+  {id:"misCanciones",label:"Mis Canciones",k:""},
+  {id:"bolsillo",label:"Bolsillo",k:""},
+  {id:"redes",label:"Redes",k:""}];
+const PORTAL_IDS=PORTAL_VIEWS.map(v=>v.id);
+ICONO_VIEW.inicio="M4 11l8-7 8 7M6 10v10h12V10M10 20v-6h4v6";
+function vistaDef(id){return (esArtistaPortal()&&PORTAL_VIEWS.find(v=>v.id===id))||VIEWS.find(v=>v.id===id)||PORTAL_VIEWS.find(v=>v.id===id)}
+function dockLista(){return esArtistaPortal()?PORTAL_VIEWS:DOCK_VIEWS}
 /* Días y meses de la agenda y del héroe del panel */
 const AG_DIAS=["dom","lun","mar","mié","jue","vie","sáb"];
 const AG_MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -2703,11 +2737,18 @@ function filtrosPlegables(root){
 }
 
 function render(){
+  /* Portal del artista: menú propio, vista de inicio propia y nada de
+     apartados internos. Si por lo que sea VIEW apunta a algo fuera del
+     portal, se reconduce al inicio. */
+  const portal=esArtistaPortal();
+  document.body.classList.toggle("portal",portal);
+  if(portal&&!PORTAL_IDS.includes(VIEW))VIEW="inicio";
   if(VIEW==="equipo")marcarLeido();
   const nl=noLeidos();
-  document.getElementById("nav").innerHTML=NAV_GRUPOS.map(([titulo,ids])=>
+  const grupos=portal?[["Tu espacio",PORTAL_IDS]]:NAV_GRUPOS;
+  document.getElementById("nav").innerHTML=grupos.map(([titulo,ids])=>
     `<div class="nav-grupo">${titulo}</div>`+ids.map(id=>{
-      const v=VIEWS.find(x=>x.id===id);
+      const v=vistaDef(id);
       if(!v)return "";
       const badge=(v.id==="equipo"&&nl)?`<span class="badge">${nl>99?"99+":nl}</span>`:"";
       return `<button data-view="${v.id}" class="${VIEW===v.id?"on":""}">
@@ -2715,14 +2756,15 @@ function render(){
         <span class="lbl">${v.label}</span>${badge}<span class="k">${esc(v.k||"")}</span></button>`;
     }).join("")).join("");
   if("setAppBadge" in navigator){try{nl?navigator.setAppBadge(nl):navigator.clearAppBadge()}catch(e){}}
-  document.getElementById("viewTitle").textContent=VIEWS.find(x=>x.id===VIEW).label;
+  document.getElementById("viewTitle").textContent=(vistaDef(VIEW)||{label:""}).label;
   const el=document.getElementById("view"),ta=document.getElementById("topActions");
   ta.innerHTML="";document.getElementById("viewSub").textContent="";
   ({panel:viewPanel,calendario:viewCalendario,shows:viewShows,eventos:viewEventos,
     clientes:viewClientes,contactos:viewContactos,documentos:viewDocumentos,
     mailing:viewMailing,mapa:viewMapa,temas:viewTemas,
     misCanciones:viewMisCanciones,bolsillo:viewBolsillo,redes:viewRedes,
-    equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos})[VIEW](el,ta);
+    equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos,
+    inicio:viewInicioPortal})[VIEW](el,ta);
   /* Cascada de entrada solo al cambiar de apartado: los nodos recién
      insertados arrancan su animación al entrar; si la vista es la misma
      (tecleo en el buscador) se quita la clase y no parpadea nada. */
@@ -2746,8 +2788,9 @@ const DK={pag:0,ir:null,montado:false};
 function montaDock(){
   const d=document.getElementById("dock");
   if(!d||DK.montado)return;
+  const lista=dockLista();
   const pgs=[];
-  for(let i=0;i<DOCK_VIEWS.length;i+=HOME_POR_PAGINA)pgs.push(DOCK_VIEWS.slice(i,i+HOME_POR_PAGINA));
+  for(let i=0;i<lista.length;i+=HOME_POR_PAGINA)pgs.push(lista.slice(i,i+HOME_POR_PAGINA));
   d.innerHTML=`
     <div class="dk-vp" id="dkVp">
       ${pgs.map(pag=>`<div class="dk-pag">
@@ -2814,7 +2857,7 @@ function pintaDock(){
   d.querySelectorAll("[data-dock-view]").forEach(b=>b.classList.toggle("on",b.dataset.dockView===VIEW));
   const bg=d.querySelector("[data-dock-badge]");
   if(bg){const nl=noLeidos();bg.hidden=!nl;bg.textContent=nl>99?"99+":nl}
-  const i=DOCK_VIEWS.findIndex(v=>v.id===VIEW);
+  const i=dockLista().findIndex(v=>v.id===VIEW);
   if(i>=0&&DK.ir){
     const pg=Math.floor(i/HOME_POR_PAGINA);
     if(pg!==DK.pag)DK.ir(pg);
@@ -2990,8 +3033,82 @@ function viewPanel(el,ta){
 }
 
 /* ════════ CALENDARIO ════════ */
+/* ── Inicio del portal del cliente ──
+   Lo primero que ve un artista al entrar: sus próximas fechas, lo generado
+   este año (mismos números que Bolsillo), sus seguidores y accesos directos.
+   Solo lectura: los datos ya vienen filtrados por RLS. */
+function viewInicioPortal(el,ta){
+  ta.innerHTML="";
+  const c=cliente(DB.miClienteId)||{};
+  const nombre=c.nombre||c.nombreReal||CURRENT_NAME||"";
+  const H=hoy(),anio=H.slice(0,4);
+  const prox=DB.shows.filter(s=>s.fecha&&s.fecha>=H&&s.estado!=="cancelado")
+    .sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,6);
+  const anioShows=DB.shows.filter(s=>s.fecha&&s.fecha.slice(0,4)===anio&&s.estado!=="cancelado").length;
+  const rangoAnio={desde:anio+"-01",hasta:anio+"-12"};
+  const genAnio=sumaEnRango(bolsilloCancionesPorMes(c.id),rangoAnio)+sumaEnRango(bolsilloShowsPorMes(c.id),rangoAnio);
+  const redes=REDES_CRECIMIENTO.map(red=>{
+    const u=ultimoSnapshot(c.id,red);if(!u)return null;
+    const a=snapshotAnterior(c.id,red);
+    return {red,label:REDES[red].label,seguidores:u.seguidores,delta:a?u.seguidores-a.seguidores:null};
+  }).filter(Boolean);
+  const fechaLarga=d=>{const x=new Date(d+"T12:00:00");
+    return `${AG_DIAS[x.getDay()]} ${+d.slice(8,10)} ${AG_MESES[+d.slice(5,7)-1].toLowerCase()}${d.slice(0,4)!==anio?" "+d.slice(0,4):""}`};
+  el.innerHTML=`
+  <div class="card"><div class="body" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+    ${c.foto?`<img src="${esc(c.foto)}" alt="" style="width:56px;height:56px;border-radius:50%;object-fit:cover">`:""}
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:20px;font-weight:700">Hola, ${esc(nombre)}</div>
+      <div class="dim tiny" style="margin-top:2px">Tu espacio en MALO: tus fechas, tu música y tus números. Si algo no cuadra, habla con el equipo.</div>
+    </div></div></div>
+  <div class="fgrid" style="margin-top:14px">
+    <div class="f s4"><div class="card" style="height:100%"><div class="body">
+      <div class="lab">Próxima fecha</div>
+      <div class="val">${prox.length?esc(fechaLarga(prox[0].fecha)):"—"}</div>
+      ${prox.length&&prox[0].ciudad?`<div class="dim tiny">${esc(prox[0].ciudad)}</div>`:""}
+    </div></div></div>
+    <div class="f s4"><div class="card" style="height:100%"><div class="body">
+      <div class="lab">Shows en ${esc(anio)}</div><div class="val">${anioShows}</div>
+    </div></div></div>
+    <div class="f s4"><div class="card" style="height:100%"><div class="body">
+      <div class="lab">Generado en ${esc(anio)} <span class="dim" style="text-transform:none">· música + shows, tu parte</span></div>
+      <div class="val v-artist">${eur0(genAnio)}</div>
+      <div class="dim tiny">El detalle, en Bolsillo</div>
+    </div></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><header><h3>Próximas fechas</h3><div class="spacer"></div>
+    <button class="btn ghost sm" data-ir="calendario">Ver agenda</button></header><div class="body">
+    ${prox.length?`<table><tbody>
+      ${prox.map(s=>`<tr class="click" data-show="${s.id}">
+        <td style="width:1%;white-space:nowrap"><span style="font-family:var(--mono)">${esc(fechaLarga(s.fecha))}</span></td>
+        <td>${esc(s.ciudad||"—")}${s.djId===c.id?` <span class="pill violet">vas de DJ</span>`:""}</td>
+        <td style="width:1%"><span class="pill ${AG_PILL[s.estado]||""}">${esc(s.estado)}</span></td>
+      </tr>`).join("")}</tbody></table>`
+    :`<p class="dim tiny">No hay fechas próximas en el calendario.</p>`}
+  </div></div>
+  <div class="fgrid" style="margin-top:14px">
+    <div class="f s6"><div class="card" style="height:100%"><header><h3>Tus redes</h3><div class="spacer"></div>
+      <button class="btn ghost sm" data-ir="redes">Ver detalle</button></header><div class="body">
+      ${redes.length?`<table><tbody>${redes.map(r=>`<tr>
+          <td>${esc(r.label)}</td>
+          <td style="text-align:right;font-family:var(--mono)">${n(r.seguidores).toLocaleString("es-ES")}</td>
+          <td style="width:1%;white-space:nowrap">${r.delta===null?"":`<span class="pill ${r.delta>=0?"ok":"warn"}">${r.delta>=0?"+":""}${n(r.delta).toLocaleString("es-ES")}</span>`}</td>
+        </tr>`).join("")}</tbody></table>`
+      :`<p class="dim tiny">Todavía no hay datos de seguidores cargados.</p>`}
+    </div></div></div>
+    <div class="f s6"><div class="card" style="height:100%"><header><h3>Tu música</h3><div class="spacer"></div>
+      <button class="btn ghost sm" data-ir="misCanciones">Ver canciones</button></header><div class="body">
+      <p style="margin:0">${(DB.canciones||[]).length} ${(DB.canciones||[]).length===1?"canción":"canciones"} en tu catálogo.</p>
+      <p class="dim tiny" style="margin-top:8px">En <strong>Bolsillo</strong> puedes ver cuánto genera cada una, mes a mes,
+        y el total combinado con tus shows.</p>
+      <button class="btn sm" data-ir="bolsillo" style="margin-top:10px">Abrir Bolsillo</button>
+    </div></div></div>
+  </div>`;
+  el.querySelectorAll("[data-ir]").forEach(b=>b.addEventListener("click",()=>{VIEW=b.dataset.ir;render();window.scrollTo(0,0)}));
+}
+
 function viewCalendario(el,ta){
-  ta.innerHTML=`<button class="btn sm" data-act="new-evento">Añadir a la agenda</button>
+  ta.innerHTML=esArtistaPortal()?"":`<button class="btn sm" data-act="new-evento">Añadir a la agenda</button>
                 <button class="btn primary sm" data-act="new-show">Nuevo show</button>`;
   let items=itemsCal();
   if(CAL.cliente)   items=items.filter(i=>i.clienteId===CAL.cliente);
@@ -6046,7 +6163,8 @@ const ROL_FIJO="malo@malomgmt.com";
 const ROLES={
   admin:{label:"Administrador",desc:"Todo: carpeta de Drive, datos de empresa, roles y borrado"},
   gestor:{label:"Gestor",desc:"Clientes, shows, documentos y generadores"},
-  lectura:{label:"Solo lectura",desc:"Ve la información, no la cambia"}
+  lectura:{label:"Solo lectura",desc:"Ve la información, no la cambia"},
+  artista:{label:"Artista (portal)",desc:"El portal del cliente: solo ve sus fechas, su agenda, sus canciones, su Bolsillo y sus redes. No puede cambiar nada ni ver datos de otros."}
 };
 function cfgRoles(){const r=cfgAjustes().roles;return (r&&typeof r==="object")?r:{}}
 function rolDe(email){
@@ -6055,11 +6173,25 @@ function rolDe(email){
   /* El admin principal es fijo a propósito: si el rol de todos fuese editable,
      un clic mal dado te deja fuera de tu propia app sin forma de volver. */
   if(e===ROL_FIJO)return "admin";
+  /* Con RLS aplicado, el rol de verdad vive en miembros.rol (lo valida
+     Postgres). El cajón viejo de ajustes queda solo como reserva. */
+  if(!DB.sinRolRls){
+    const m=(DB.miembrosLista||[]).find(x=>String(x.email||"").toLowerCase()===e);
+    if(m&&ROLES[m.rol])return m.rol;
+  }
   const r=cfgRoles()[e];
   return ROLES[r]?r:"gestor";
 }
 function miEmail(){return CURRENT_USER&&CURRENT_USER.email?String(CURRENT_USER.email).toLowerCase():""}
-function esAdmin(){return rolDe(miEmail())==="admin"}
+function esAdmin(){
+  /* Mi propio rol llega de miembros.rol (validado por RLS); el email fijo
+     sigue mandando por si la fila aún no tiene rol. */
+  if(miEmail()===ROL_FIJO)return true;
+  if(!DB.sinRolRls&&DB.miRol)return DB.miRol==="admin";
+  return rolDe(miEmail())==="admin";
+}
+/* ¿Esta sesión es el portal de un cliente? Manda miembros.rol (RLS). */
+function esArtistaPortal(){return DB.miRol==="artista"}
 
 /* ── Identidad y datos fiscales de MALO ──
    Son los datos que acabarán en las facturas y en el pie de la hoja de ruta.
@@ -6384,40 +6516,70 @@ function cfgTabEmpresa(el){
 function cfgTabEquipo(el){
   const admin=esAdmin();
   const yo=miEmail();
+  const conRls=!DB.sinRolRls;
   const gente=(DB.miembrosLista||[]).slice()
     .sort((a,b)=>String(a.nombre||a.email||"").localeCompare(String(b.nombre||b.email||"")));
+  const artistasOpts=DB.clientes.slice()
+    .sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""))
+    .map(c=>({id:c.id,nombre:c.nombre||c.nombreReal||c.id}));
   el.innerHTML=`
   <div class="card"><header><h3>Quién entra en MALO</h3><div class="spacer"></div>
     <span class="pill">${gente.length} ${gente.length===1?"persona":"personas"}</span></header><div class="body">
     <p style="color:var(--mute);font-size:12.5px;margin-bottom:16px">
-      Esta lista es la tabla de miembros de Supabase: aparece aquí quien se ha registrado con su email.
-      Para <strong style="color:var(--bone)">dar de alta</strong> a alguien, que se registre en la app;
-      para <strong style="color:var(--bone)">quitarle el acceso del todo</strong>, hay que borrar su usuario
+      Esta lista es la tabla de miembros de Supabase: una fila por persona con acceso.
+      ${conRls?`El rol se guarda en la base de datos y <strong style="color:var(--bone)">lo hace cumplir Postgres</strong> (RLS):
+      un «Artista» solo puede leer sus propios datos, decida lo que decida el navegador.`
+      :`Para que el rol se guarde en la base falta ejecutar <code>supabase/roles-rls.sql</code>.`}
+      Para <strong style="color:var(--bone)">quitarle el acceso del todo</strong> a alguien hay que borrar su usuario
       en Supabase — eso no se hace desde aquí porque no tiene vuelta atrás.</p>
     ${gente.length?`
     <table><thead><tr>
-      <th>Nombre</th><th>Email</th><th style="width:190px">Rol</th>
+      <th>Nombre</th><th>Email</th><th style="width:230px">Rol</th>
     </tr></thead><tbody>
       ${gente.map(m=>{
         const em=String(m.email||"").toLowerCase();
-        const rol=rolDe(em);
+        const rol=conRls?(ROLES[m.rol]?m.rol:"gestor"):rolDe(em);
         const fijo=em===ROL_FIJO;
+        const cliSel=`<select data-cli-id="${esc(m.id)}" style="margin-top:6px;${rol==="artista"?"":"display:none"}">
+            <option value="">— elegir su ficha de artista —</option>
+            ${artistasOpts.map(a=>`<option value="${a.id}" ${m.cliente_id===a.id?"selected":""}>${esc(a.nombre)}</option>`).join("")}
+          </select>`;
         return `<tr>
           <td>${esc(m.nombre||"—")}${em===yo?` <span class="dim tiny">· tú</span>`:""}</td>
           <td class="dim tiny">${esc(m.email||"—")}</td>
           <td>${(admin&&!fijo)
-            ? `<select data-rol-email="${esc(em)}">${Object.entries(ROLES).map(([k,v])=>
-                `<option value="${k}" ${rol===k?"selected":""}>${v.label}</option>`).join("")}</select>`
+            ? `<select data-rol-id="${esc(m.id)}" data-rol-email="${esc(em)}">${Object.entries(ROLES).map(([k,v])=>
+                `<option value="${k}" ${rol===k?"selected":""}>${v.label}</option>`).join("")}</select>${conRls?cliSel:""}`
             : `<span class="pill${rol==="admin"?" ok":""}">${esc(ROLES[rol].label)}</span>${
-                fijo?` <span class="dim tiny">fijo</span>`:""}`}</td>
+                fijo?` <span class="dim tiny">fijo</span>`:""}${
+                rol==="artista"&&m.cliente_id?`<div class="dim tiny" style="margin-top:4px">→ ${esc(nomCliente(m.cliente_id))}</div>`:""}`}</td>
         </tr>`}).join("")}
     </tbody></table>`
     :`<p class="dim tiny">Todavía no hay nadie en la tabla «miembros». Aparecerán en cuanto se registren.</p>`}
     ${admin?`<div style="display:flex;gap:9px;align-items:center;margin-top:16px;flex-wrap:wrap">
       <button class="btn primary" id="rol_save">Guardar roles</button>
-      ${DB.sinAjustes?`<span class="pill alert">Falta la columna «ajustes»: no se guardará</span>`:""}
+      ${(!conRls&&DB.sinAjustes)?`<span class="pill alert">Falta la columna «ajustes»: no se guardará</span>`:""}
     </div>`:`<p class="hint" style="margin-top:14px">Solo un administrador puede cambiar los roles.</p>`}
   </div></div>
+
+  ${(admin&&conRls)?`
+  <div class="card"><header><h3>Dar acceso a un cliente (portal del artista)</h3></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;line-height:1.65;margin:0 0 10px">
+      El orden importa: primero el rol, después la contraseña. Un usuario recién creado nace como
+      «Gestor» hasta que se le pone su rol.</p>
+    <ol style="color:var(--mute);font-size:12.5px;line-height:1.9;margin:0 0 12px;padding-left:18px">
+      <li>Crea su usuario en
+        <a href="https://supabase.com/dashboard/project/adnuggmdrvhlovssdxuw/auth/users" target="_blank" rel="noopener">Supabase → Authentication → Users</a>
+        («Add user» → «Create new user», con una contraseña provisional).</li>
+      <li>Vuelve aquí, recarga, ponle el rol <strong style="color:var(--bone)">Artista (portal)</strong>,
+        elige su ficha y pulsa «Guardar roles».</li>
+      <li>Solo entonces pásale el email y la contraseña. Al entrar verá su portal:
+        Inicio · Agenda · Mis Canciones · Bolsillo · Redes.</li>
+    </ol>
+    <p class="dim tiny" style="margin:0;color:var(--warn)">⚠ El paso 2 no es opcional: hasta que le pongas el rol
+      Artista, ese usuario cuenta como «Gestor» y puede ver y tocar los datos de la agencia.
+      Rol primero, contraseña después, siempre.</p>
+  </div></div>`:""}
 
   <div class="card"><header><h3>Qué puede hacer cada rol</h3></header><div class="body">
     <dl class="kv">
@@ -6429,19 +6591,53 @@ function cfgTabEquipo(el){
       y sin forma de recuperarlo.</p>
   </div></div>
 
-  <div class="card" style="border-color:rgba(237,85,100,.25)"><header><h3>Aviso: esto todavía no es seguridad</h3></header><div class="body">
+  ${conRls?`
+  <div class="card" style="border-color:rgba(66,199,110,.3)"><header><h3>Seguridad activa (RLS)</h3></header><div class="body">
     <p style="color:var(--mute);font-size:12.5px;line-height:1.65;margin:0">
-      Hoy los roles <strong style="color:var(--bone)">esconden botones</strong>, nada más. Quien tenga acceso a MALO
-      y sepa abrir la consola del navegador puede seguir escribiendo en la base de datos, porque Supabase todavía
-      acepta cualquier escritura de un usuario con sesión.<br><br>
-      Para que un rol signifique algo de verdad hacen falta políticas <strong style="color:var(--bone)">RLS</strong>
-      en Postgres. Están escritas en <code>supabase/roles-rls.sql</code> dentro del repositorio,
-      <strong style="color:var(--alert)">sin aplicar</strong>: aplicarlas mal deja al equipo sin poder guardar,
-      así que es una revisión a hacer con el desarrollador y no un botón de esta pantalla.</p>
-  </div></div>`;
+      Desde el 26 de agosto de 2026 los roles <strong style="color:var(--bone)">los hace cumplir la base de datos</strong>,
+      no el navegador: cada consulta pasa por las políticas de <code>supabase/roles-rls.sql</code>. Un artista solo recibe
+      sus filas (sus shows, sus canciones, sus redes), aunque abra la consola; solo lectura no puede escribir; y borrar
+      es cosa del administrador. Verificado con una batería de pruebas contra producción el mismo día.</p>
+  </div></div>`
+  :`<div class="card" style="border-color:rgba(237,85,100,.25)"><header><h3>Aviso: esto todavía no es seguridad</h3></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;line-height:1.65;margin:0">
+      Hoy los roles <strong style="color:var(--bone)">esconden botones</strong>, nada más. La protección real está en
+      <code>supabase/roles-rls.sql</code>, <strong style="color:var(--alert)">sin aplicar</strong> en esta base.</p>
+  </div></div>`}`;
+
+  /* El desplegable de artista solo aparece cuando el rol elegido es Artista */
+  el.querySelectorAll("[data-rol-id]").forEach(s=>s.addEventListener("change",()=>{
+    const cs=el.querySelector(`[data-cli-id="${s.dataset.rolId}"]`);
+    if(cs)cs.style.display=s.value==="artista"?"":"none";
+  }));
 
   const bs=document.getElementById("rol_save");
   if(bs)bs.addEventListener("click",async()=>{
+    if(conRls){
+      /* El rol de verdad: columna miembros.rol (+ cliente vinculado si es
+         artista). Solo un admin puede — lo valida Postgres, no este botón. */
+      const cambios=[];let incompleto=null;
+      el.querySelectorAll("[data-rol-id]").forEach(s=>{
+        const id=s.dataset.rolId;
+        const m=(DB.miembrosLista||[]).find(x=>x.id===id);
+        if(!m)return;
+        const rol=s.value;
+        const cs=el.querySelector(`[data-cli-id="${id}"]`);
+        const cliId=rol==="artista"?((cs&&cs.value)||null):null;
+        if(rol==="artista"&&!cliId)incompleto=m.nombre||m.email;
+        if((m.rol||"gestor")!==rol||(m.cliente_id||null)!==cliId)cambios.push({id,rol,cliente_id:cliId,m});
+      });
+      if(incompleto){toast(`A ${incompleto} le falta elegir su ficha de artista`);return}
+      if(!cambios.length){toast("No hay cambios de rol");return}
+      for(const c of cambios){
+        const {error}=await sb.from("miembros").update({rol:c.rol,cliente_id:c.cliente_id}).eq("id",c.id);
+        if(error){toast("Error al guardar el rol: "+error.message);return}
+        c.m.rol=c.rol;c.m.cliente_id=c.cliente_id;
+      }
+      toast(cambios.length===1?"Rol guardado":cambios.length+" roles guardados");
+      render();
+      return;
+    }
     const roles=Object.assign({},cfgRoles());
     el.querySelectorAll("[data-rol-email]").forEach(s=>{
       const em=s.dataset.rolEmail;
@@ -10043,6 +10239,7 @@ async function startApp(){
   pintaBarraDemo();
   if(!sb._demo)registrarSW();
   await loadRemote();
+  if(esArtistaPortal())VIEW="inicio";
   subscribeRealtime();
   try{ cierreDeMes(); }catch(e){ console.error("cierreDeMes",e); }
   try{ recordatoriosFrios(); }catch(e){ console.error("recordatoriosFrios",e); }
