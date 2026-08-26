@@ -663,11 +663,14 @@ body.portal [data-act="ig-enlace"],body.portal [data-act="del-red-snap"],
 body.portal [data-act="dup-show"],body.portal [data-act="hoja"],
 body.portal [data-act="contrato"],body.portal [data-act="del-show"],
 body.portal [data-act="new-promotor-inline"],
-body.portal .modal footer .btn.primary,body.portal .modal .fbar .btn.primary,
+body.portal .modal footer .btn.primary:not(.portal-ok),body.portal .modal .fbar .btn.primary:not(.portal-ok),
 body.portal .modal .btn.danger,body.portal #s_btnotas,
 body.portal #cn_portada_btn,body.portal #cn_audio_btn,
 body.portal #cn_addpart,body.portal #cn_addmes,
 body.portal #addGasto,body.portal #addAdj{display:none!important}
+/* Distribuir canción SÍ deja escribir al artista: su botón de acción va en el
+   cuerpo (topActions está oculto en el portal) y se marca .portal-ok. */
+body.portal .distrib-nueva{display:block;margin-bottom:14px}
 
 /* Cruz de registro arriba a la derecha */
 .rt-cross{position:absolute;z-index:1;right:8.8mm;top:4.5mm;width:18mm;height:14mm;pointer-events:none}
@@ -1834,7 +1837,7 @@ const TABLE_MAP={
     distribuidora:"distribuidora",feeDistribucionPct:"fee_distribucion_pct",mgmtPct:"mgmt_pct",
     cuentaPortal:"cuenta_portal",notas:"notas",genero:"genero",creditos:"creditos",
     driveFolderId:"drive_folder_id",portadaDriveId:"portada_drive_id",portadaUrl:"portada_url",
-    audioDriveId:"audio_drive_id",audioUrl:"audio_url"},
+    audioDriveId:"audio_drive_id",audioUrl:"audio_url",distribucion:"distribucion"},
   cancionParticipantes:{id:"id",cancionId:"cancion_id",clienteId:"cliente_id",nombre:"nombre",rol:"rol",pct:"pct"},
   cancionIngresos:{id:"id",cancionId:"cancion_id",mes:"mes",bruto:"bruto",unidades:"unidades",canal:"canal"},
   redesSnapshots:{id:"id",clienteId:"cliente_id",red:"red",fecha:"fecha",seguidores:"seguidores",notas:"notas",extra:"extra"}
@@ -1938,7 +1941,7 @@ async function fetchTodos(tabla){
   return {data:todo,error:err};
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -1967,7 +1970,10 @@ async function loadRemote(){
     sb.from("redes_snapshots").select("extra").limit(1),
     /* Sonda de roles RLS: columnas rol y cliente_id en miembros. Sin el SQL de
        roles aplicado devuelven error y la app sigue exactamente como antes. */
-    sb.from("miembros").select("id,rol,cliente_id")
+    sb.from("miembros").select("id,rol,cliente_id"),
+    /* Sonda: columna «distribucion» (jsonb) de canciones. Sin ella la sección
+       Distribuir canción va, pero no se guarda ese cajón. */
+    sb.from("canciones").select("distribucion").limit(1)
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -1999,6 +2005,10 @@ async function loadRemote(){
   DB.sinCanciones=!!can.error;
   DB.canciones=DB.sinCanciones?[]:(can.data||[]).map(r=>fromRow("canciones",r));
   if(DB.sinCanciones)console.warn("Tabla «canciones» no disponible:",can.error.message);
+  /* Columna «distribucion» (Distribuir canción): sin ella se puede rellenar el
+     formulario y generar el email, pero ese cajón no se guarda. */
+  DB.sinDistribucion=!!distp.error;
+  if(DB.sinDistribucion)console.warn("Columna «canciones.distribucion» no disponible:",distp.error.message);
   DB.cancionParticipantes=canp.error?[]:(canp.data||[]).map(r=>fromRow("cancionParticipantes",r));
   DB.cancionIngresos=cani.error?[]:(cani.data||[]).map(r=>fromRow("cancionIngresos",r));
   /* Panel "Redes": historial de seguidores por red. Igual de tolerante si
@@ -2095,7 +2105,7 @@ async function save(){
       DB.contexto.length&&sb.from("contexto").upsert(DB.contexto.map(x=>toRow("contexto",x))),
       DB.tareas.length&&sb.from("tareas").upsert(DB.tareas.map(x=>toRow("tareas",x))),
       (!DB.sinTemas&&(DB.temas||[]).length)&&sb.from("temas").upsert(DB.temas.map(x=>toRow("temas",x))),
-      (!DB.sinCanciones&&(DB.canciones||[]).length)&&sb.from("canciones").upsert(DB.canciones.map(x=>toRow("canciones",x))),
+      (!DB.sinCanciones&&(DB.canciones||[]).length)&&sb.from("canciones").upsert(DB.canciones.map(x=>{const r=toRow("canciones",x);if(DB.sinDistribucion)delete r.distribucion;return r})),
       (!DB.sinCanciones&&(DB.cancionParticipantes||[]).length)&&sb.from("cancion_participantes").upsert(DB.cancionParticipantes.map(x=>toRow("cancionParticipantes",x))),
       (!DB.sinCanciones&&(DB.cancionIngresos||[]).length)&&sb.from("cancion_ingresos").upsert(DB.cancionIngresos.map(x=>toRow("cancionIngresos",x))),
       (!DB.sinRedes&&(DB.redesSnapshots||[]).length)&&sb.from("redes_snapshots").upsert(DB.redesSnapshots.map(x=>{
@@ -2508,7 +2518,7 @@ const VIEWS=[
   {id:"documentos",label:"Documentos",k:"7"},
   {id:"mailing",label:"Mailing",k:"8"},
   {id:"mapa",label:"Mapa",k:"9"},
-  {id:"temas",label:"Temas",k:"t"},
+  {id:"distribuir",label:"Distribuir canción",k:"t"},
   {id:"misCanciones",label:"Mis Canciones",k:"m"},
   {id:"bolsillo",label:"Bolsillo",k:"b"},
   {id:"redes",label:"Redes",k:"r"},
@@ -2530,6 +2540,7 @@ const ICONO_VIEW={
   mailing:"M3 6h18v12H3zM3 7l9 6 9-6",
   mapa:"M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
   temas:"M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3z",
+  distribuir:"M12 3v12M12 15l-4-4M12 15l4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2",
   misCanciones:"M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM3 21h4",
   bolsillo:"M4 8h16v12H4zM4 8l3-5h10l3 5M9 12a3 3 0 0 0 6 0",
   redes:"M4 20h16M4 16l5-6 4 4 7-8M16 6h4v4",
@@ -2546,7 +2557,7 @@ const DOCK_PRIMERO=["panel","shows","contactos","redes","calendario"];
    Deben cubrir TODOS los ids de VIEWS: lo que falte no saldría en el menú. */
 const NAV_GRUPOS=[
   ["Día a día",["panel","calendario","shows","contactos","clientes"]],
-  ["Música",["temas","misCanciones","bolsillo","redes"]],
+  ["Música",["distribuir","misCanciones","bolsillo","redes"]],
   ["Gestión",["eventos","documentos","mailing","mapa","capturas"]],
   ["Sistema",["equipo","generadores","datos"]]];
 const DOCK_VIEWS=[...DOCK_PRIMERO.map(id=>VIEWS.find(v=>v.id===id)),...VIEWS.filter(v=>!DOCK_PRIMERO.includes(v.id))];
@@ -2556,6 +2567,7 @@ const DOCK_VIEWS=[...DOCK_PRIMERO.map(id=>VIEWS.find(v=>v.id===id)),...VIEWS.fil
 const PORTAL_VIEWS=[
   {id:"inicio",label:"Inicio",k:""},
   {id:"calendario",label:"Agenda",k:""},
+  {id:"distribuir",label:"Distribuir canción",k:""},
   {id:"misCanciones",label:"Mis Canciones",k:""},
   {id:"bolsillo",label:"Bolsillo",k:""},
   {id:"redes",label:"Redes",k:""}];
@@ -2766,7 +2778,7 @@ function render(){
   ta.innerHTML="";document.getElementById("viewSub").textContent="";
   ({panel:viewPanel,calendario:viewCalendario,shows:viewShows,eventos:viewEventos,
     clientes:viewClientes,contactos:viewContactos,documentos:viewDocumentos,
-    mailing:viewMailing,mapa:viewMapa,temas:viewTemas,
+    mailing:viewMailing,mapa:viewMapa,temas:viewTemas,distribuir:viewDistribuir,
     misCanciones:viewMisCanciones,bolsillo:viewBolsillo,redes:viewRedes,
     equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos,
     inicio:viewInicioPortal})[VIEW](el,ta);
@@ -3719,6 +3731,249 @@ function splitsCuadran(t){const s=sumaSplits(t);return Math.abs(s-100)<0.01}
 /* Un tema sin nada escrito en el reparto no está «descuadrado»: está sin cerrar */
 function splitsSinCerrar(t){return !((t&&t.splits)||[]).length}
 
+/* ════════ DISTRIBUIR CANCIÓN ════════
+   Formulario de solicitud de distribución con los campos que pide la
+   distribuidora (subida + pitch). Al guardar crea una entrada en «Mis
+   Canciones» (misma tabla canciones), y el botón «Generar email» compila
+   toda la info + los enlaces para que MALO la mande a la distribuidora. */
+const DIST_FORMATO=["Single","EP","Álbum"];
+const DIST_TIPO=["Original","Live","Acústico","Cover","Remix"];
+const DIST_PARENTAL=["No","Sí"];
+function distDe(c){return (c&&c.distribucion)||{}}
+function distribEnviada(c){return !!distDe(c).enviado}
+
+function viewDistribuir(el,ta){
+  const portal=esArtistaPortal();
+  ta.innerHTML=`<button class="btn primary" data-act="new-distrib">Nueva distribución</button>`;
+  let list=(DB.canciones||[]).slice();
+  if(portal&&DB.miClienteId)list=list.filter(c=>c.artistaId===DB.miClienteId);
+  if(filtro.distQ){const q=filtro.distQ.toLowerCase();
+    list=list.filter(c=>[c.titulo,nomCliente(c.artistaId),c.genero,c.isrc].join(" ").toLowerCase().includes(q))}
+  list.sort((a,b)=>(b.fechaLanzamiento||"zzz").localeCompare(a.fechaLanzamiento||"zzz")||(b.creadoEn||"").localeCompare(a.creadoEn||""));
+  document.getElementById("viewSub").textContent=portal
+    ? "Rellena la info y envíala; el equipo se encarga de la distribución."
+    : `${list.length} canción${list.length===1?"":"es"}`;
+  if(DB.sinCanciones){
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Falta ejecutar el SQL de canciones.</strong><br>
+      Pide al desarrollador que ejecute <code>supabase/canciones.sql</code> y recarga.</p></div></div>`;return;
+  }
+  if(!list.length){
+    el.innerHTML=`<div class="card"><div class="empty">
+      <p><strong>Distribuir una canción.</strong><br>${portal
+        ? "Sube tu canción para distribuirla: rellena los datos, pega los enlaces de la portada, el WAV y el videoclip, y envíalo. El equipo de MALO se encarga del resto."
+        : "Aquí llegan las canciones que hay que distribuir, con toda la info para la distribuidora y un email listo para enviar."}</p>
+      <button class="btn primary portal-ok" data-act="new-distrib">Empezar</button></div></div>`;
+    return;
+  }
+  el.innerHTML=`
+  ${portal?`<button class="btn primary portal-ok distrib-nueva" data-act="new-distrib">Nueva distribución</button>`:""}
+  <div class="filters"><div class="fl" style="flex:1">
+    <input type="search" id="dsq" placeholder="Buscar título, artista, ISRC…" value="${esc(filtro.distQ||"")}">
+  </div></div>
+  <div class="card"><table><thead><tr>
+    <th>Canción</th><th>Artista</th><th>Lanzamiento</th><th>Estado</th>${portal?"":"<th></th>"}
+  </tr></thead><tbody>
+    ${list.map(c=>{const d=distDe(c);return `<tr class="click" data-distrib="${c.id}">
+      <td class="strong"><span style="display:flex;align-items:center;gap:8px">
+        ${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}
+        <span>${esc(c.titulo||"(sin título)")}${d.tipo&&d.tipo!=="Original"?` <span class="dim tiny">· ${esc(d.tipo)}</span>`:""}</span></span></td>
+      <td>${esc(nomCliente(c.artistaId))}</td>
+      <td class="tiny">${c.fechaLanzamiento?fecha(c.fechaLanzamiento):"—"}</td>
+      <td><span class="pill ${d.enviado?"ok":"warn"}">${d.enviado?"enviada":"por preparar"}</span></td>
+      ${portal?"":`<td style="width:1%;white-space:nowrap"><button class="btn ghost sm" data-act="email-distrib" data-id="${c.id}" title="Generar el email para la distribuidora">Email</button></td>`}
+    </tr>`}).join("")}
+  </tbody></table></div>`;
+  const q=document.getElementById("dsq");
+  if(q)q.addEventListener("input",e=>{filtro.distQ=e.target.value;render();
+    const n=document.getElementById("dsq");if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length)}});
+}
+
+function formDistribuir(id){
+  if(!DB.clientes.length){toast("Primero da de alta un cliente");return}
+  const portal=esArtistaPortal();
+  const c0=id?(DB.canciones||[]).find(x=>x.id===id):null;
+  /* artista del portal: solo su ficha; equipo: la del filtro o la primera */
+  const artDef=portal?DB.miClienteId:(cliente(filtro.cancionArtista)||DB.clientes[0]||{}).id;
+  const o=c0||{id:uid("can"),titulo:"",artistaId:artDef||"",fechaLanzamiento:"",isrc:"",
+    distribuidora:"ADA",feeDistribucionPct:30,mgmtPct:21,cuentaPortal:"",notas:"",genero:"",creditos:"",
+    portadaUrl:"",audioUrl:"",distribucion:{},creadoEn:new Date().toISOString()};
+  const d=Object.assign({formato:"Single",tipo:"Original",parental:"No"},o.distribucion||{});
+  window.__distId=o.id;
+  const soloLectura=portal&&distribEnviada(o);   // ya enviada: el artista la ve pero no la reedita
+  const ro=soloLectura?"disabled":"";
+  openModal(`
+  <header><h3>${id?"Distribución":"Nueva distribución"}</h3><div class="spacer"></div>
+    ${(!portal&&id)?`<button class="btn ghost sm" data-act="email-distrib" data-id="${o.id}">Generar email</button>`:""}
+    ${(!portal&&id)?`<button class="btn danger sm" data-act="del-cancion" data-id="${o.id}">Eliminar</button>`:""}
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    ${DB.sinDistribucion?`<p class="hint" style="margin-bottom:12px;color:var(--alert)">Falta la columna «distribucion»: se puede rellenar, pero los datos de distribución no se guardan hasta ejecutar <code>supabase/distribucion.sql</code>.</p>`:""}
+    ${portal?`<p class="hint" style="margin-bottom:14px">Rellena todo lo que puedas. Cuanta más info, más rápida la distribución. Los archivos van como <strong>enlaces</strong> (Drive, Dropbox, WeTransfer…).</p>`:""}
+    <div class="section-title">La canción</div>
+    <div class="fgrid">
+      <div class="f s6"><label>Título</label><input id="d_tit" value="${esc(o.titulo||"")}" placeholder="Nombre de la canción" ${ro}></div>
+      <div class="f s3"><label>Tipo</label><select id="d_tipo" ${ro}>${DIST_TIPO.map(x=>`<option ${d.tipo===x?"selected":""}>${x}</option>`).join("")}</select>
+        <span class="hint">Live, acústico, cover o remix</span></div>
+      <div class="f s3"><label>Formato</label><select id="d_formato" ${ro}>${DIST_FORMATO.map(x=>`<option ${d.formato===x?"selected":""}>${x}</option>`).join("")}</select></div>
+      <div class="f s4"><label>Artista principal</label>${portal
+        ? `<input id="d_art" value="${esc(nomCliente(o.artistaId))}" disabled><input type="hidden" id="d_artid" value="${esc(o.artistaId)}">`
+        : `<select id="d_artid" ${ro}>${DB.clientes.slice().sort((a,b)=>(a.nombre||a.nombreReal||"").localeCompare(b.nombre||b.nombreReal||"")).map(x=>`<option value="${x.id}" ${o.artistaId===x.id?"selected":""}>${esc(x.nombre||x.nombreReal)}</option>`).join("")}</select>`}</div>
+      <div class="f s4"><label>Feat. / colaboraciones</label><input id="d_feat" value="${esc(d.featArtists||"")}" placeholder="Artistas invitados" ${ro}></div>
+      <div class="f s4"><label>Fecha de lanzamiento</label><input id="d_flanz" type="date" value="${esc(o.fechaLanzamiento||"")}" ${ro}></div>
+      <div class="f s3"><label>Time release <span class="dim" style="text-transform:none">· si aplica</span></label><input id="d_time" value="${esc(d.timeRelease||"")}" placeholder="00:00 CET" ${ro}></div>
+      <div class="f s3"><label>Género</label><input id="d_gen" value="${esc(o.genero||"")}" placeholder="Trap, reggaetón…" ${ro}></div>
+      <div class="f s3"><label>Subgénero</label><input id="d_subgen" value="${esc(d.subgenero||"")}" ${ro}></div>
+      <div class="f s3"><label>ISRC <span class="dim" style="text-transform:none">· si lo tiene</span></label><input id="d_isrc" value="${esc(o.isrc||"")}" ${ro}></div>
+      <div class="f s6"><label>Parental advisory</label><select id="d_parental" ${ro}>${DIST_PARENTAL.map(x=>`<option ${d.parental===x?"selected":""}>${x}</option>`).join("")}</select>
+        <span class="hint">¿Tiene contenido explícito?</span></div>
+      <div class="f s6"><label>Hook para TikTok</label><input id="d_hook" value="${esc(d.hook||"")}" placeholder="p. ej. 0:45 – 1:45" ${ro}>
+        <span class="hint">Minuto y segundo del corte (por defecto dura 1 min)</span></div>
+    </div>
+    <div class="section-title">Archivos <span class="dim" style="text-transform:none;letter-spacing:0">· pega el enlace de cada uno</span></div>
+    <div class="fgrid">
+      <div class="f s12"><label>Portada <span class="dim" style="text-transform:none">· .jpg, 300 DPI, 1400×1400 a 4000×4000</span></label><input id="d_portada" value="${esc(o.portadaUrl||"")}" placeholder="Enlace a la portada" ${ro}></div>
+      <div class="f s12"><label>Audio <span class="dim" style="text-transform:none">· .wav 24 bits</span></label><input id="d_audio" value="${esc(o.audioUrl||"")}" placeholder="Enlace al WAV" ${ro}></div>
+      <div class="f s12"><label>Videoclip <span class="dim" style="text-transform:none">· si lo hay</span></label><input id="d_video" value="${esc(d.videoUrl||"")}" placeholder="Enlace a YouTube / archivo del vídeo" ${ro}></div>
+    </div>
+    <div class="section-title">Créditos y líneas legales</div>
+    <div class="fgrid">
+      <div class="f s12"><label>Créditos <span class="dim" style="text-transform:none">· compositor, productor, mezcla, máster…</span></label>
+        <textarea id="d_cred" style="min-height:60px" ${ro}>${esc(o.creditos||"")}</textarea></div>
+      <div class="f s6"><label>©C Line</label><input id="d_cline" value="${esc(d.cLine||"")}" placeholder="© 2026 …" ${ro}></div>
+      <div class="f s6"><label>℗P Line</label><input id="d_pline" value="${esc(d.pLine||"")}" placeholder="℗ 2026 …" ${ro}></div>
+      <div class="f s12"><label>Tracklist <span class="dim" style="text-transform:none">· si es EP/álbum</span></label>
+        <textarea id="d_tracklist" style="min-height:50px" ${ro}>${esc(d.tracklist||"")}</textarea></div>
+    </div>
+    <div class="section-title">Pitch <span class="dim" style="text-transform:none;letter-spacing:0">· para presentar la canción a las plataformas</span></div>
+    <div class="fgrid">
+      <div class="f s12"><label>Mood <span class="dim" style="text-transform:none">· máximo 2</span></label><input id="d_mood" value="${esc(d.mood||"")}" placeholder="p. ej. Enérgico, Nocturno" ${ro}></div>
+      <div class="f s12"><label>Pitch <span class="dim" style="text-transform:none">· máx. 500 caracteres</span></label>
+        <textarea id="d_pitch" maxlength="500" style="min-height:80px" placeholder="De qué va el tema, influencias, datos de composición y producción…" ${ro}>${esc(d.pitch||"")}</textarea></div>
+      <div class="f s12"><label>Plan de marketing</label>
+        <textarea id="d_mkt" style="min-height:50px" placeholder="Campañas planificadas, prensa, RRSS… por parte del artista o el sello" ${ro}>${esc(d.planMarketing||"")}</textarea></div>
+      <div class="f s12"><label>Materiales de promo <span class="dim" style="text-transform:none">· fotos, piezas para redes, vídeos</span></label>
+        <input id="d_promo" value="${esc(d.materialesPromo||"")}" placeholder="Enlace de descarga" ${ro}></div>
+    </div>
+    ${(o.distribucion&&o.distribucion.enviadoEn)?`<p class="dim tiny" style="margin-top:12px">Enviada el ${fecha((o.distribucion.enviadoEn||"").slice(0,10))}.</p>`:""}
+  </div>
+  <footer class="fbar"><button class="btn ghost" data-act="close">Cancelar</button>
+    ${soloLectura?`<span class="dim tiny" style="align-self:center">Ya enviada · habla con el equipo para cambios</span>`
+      :`<button class="btn primary portal-ok" data-act="save-distrib" data-id="${o.id}" data-new="${id?0:1}">${portal?"Enviar a MALO":"Guardar"}</button>`}</footer>`);
+}
+
+function leerDistribucion(){
+  const artid=val("d_artid")||"";
+  return {
+    id:window.__distId, artistaId:artid,
+    titulo:val("d_tit"), fechaLanzamiento:val("d_flanz"), isrc:val("d_isrc"),
+    genero:val("d_gen"), creditos:val("d_cred"),
+    portadaUrl:val("d_portada"), audioUrl:val("d_audio"),
+    distribucion:{
+      formato:val("d_formato"), tipo:val("d_tipo"), featArtists:val("d_feat"),
+      timeRelease:val("d_time"), subgenero:val("d_subgen"), parental:val("d_parental"),
+      hook:val("d_hook"), videoUrl:val("d_video"), cLine:val("d_cline"), pLine:val("d_pline"),
+      tracklist:val("d_tracklist"), mood:val("d_mood"), pitch:val("d_pitch"),
+      planMarketing:val("d_mkt"), materialesPromo:val("d_promo"),
+    }
+  };
+}
+
+async function saveDistribucion(id,isNew){
+  const f=leerDistribucion();
+  if(!f.titulo){toast("Ponle un título a la canción");return}
+  if(!f.artistaId){toast("Falta el artista");return}
+  const existe=(DB.canciones||[]).find(x=>x.id===id);
+  const base=existe||{id,feeDistribucionPct:30,mgmtPct:21,distribuidora:"ADA",cuentaPortal:"",notas:"",creadoEn:new Date().toISOString()};
+  const prevDist=(existe&&existe.distribucion)||{};
+  const cancion=Object.assign({},base,{
+    titulo:f.titulo,artistaId:f.artistaId,fechaLanzamiento:f.fechaLanzamiento,isrc:f.isrc,
+    genero:f.genero,creditos:f.creditos,portadaUrl:f.portadaUrl,audioUrl:f.audioUrl,
+    distribucion:Object.assign({},prevDist,f.distribucion,{
+      enviado:true, enviadoEn:prevDist.enviadoEn||new Date().toISOString()})});
+
+  if(esArtistaPortal()){
+    /* El artista NO usa save() (está bloqueado): inserta SOLO su canción, y solo
+       si es nueva (RLS le deja crear las suyas, no editar). */
+    if(!isNew){toast("Esta canción ya está enviada; habla con el equipo para cambios");return}
+    const fila=toRow("canciones",cancion); if(DB.sinDistribucion)delete fila.distribucion;
+    const {error}=await sb.from("canciones").insert(fila);
+    if(error){toast("No se pudo enviar: "+error.message);return}
+    if(!DB.canciones)DB.canciones=[]; DB.canciones.push(cancion);
+    closeModal(); render();
+    toast("¡Enviada! El equipo de MALO la recibe en la app.");
+    return;
+  }
+  /* Equipo: crea/actualiza la canción por la vía normal. */
+  if(isNew||!existe)DB.canciones.push(cancion); else DB.canciones=DB.canciones.map(x=>x.id===id?cancion:x);
+  closeModal(); toast("Canción guardada en Mis Canciones"); touch();
+  abrirEmailDistribucion(cancion);
+}
+
+/* Compila el email para la distribuidora con la info de la canción. */
+function emailDistribucion(c){
+  const d=distDe(c);
+  const L=(et,v)=>v?`${et}: ${v}\n`:"";
+  const asunto=`Distribución — ${nomCliente(c.artistaId)} · ${c.titulo||""}`.trim();
+  let b="";
+  b+="═══ SUBIDA ═══\n";
+  b+=L("Fecha de lanzamiento",c.fechaLanzamiento?fecha(c.fechaLanzamiento):"");
+  b+=L("Time release",d.timeRelease);
+  b+=L("Formato",d.formato);
+  b+=L("Título",(c.titulo||"")+(d.tipo&&d.tipo!=="Original"?` (${d.tipo})`:""));
+  b+=L("Main artist(s)",nomCliente(c.artistaId));
+  b+=L("Feat. artist(s)",d.featArtists);
+  b+=L("Género",c.genero);
+  b+=L("Hook (TikTok)",d.hook);
+  b+=L("Parental advisory",d.parental);
+  b+=L("ISRC",c.isrc);
+  b+=L("Créditos",c.creditos);
+  b+=L("©C Line",d.cLine);
+  b+=L("℗P Line",d.pLine);
+  b+=L("Tracklist",d.tracklist);
+  b+="\n═══ ARCHIVOS ═══\n";
+  b+=L("Portada",c.portadaUrl);
+  b+=L("Audio (WAV)",c.audioUrl);
+  b+=L("Videoclip",d.videoUrl);
+  b+="\n═══ PITCH ═══\n";
+  b+=L("Artista",nomCliente(c.artistaId));
+  b+=L("Título",c.titulo);
+  b+=L("Género",c.genero);
+  b+=L("Subgénero",d.subgenero);
+  b+=L("Mood",d.mood);
+  b+=L("Pitch",d.pitch);
+  b+=L("Plan de marketing",d.planMarketing);
+  b+=L("Materiales de promo",d.materialesPromo);
+  return {asunto,cuerpo:b};
+}
+
+function abrirEmailDistribucion(cancionOId){
+  const c=typeof cancionOId==="string"?(DB.canciones||[]).find(x=>x.id===cancionOId):cancionOId;
+  if(!c)return;
+  const {asunto,cuerpo}=emailDistribucion(c);
+  const para=empresaCfg().email||"malo@malomgmt.com";
+  const mailto=`mailto:${encodeURIComponent(para)}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+  openModal(`
+  <header><h3>Email de distribución</h3><div class="spacer"></div>
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    <p class="hint" style="margin-bottom:10px">Todo lo de la canción, listo para enviar a la distribuidora o pegar en sus formularios. Revisa y copia.</p>
+    <div class="f s12"><label>Asunto</label><input id="em_asunto" value="${esc(asunto)}" readonly></div>
+    <div class="f s12" style="margin-top:10px"><label>Mensaje</label>
+      <textarea id="em_cuerpo" style="min-height:320px;font-family:var(--mono);font-size:12px" readonly>${esc(cuerpo)}</textarea></div>
+  </div>
+  <footer class="fbar">
+    <button class="btn ghost" data-act="close">Cerrar</button>
+    <button class="btn" id="em_copiar">Copiar todo</button>
+    <a class="btn primary" href="${esc(mailto)}">Abrir en tu correo</a>
+  </footer>`);
+  const bc=document.getElementById("em_copiar");
+  if(bc)bc.addEventListener("click",async()=>{
+    const txt="Asunto: "+asunto+"\n\n"+cuerpo;
+    try{await navigator.clipboard.writeText(txt);toast("Email copiado")}
+    catch(e){const t=document.getElementById("em_cuerpo");t.removeAttribute("readonly");t.select();document.execCommand("copy");t.setAttribute("readonly","");toast("Email copiado")}
+  });
+}
+
 function viewTemas(el,ta){
   ta.innerHTML=`<button class="btn primary" data-act="new-tema">Nuevo tema</button>`;
   const list0=(DB.temas||[]).slice();
@@ -4186,8 +4441,10 @@ function formCancion(id){
       <div><div class="lab">Pool a repartir</div><div class="val v-artist" id="cn_c_pool">${eur0(cascada.pool)}</div></div>
     </div></div>
 
-    <div class="section-title">Portada y audio</div>
+    <div class="section-title">Portada, audio y vídeo</div>
     <div class="fgrid">
+      <div class="f s12"><label>Link al videoclip <span class="dim" style="text-transform:none">· YouTube o archivo del vídeo, si lo hay</span></label>
+        <input id="cn_video" value="${esc((o.distribucion&&o.distribucion.videoUrl)||"")}" placeholder="https://youtube.com/…"></div>
       <div class="f s6">
         <label>Portada</label>
         <div id="cn_portada_zona" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0">
@@ -4349,6 +4606,9 @@ function formCancion(id){
       genero:val("cn_genero"),creditos:val("cn_creditos"),
       driveFolderId:vivo.driveFolderId||"",portadaDriveId:vivo.portadaDriveId||"",portadaUrl:vivo.portadaUrl||"",
       audioDriveId:vivo.audioDriveId||"",audioUrl:vivo.audioUrl||"",
+      /* Conserva el cajón de distribución (formato, pitch, etc.) y solo cambia
+         el enlace al videoclip, que se edita también desde aquí. */
+      distribucion:Object.assign({},vivo.distribucion||o.distribucion||{},{videoUrl:val("cn_video")}),
       _participantes:participantes.filter(x=>(x.clienteId||"").trim()||String(x.nombre||"").trim()),
       _ingresos:ingresos.filter(x=>x.mes)
     };
@@ -9879,7 +10139,7 @@ function abrirGraficoKpi(tipo){
 }
 
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-cancion],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
+  const el=e.target.closest("[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-distrib],[data-cancion],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
   if(!el)return;
   if(el.dataset.goto){e.preventDefault();VIEW=el.dataset.goto;render();window.scrollTo(0,0);return}
   const act=el.dataset.act;
@@ -10042,6 +10302,9 @@ document.addEventListener("click",e=>{
       return touch()}
     if(act==="new-cancion")return formCancion(null);
     if(act==="save-cancion")return saveCancion(el.dataset.new==="1");
+    if(act==="new-distrib")return formDistribuir(null);
+    if(act==="save-distrib")return saveDistribucion(el.dataset.id,el.dataset.new==="1");
+    if(act==="email-distrib")return abrirEmailDistribucion(el.dataset.id);
     if(act==="del-cancion"){if(!confirm("¿Eliminar esta canción, su reparto y sus ingresos?"))return;
       const idDel=el.dataset.id;
       DB.canciones=(DB.canciones||[]).filter(x=>x.id!==idDel);
@@ -10131,6 +10394,7 @@ document.addEventListener("click",e=>{
   if(el.dataset.ctx)return formContexto(el.dataset.ctx);
   if(el.dataset.sub)return formSuscriptor(el.dataset.sub);
   if(el.dataset.tema)return formTema(el.dataset.tema);
+  if(el.dataset.distrib)return formDistribuir(el.dataset.distrib);
   if(el.dataset.cancion)return formCancion(el.dataset.cancion);
   if(el.dataset.prod)return formProduccion(el.dataset.prod);
   if(el.dataset.show){
