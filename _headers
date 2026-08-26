@@ -13,10 +13,12 @@
   Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()
   # Fuerza HTTPS un año (Netlify ya lo manda; se fija aquí explícito).
   Strict-Transport-Security: max-age=31536000; includeSubDomains
-  # ── CSP en modo SOLO-REPORTE ──
-  # Report-Only NO bloquea nada: el navegador solo avisa en consola de lo que
-  # violaría la política. Sirve para validar la lista de orígenes contra el
-  # Supabase/Google reales SIN riesgo de romper la app al equipo. Una vez
-  # comprobado que no hay violaciones legítimas, se renombra la cabecera a
-  # "Content-Security-Policy" (sin -Report-Only) para que pase a bloquear.
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://apis.google.com https://accounts.google.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://drive.google.com https://*.googleusercontent.com https://*.gstatic.com https://accounts.google.com; media-src blob: https://drive.google.com https://*.googleusercontent.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.googleapis.com https://content.googleapis.com https://oauth2.googleapis.com https://accounts.google.com https://apis.google.com; frame-src https://accounts.google.com https://content.googleapis.com https://drive.google.com https://docs.google.com https://calendar.google.com; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'none'
+  # ── CSP (Content-Security-Policy) EN MODO BLOQUEO ──
+  # Última red contra un XSS: limita desde qué orígenes carga la app scripts,
+  # estilos, imágenes y conexiones. Validada primero en modo report-only contra
+  # el Supabase/Google reales (cero violaciones en arranque, datos, realtime,
+  # fuentes y librerías de Drive/Calendar) antes de activar el bloqueo.
+  # script-src va ajustado (jsdelivr + Google + gstatic + inline) — que es lo que
+  # de verdad frena un XSS; los dominios de Google para marcos e imágenes se
+  # dejan algo más anchos para no romper el selector de archivos de Drive.
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://apis.google.com https://accounts.google.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://*.google.com https://*.googleusercontent.com https://*.gstatic.com; media-src blob: https://drive.google.com https://*.googleusercontent.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://accounts.google.com https://apis.google.com; frame-src https://*.google.com https://accounts.google.com https://content.googleapis.com; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'none'
