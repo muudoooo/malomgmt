@@ -48,6 +48,17 @@ async function usuario(req) {
   return error ? null : (data && data.user) || null;
 }
 
+/* El rol de verdad se lee con el cliente admin (service_role), NUNCA de lo que
+   diga el cliente: esta funcion se salta RLS, asi que sin esta comprobacion un
+   artista o un solo-lectura podria tocar el Drive entero de la agencia con solo
+   su token. Regla: el equipo (admin/gestor/lectura) puede leer; escribir
+   (crear/subir/compartir/papelera) es de admin y gestor. El artista, nada. */
+async function rolDe(userId) {
+  const { data } = await admin.from("miembros").select("rol").eq("id", userId).maybeSingle();
+  return (data && data.rol) || "gestor";
+}
+const ACCIONES_ESCRITURA = new Set(["crearCarpeta", "subirInicio", "subir", "compartir", "papelera"]);
+
 /* ── 2. Token de Google ───────────────────────────────────────────────────
    google_auth tiene una sola fila. No sabemos el nombre exacto de la columna
    del refresh token segun quien creara la tabla, asi que lo buscamos. */
@@ -132,6 +143,13 @@ Deno.serve(async (req) => {
 
     const { accion, carpetaId, nombre, archivoId, contenidoBase64, mime, origen } =
       await req.json().catch(() => ({}));
+
+    /* Autorizacion por rol (la funcion se salta RLS, asi que decide aqui). El
+       artista no toca Drive; el solo-lectura mira pero no escribe. */
+    const rol = await rolDe(u.id);
+    if (rol === "artista") return json({ error: "Sin permiso" }, 403);
+    if (ACCIONES_ESCRITURA.has(accion) && !(rol === "admin" || rol === "gestor"))
+      return json({ error: "Necesitas permiso de gestor para esto" }, 403);
 
     const tk = await tokenGoogle();
     const raiz = await raizConfigurada();
@@ -242,11 +260,11 @@ Deno.serve(async (req) => {
       if (!archivoId) return json({ error: "Falta archivoId" }, 400);
       if (!(await dentroDeLaRaiz(archivoId, raiz, tk)))
         return json({ error: "Ese archivo esta fuera de la carpeta de MALO" }, 403);
-      await drive("/files/" + archivoId + "/permissions", tk, {
+      await drive("/files/" + encodeURIComponent(archivoId) + "/permissions", tk, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "reader", type: "anyone" }),
       });
-      const b = await drive("/files/" + archivoId + "?fields=id,webViewLink,webContentLink,thumbnailLink", tk);
+      const b = await drive("/files/" + encodeURIComponent(archivoId) + "?fields=id,webViewLink,webContentLink,thumbnailLink", tk);
       return json(b);
     }
 
@@ -255,7 +273,7 @@ Deno.serve(async (req) => {
       if (!archivoId) return json({ error: "Falta archivoId" }, 400);
       if (!(await dentroDeLaRaiz(archivoId, raiz, tk)))
         return json({ error: "Ese archivo esta fuera de la carpeta de MALO" }, 403);
-      const b = await drive("/files/" + archivoId + "?fields=id,trashed", tk, {
+      const b = await drive("/files/" + encodeURIComponent(archivoId) + "?fields=id,trashed", tk, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trashed: true }),
       });

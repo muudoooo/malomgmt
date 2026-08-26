@@ -72,6 +72,15 @@ async function usuario(req) {
   return error ? null : (data && data.user) || null;
 }
 
+/* El rol se lee con el cliente admin (service_role): esta funcion escribe en
+   redes_snapshots y enumera cuentas de Instagram saltandose RLS, asi que sin
+   esto un artista podria guardar seguidores de cualquier cliente o listar el
+   estado de conexion de todos. Estas acciones son de equipo (no del portal). */
+async function rolDe(userId) {
+  const { data } = await admin.from("miembros").select("rol").eq("id", userId).maybeSingle();
+  return (data && data.rol) || "gestor";
+}
+
 /* Un @usuario, una URL o un canal guardado en clientes.redes → el identificador
    limpio que cada API necesita. */
 function limpia(v) {
@@ -248,7 +257,14 @@ Deno.serve(async (req) => {
     const u = await usuario(req);
     if (!u) return json({ error: "Sesion no valida" }, 401);
 
+    /* Todas las acciones POST son de equipo; escribir (actualizarYGuardar) es
+       de admin/gestor. El portal del artista no llama aqui. */
+    const rol = await rolDe(u.id);
+    if (rol === "artista") return json({ error: "Sin permiso" }, 403);
+
     const { accion, clienteId, red, handle } = await req.json().catch(() => ({}));
+    if (accion === "actualizarYGuardar" && !(rol === "admin" || rol === "gestor"))
+      return json({ error: "Necesitas permiso de gestor para guardar" }, 403);
 
     /* Enlace de conexión personal para un artista: MALO lo copia y se lo
        manda; el artista lo abre, inicia sesión en Instagram y listo. */
