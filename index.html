@@ -2100,11 +2100,16 @@ async function save(){
       (!DB.sinCanciones&&(DB.cancionIngresos||[]).length)&&sb.from("cancion_ingresos").upsert(DB.cancionIngresos.map(x=>toRow("cancionIngresos",x))),
       (!DB.sinRedes&&(DB.redesSnapshots||[]).length)&&sb.from("redes_snapshots").upsert(DB.redesSnapshots.map(x=>{
         const r=toRow("redesSnapshots",x);if(DB.sinRedesExtra)delete r.extra;return r})),
-      /* empresa solo viaja cuando ha cambiado desde la última carga/guardado.
-         Con RLS, escribirla es cosa de admin: mandarla siempre convertía
-         cualquier guardado de un gestor en fallo o en no-op silencioso. */
+      /* empresa solo viaja cuando ha cambiado Y quien guarda es admin. Con RLS
+         escribir empresa es cosa de admin; pero procesos automáticos como
+         cierreDeMes() (marca liqGenerado) o el selector de carpeta de Drive
+         cambian empresa en memoria bajo CUALQUIER rol. Sin este filtro, un
+         gestor mandaba ese update, Postgres lo rechazaba y salía «Error al
+         sincronizar» en cada guardado. Un gestor deja el cambio en memoria; lo
+         persiste el próximo admin que entre. */
       (()=>{const fila=filaEmpresa();
         if(JSON.stringify(fila)===window.__empresaSnap)return null;
+        if(!esAdmin())return null;
         return sb.from("empresa").update(fila).eq("id",1)
           .then(r=>{if(!r.error)window.__empresaSnap=JSON.stringify(fila);return r});
       })()
