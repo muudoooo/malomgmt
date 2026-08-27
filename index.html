@@ -660,6 +660,7 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
 .cn-sec h4{margin:0;font-size:13px;font-weight:600}
 .cn-sec .n{font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 .cn-sec .ln{flex:1;height:1px;background:var(--rule)}
+.cn-sec .cdot{width:9px;height:9px;border-radius:50%;background:var(--c,var(--malo));flex:none}
 .cn-card{position:relative;display:flex;flex-direction:column;text-align:left;
   background:var(--panel-2);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
   cursor:pointer;color:inherit;font:inherit;padding:0;width:100%;
@@ -1638,7 +1639,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.019";
+const APP_VERSION="0.020";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1647,6 +1648,12 @@ const APP_VERSION="0.019";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-27",v:"0.020",cambios:[
+    "Canciones se agrupa solo en sus mixtapes y albums de verdad, con el nombre del disco tal y como está publicado. Un «disco» de una sola canción ya no abre sección propia: va con las sueltas.",
+    "Nuevo selector: agrupar por release, por artista o sin agrupar.",
+    "Sin filtros, el catálogo sale ordenado por artista y alfabético dentro de cada uno. Antes salía por «lo más generado», que con casi todo a 0 € parecía un orden aleatorio.",
+    "El orden alfabético usa el título de verdad: los títulos importados de la distribuidora empiezan por el nombre del artista («ROOMTRASH6, YYY891 - EL PASTEL…») y eso descolocaba la lista entera.",
+    "La cabecera dice cuántas canciones tienen portada, para saber de un vistazo si falta cargarlas."]},
   {fecha:"2026-08-27",v:"0.019",cambios:[
     "Las portadas guardadas como enlace de Google Drive ya se ven. Antes se guardaban bien pero el navegador recibía una página en vez de una imagen, así que el hueco salía vacío.",
     "Si una portada no carga (enlace roto o sin permiso), sale el recuadro con las iniciales del título en vez de una imagen rota.",
@@ -2826,7 +2833,7 @@ let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",doc
   ordenShows:"fecha_asc",ordenClientes:"cat",ordenContactos:"cat",relBD:"",ordenDocs:"fecha_desc",
   ordenMailing:"alpha",ordenMapa:"n_desc",anio:String(new Date().getFullYear()),
   temaQ:"",temaCliente:"",temaEstado:"",ordenTemas:"envio_desc",
-  cancionQ:"",cancionArtista:"",ordenCanciones:"bruto_desc",cancionVista:"galeria",
+  cancionQ:"",cancionArtista:"",ordenCanciones:"artista",cancionVista:"galeria",cancionGrupo:"release",
   bolsilloArtista:"",bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
   redesArtista:""};
 const _n=new Date();
@@ -4314,6 +4321,18 @@ function construyeTitulo(base,partes){
   prods.forEach(p=>{ t+=` prod. "${p}"`; });
   return t;
 }
+/* Los titulos importados del CSV de la distribuidora traen el formato
+   «ARTISTA - TITULO (PROD. X) [OFFICIAL MUSIC VIDEO]», y algunos vienen
+   cortados a 40 caracteres. Para ORDENAR alfabeticamente hay que mirar el
+   titulo de verdad, no el nombre del artista que va delante. No se toca el dato
+   guardado: esto es solo para ordenar y comparar. */
+function tituloLimpio(c){
+  let t=String((c&&c.titulo)||"");
+  t=t.replace(/\[[^\]]*\]?/g," ").replace(/\((?:PROD|prod)[^)]*\)?/g," ");
+  const m=t.match(/^\s*[^-]{2,40}\s+-\s+(.+)$/);
+  if(m)t=m[1];
+  return t.replace(/\s{2,}/g," ").trim().replace(/^[-|,\s]+/,"");
+}
 function tituloConCreditos(cancion){
   if(!cancion)return "";
   return construyeTitulo(cancion.titulo,participantesDe(cancion.id));
@@ -4398,10 +4417,14 @@ function viewMisCanciones(el,ta){
   if(filtro.cancionQ){const q=filtro.cancionQ.toLowerCase();
     list=list.filter(c=>[c.titulo,c.isrc,c.distribuidora,nomCliente(c.artistaId)].join(" ").toLowerCase().includes(q))}
   if(filtro.cancionArtista)list=list.filter(c=>c.artistaId===filtro.cancionArtista);
+  /* Sin filtros el orden por defecto es por artista y, dentro de cada artista,
+     alfabetico. Antes era «mas generado primero», que con 148 temas y 0 € en
+     casi todos dejaba el catalogo en un orden aparentemente aleatorio. */
+  const porTitulo=(a,b)=>(tituloLimpio(a)||"").localeCompare(tituloLimpio(b)||"","es",{sensitivity:"base"});
   list=aplicarOrden(list,filtro.ordenCanciones,{
-    alpha:(a,b)=>(a.titulo||"").localeCompare(b.titulo||""),
-    artista:(a,b)=>nomCliente(a.artistaId).localeCompare(nomCliente(b.artistaId)),
-    bruto_desc:(a,b)=>brutoTotalCancion(b.id)-brutoTotalCancion(a.id),
+    alpha:porTitulo,
+    artista:(a,b)=>nomCliente(a.artistaId).localeCompare(nomCliente(b.artistaId),"es",{sensitivity:"base"})||porTitulo(a,b),
+    bruto_desc:(a,b)=>brutoTotalCancion(b.id)-brutoTotalCancion(a.id)||porTitulo(a,b),
   });
   document.getElementById("viewSub").textContent=list0.length?`${list0.length} canción${list0.length===1?"":"es"}${list.length!==list0.length?` · ${list.length} con filtros`:""}`:"";
 
@@ -4417,18 +4440,35 @@ function viewMisCanciones(el,ta){
   const brutoTotal=list0.reduce((a,c)=>a+brutoTotalCancion(c.id),0);
   const poolTotal=list0.reduce((a,c)=>a+cascadaCancion(c).pool,0);
   const conIngresos=list0.filter(c=>brutoTotalCancion(c.id)>0).length;
+  const conPortada=list0.filter(c=>portadaImg(c)).length;
   const galeria=filtro.cancionVista!=="tabla";
 
-  /* Agrupacion por mixtape/release, con los singles al final. La usan la
-     galeria y la tabla, para que las dos vistas cuenten lo mismo. */
+  /* Agrupacion. Tres modos: por release (mixtape/album), por artista o sin
+     agrupar. La usan la galeria y la tabla, para que las dos cuenten lo mismo.
+     Un «release» con una sola cancion no es un release: cae en Singles. */
   const SINGLES=" ";
   function gruposDe(arr){
+    if(filtro.cancionGrupo==="nada")
+      return [{clave:"",single:false,nombre:"",temas:arr,portada:null,suelto:true}];
+    if(filtro.cancionGrupo==="artista"){
+      const g={};
+      arr.forEach(c=>{const k=nomCliente(c.artistaId)||"(sin artista)";(g[k]=g[k]||[]).push(c)});
+      return Object.keys(g).sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}))
+        .map(k=>({clave:k,single:false,nombre:k,temas:g[k],portada:null,
+                  color:catDe((g[k][0]||{}).artistaId).color}));
+    }
     const g={};
     arr.forEach(c=>{const k=(c.mixtape||"").trim()||SINGLES;(g[k]=g[k]||[]).push(c)});
-    const claves=Object.keys(g).filter(k=>k!==SINGLES).sort((a,b)=>a.localeCompare(b));
+    /* Un grupo de un solo tema se junta con los singles: si no, salen 38
+       cabeceras con una ficha debajo cada una. */
+    Object.keys(g).forEach(k=>{
+      if(k!==SINGLES&&g[k].length<2){(g[SINGLES]=g[SINGLES]||[]).push(...g[k]);delete g[k]}
+    });
+    const claves=Object.keys(g).filter(k=>k!==SINGLES)
+      .sort((a,b)=>g[b].length-g[a].length||a.localeCompare(b,"es",{sensitivity:"base"}));
     if(g[SINGLES])claves.push(SINGLES);
     return claves.map(k=>({clave:k,single:k===SINGLES,
-      nombre:k===SINGLES?"Singles / sueltas":k,temas:g[k],
+      nombre:k===SINGLES?"Singles y sueltas":k,temas:g[k],
       portada:k===SINGLES?null:portadaImg(g[k].find(c=>portadaImg(c)))}));
   }
 
@@ -4484,14 +4524,20 @@ function viewMisCanciones(el,ta){
     <select id="cncli"><option value="">Todos los artistas</option>
       ${DB.clientes.slice().sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""))
         .map(c=>`<option value="${c.id}" ${filtro.cancionArtista===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select>
-    ${selectOrden("ordCanciones",[["bruto_desc","Más generado primero"],["alpha","Título A-Z"],["artista","Artista A-Z"]],filtro.ordenCanciones)}
+    ${selectOrden("ordCanciones",[["artista","Artista A-Z"],["alpha","Título A-Z"],["bruto_desc","Más generado primero"]],filtro.ordenCanciones)}
+    <select id="cngrupo" aria-label="Agrupar">
+      <option value="release" ${filtro.cancionGrupo==="release"?"selected":""}>Agrupar por release</option>
+      <option value="artista" ${filtro.cancionGrupo==="artista"?"selected":""}>Agrupar por artista</option>
+      <option value="nada" ${filtro.cancionGrupo==="nada"?"selected":""}>Sin agrupar</option>
+    </select>
     <button class="btn sm" id="cnvista" aria-pressed="${galeria?"false":"true"}">${galeria?"Ver como tabla":"Ver como galería"}</button>
     ${(filtro.cancionQ||filtro.cancionArtista)?`<button class="btn ghost sm" id="cnclr">Quitar filtros</button>`:""}
   </div>
 
   <div class="strip">
     <div class="cell"><div class="lab">Canciones</div><div class="val">${list0.length}</div>
-      <div class="note">${conIngresos} con liquidaciones cargadas</div></div>
+      <div class="note">${conIngresos} con liquidaciones cargadas</div>
+      <div class="note ${conPortada?"":"v-alert"}">${conPortada} con portada</div></div>
     <div class="cell"><div class="lab">Han generado (bruto histórico)</div><div class="val v-malo">${eur0(brutoTotal)}</div>
       <div class="note">antes de distribuidora y management</div></div>
     <div class="cell"><div class="lab">A repartir entre los participantes</div><div class="val v-artist">${eur0(poolTotal)}</div>
@@ -4500,13 +4546,15 @@ function viewMisCanciones(el,ta){
       <div class="val ${sinCerrar.length?"v-alert":"v-mute"}">${sinCerrar.length}</div>
       <div class="note">No suman 100 %</div></div>
   </div>
-  `+(galeria?(list.length?gruposDe(list).map(g=>`
-    <div class="cn-sec">${g.portada?`<img src="${esc(g.portada)}" alt="" loading="lazy" onerror="this.remove()">`:""}
+  `+(galeria?(list.length?gruposDe(list).map(g=>(g.suelto?"":`
+    <div class="cn-sec" style="--c:${g.color||"var(--malo)"}">
+      ${g.portada?`<img src="${esc(g.portada)}" alt="" loading="lazy" onerror="this.remove()">`:""}
+      ${(!g.portada&&g.color)?`<span class="cdot"></span>`:""}
       <h4>${esc(g.nombre)}</h4>
       <span class="n">${g.temas.length} ${g.temas.length===1?"tema":"temas"}</span>
       <span class="ln"></span>
-      <span class="n">${eur0(g.temas.reduce((a,c)=>a+brutoTotalCancion(c.id),0))}</span></div>
-    <div class="cn-grid">${g.temas.map(ficha).join("")}</div>`).join("")
+      <span class="n">${eur0(g.temas.reduce((a,c)=>a+brutoTotalCancion(c.id),0))}</span></div>`)
+    +`<div class="cn-grid">${g.temas.map(ficha).join("")}</div>`).join("")
     :`<div class="card"><div class="empty"><p>No hay canciones con estos filtros.</p></div></div>`)
   :`
   <div class="card"><div class="body flush">
@@ -4522,6 +4570,7 @@ function viewMisCanciones(el,ta){
       <td class="num"><span class="${Math.abs(suma-100)<0.01?"":"v-alert strong"}" style="font-family:var(--mono)">${pct(suma)}</span></td>
     </tr>`};
     return gruposDe(list).map(g=>{
+      if(g.suelto)return g.temas.map(fila).join("");
       const thumb=g.portada?`<img src="${esc(g.portada)}" alt="" loading="lazy" onerror="this.remove()" style="width:22px;height:22px;object-fit:cover;border-radius:3px;flex:none">`:"";
       return `<tr><td colspan="6" style="padding:9px 12px;background:var(--panel-2);border-top:1px solid var(--rule)">
         <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px">${thumb}<span>${esc(g.nombre)}</span><span class="dim tiny" style="font-weight:400">· ${g.temas.length} ${g.temas.length===1?"tema":"temas"} · ${eur0(g.temas.reduce((a,c)=>a+brutoTotalCancion(c.id),0))}</span></span></td></tr>`
@@ -4532,6 +4581,8 @@ function viewMisCanciones(el,ta){
 
   const vb=document.getElementById("cnvista");
   if(vb)vb.addEventListener("click",()=>{filtro.cancionVista=galeria?"tabla":"galeria";render()});
+  const gr=document.getElementById("cngrupo");
+  if(gr)gr.addEventListener("change",e=>{filtro.cancionGrupo=e.target.value;render()});
   buscadorEspera("cnq",v=>{filtro.cancionQ=v});
   const fc=document.getElementById("cncli");
   if(fc){fc.addEventListener("change",e=>{filtro.cancionArtista=e.target.value;render()});buscable("cncli")}
