@@ -563,22 +563,15 @@ html.dw-sin-scroll-x{overflow-x:hidden}
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--sans)}
 .demo-barra button{background:rgba(0,0,0,.18);border:0;color:#231704;padding:3px 10px;
   border-radius:4px;font-size:11.5px;cursor:pointer;font-family:var(--sans)}
-.lu-cab{display:none}
-/* Una ficha por persona: el rotulo va pegado a cada campo (data-l). Antes eran
-   diez columnas de 60-100 px dentro de un modal estrecho, con el select de
-   artista pisando el input del nombre. */
-.lu-row,.lu-row.crew{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 8px;
-  padding:11px;margin-bottom:10px;border:1px solid var(--rule);border-radius:7px;background:var(--panel-2)}
-.lu-row input,.lu-row select{padding:6px 8px;font-size:12px;min-width:0;width:100%}
-.lu-c{display:flex;flex-direction:column;min-width:0}
-.lu-c::before{content:attr(data-l);font-family:var(--mono);font-size:8.5px;
-  letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-bottom:3px;white-space:nowrap}
-.lu-c.wide{grid-column:1/-1}
-.lu-x{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:-4px}
-.lu-link{border-color:var(--artist)!important}
-.lu-tag{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--artist);margin-top:3px}
-@media(max-width:640px){.lu-row,.lu-row.crew{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lu-cab,.lu-row{display:grid;grid-template-columns:88px minmax(150px,1.4fr) 78px 108px 106px 66px 106px 66px 62px 30px;
+  gap:5px;align-items:center;margin-bottom:5px}
+.lu-cab.crew,.lu-row.crew{grid-template-columns:minmax(150px,1.4fr) 78px 108px 106px 66px 106px 66px 62px 30px}
+.lu-cab{font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--mute-2);margin-bottom:6px}
+.lu-row input,.lu-row select{padding:5px 7px;font-size:12px;min-width:0;width:100%}
+.lu-art{display:flex;flex-direction:column;gap:3px;min-width:0}
+@media(max-width:900px){.lu-cab{display:none}
+  .lu-row,.lu-row.crew{grid-template-columns:1fr 1fr;padding:9px;border:1px solid var(--rule);border-radius:6px}}
 
 .buscable-wrap{position:relative}
 .buscable-input{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;
@@ -638,16 +631,9 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
 .adj-row{display:grid;grid-template-columns:120px 1fr 110px 1.6fr 34px;gap:8px;margin-bottom:8px;align-items:center}
 @media(max-width:700px){.adj-row{grid-template-columns:1fr 1fr}}
 .adj-row input,.adj-row select{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:7px 9px;width:100%}
-.ent-cab{display:none}
-.ent-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 30px;gap:10px 8px;
-  padding:11px;margin-bottom:10px;align-items:end;
-  border:1px solid var(--rule);border-radius:7px;background:var(--panel-2)}
-.ent-row input{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:6px 8px;width:100%;font-size:12px}
-.ent-c{display:flex;flex-direction:column;min-width:0}
-.ent-c::before{content:attr(data-l);font-family:var(--mono);font-size:8.5px;
-  letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-bottom:3px;white-space:nowrap}
-.ent-c.wide{grid-column:1/-1}
-@media(max-width:640px){.ent-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ent-row{display:grid;grid-template-columns:1fr 110px 110px 120px 34px;gap:8px;margin-bottom:8px;align-items:center}
+@media(max-width:700px){.ent-row{grid-template-columns:1fr 1fr}}
+.ent-row input,.ent-row select{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:7px 9px;width:100%}
 .bar-be{position:relative;height:26px;border-radius:5px;background:var(--panel-2);border:1px solid var(--rule);overflow:hidden}
 .bar-be .fill{height:100%;background:rgba(143,121,242,.55)}
 .bar-be .be{position:absolute;top:0;bottom:0;width:2px;background:var(--malo)}
@@ -1433,12 +1419,6 @@ function makeDemoClient(){
       signInWithPassword(){return Promise.resolve({data:{user:USUARIO},error:null})},
       updateUser(){return Promise.resolve({data:{user:USUARIO},error:null})},
       signOut(){return Promise.resolve({error:null})},
-      /* La pantalla de login llama a estos tres. Sin ellos, en modo demo
-         pulsar «Olvidé mi contraseña» lanzaba un TypeError y el mensaje se
-         quedaba congelado en «Enviando…» para siempre. */
-      resetPasswordForEmail(){return Promise.resolve({data:{},error:{message:"En la demo no se envían correos."}})},
-      signInWithOtp(){return Promise.resolve({data:{},error:{message:"En la demo no se envían correos."}})},
-      verifyOtp(){return Promise.resolve({data:{user:USUARIO},error:null})},
       onAuthStateChange(){return {data:{subscription:{unsubscribe(){}}}}}
     }
   };
@@ -1685,11 +1665,6 @@ function calcProd(p){
   const ivaE=n(p.ivaEntrada!==undefined?p.ivaEntrada:IVA_ENTRADA);
   const ent=modoFee?[]:(p.entradas||[]);
   const vendidas=ent.reduce((t,e)=>t+n(e.vendidas),0);
-  /* Poner un tipo de entrada con su precio NO significa haberla vendido. Solo
-     hay ventas si alguna fila trae un numero en «vendidas»: mientras no lo
-     traiga, el P&L habla de prevision, no de resultado. */
-  const hayVentas=ent.some(e=>String(e.vendidas??"").trim()!==""&&n(e.vendidas)>0);
-  const cupo=ent.reduce((t,e)=>t+n(e.cupo),0);
   const taquillaPVP=ent.reduce((t,e)=>t+n(e.precio)*n(e.vendidas),0);   // precios con IVA incluido
   const taquillaNeta=taquillaPVP/(1+ivaE/100);
   const feeFijo=modoFee?n(p.feeFijo):0;
@@ -1717,13 +1692,7 @@ function calcProd(p){
   // toFixed(6) evita que 200.00000000000003 se redondee a 201 por coma flotante
   const beEntradas=(!modoFee&&precioMedio>0)?Math.ceil(+(aCubrir/precioMedio).toFixed(6)):null;
   const aforo=n(p.aforo);
-  /* Prevision: taquilla si se llenara el cupo declarado (y si no hay cupo, el
-     aforo). Sirve para juzgar la produccion antes de vender una sola entrada. */
-  const objetivo=(!modoFee)?(cupo||aforo||0):0;
-  const previsionNeta=objetivo*precioMedio;
-  const previsionBeneficio=previsionNeta+otros+sponsor-costes;
-  return {modoFee,feeFijo,ivaE,vendidas,hayVentas,cupo,objetivo,previsionNeta,previsionBeneficio,
-    taquillaPVP,taquillaNeta,otros,sponsor,ingresos,cacheArtistas,
+  return {modoFee,feeFijo,ivaE,vendidas,taquillaPVP,taquillaNeta,otros,sponsor,ingresos,cacheArtistas,
     viajesLineup,crewFees,viajesCrew,costeCrew,costesOtros,costes,beneficio,
     precioMedio,beEntradas,aforo,
     ocupacion:(!modoFee&&aforo)?vendidas/aforo*100:null,
@@ -2323,33 +2292,6 @@ function showsPagaP(pid){return DB.shows.filter(s=>s.promotorId===pid)}
 function showsColaboraP(pid){return DB.shows.filter(s=>s.promotorId!==pid&&colabsDe(s).includes(pid))}
 function showsDe(id){return DB.shows.filter(s=>s.clienteId===id)}
 function vivos(){return DB.shows.filter(s=>s.estado!=="cancelado")}
-/* Todos los shows en los que participa un artista: como contratado o como DJ
-   del line-up de un colectivo. */
-function showsDeArtista(id){return DB.shows.filter(s=>s.clienteId===id||s.djId===id||(s.djs||[]).includes(id))}
-/* Lo que un show genera PARA el artista, en neto: si es el contratado, su neto
-   (el IVA es de Hacienda y el IRPF una retencion, no ingreso suyo); si va como
-   DJ de un colectivo, la parte que le asigna el reparto interno. Mismo criterio
-   que el bloque «como DJ» del Informe de ganancias. */
-function netoArtistaEnShow(s,id){
-  if(s.clienteId===id)return calc(s).neto;
-  if(djsDelShow(s).includes(id)||s.djId===id)return repartoDjs(s).porDj;
-  return 0;
-}
-/* Buscador con espera: al repintar la vista el input desaparece, asi que hay
-   que devolverle el foco y el cursor. Sin esto se escribe un caracter y se
-   pierde el foco (pasaba en Distribuir cancion y en Mis Canciones). */
-function buscadorEspera(id,set){
-  const q=document.getElementById(id);if(!q)return;
-  q.addEventListener("input",e=>{
-    set(e.target.value);
-    clearTimeout(window.__bqT);
-    window.__bqT=setTimeout(()=>{
-      render();
-      const i=document.getElementById(id);
-      if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}
-    },220);
-  });
-}
 function redUrl(k,v){
   if(!v)return "";v=String(v).trim();
   if(/^https?:\/\//i.test(v))return v;
@@ -2398,19 +2340,15 @@ function comisionesPorMes(anio){
 }
 function kpis(anio){
   let ingresoMalo=0,margenMalo=0,facturacion=0,pdteCobro=0,pdteLiq=0,terceros=0,shows=0;
-  /* Pipeline = lo que hay ofertado y sin cerrar. Se cuenta aparte: sumarlo a la
-     facturacion daba un total distinto del que sale en el Informe de ganancias. */
-  let pipeline=0,ofertas=0;
   vivos().forEach(s=>{
     const c=calc(s),enAnio=!anio||(s.fecha||"").slice(0,4)===String(anio);
     const cobrado=s.cobro&&s.cobro.estado==="cobrado",liquidado=s.liq&&s.liq.estado==="liquidado";
-    if(enAnio&&s.estado==="oferta"){ofertas++;pipeline+=c.bruto}
-    if(enAnio&&s.estado!=="oferta"){shows++;facturacion+=c.bruto;ingresoMalo+=c.comis;margenMalo+=c.margen}
+    if(enAnio){shows++;facturacion+=c.bruto;ingresoMalo+=c.comis;margenMalo+=c.margen}
     if(!cobrado&&(s.estado==="contratado"||s.estado==="ejecutado"))pdteCobro+=c.bruto;
     if(!liquidado&&s.estado==="ejecutado")pdteLiq+=c.transfer;
     if(cobrado&&!liquidado)terceros+=c.transfer;
   });
-  return {ingresoMalo,margenMalo,facturacion,pdteCobro,pdteLiq,terceros,shows,pipeline,ofertas};
+  return {ingresoMalo,margenMalo,facturacion,pdteCobro,pdteLiq,terceros,shows};
 }
 /* Ítems unificados del calendario: shows (dinero) + eventos (iCal/manual) */
 function itemsCal(){
@@ -2733,26 +2671,6 @@ function tablasFicha(root){
 let FILTROS_ABIERTOS=false;
 /* Filas clicables accesibles por teclado: tabindex + Enter/Espacio abren la
    ficha igual que un toque. Corre tras cada render(), como tablasFicha(). */
-/* Un input[type=date] solo abre el calendario si aciertas en el iconito. Con
-   esto se abre pulsando en cualquier parte del campo (y con Enter), que es lo
-   que espera cualquiera. showPicker no existe en Safari < 16: si falla, el
-   campo sigue funcionando como siempre. */
-document.addEventListener("pointerup",e=>{
-  const t=e.target;
-  if(!t||t.tagName!=="INPUT")return;
-  if(t.type!=="date"&&t.type!=="month"&&t.type!=="time")return;
-  if(t.readOnly||t.disabled)return;
-  if(typeof t.showPicker!=="function")return;
-  try{t.showPicker()}catch(_){}
-},true);
-document.addEventListener("keydown",e=>{
-  const t=e.target;
-  if(e.key!=="Enter"||!t||t.tagName!=="INPUT")return;
-  if(t.type!=="date"&&t.type!=="month"&&t.type!=="time")return;
-  if(typeof t.showPicker!=="function")return;
-  e.preventDefault();try{t.showPicker()}catch(_){}
-});
-
 function filasTeclado(root){
   (root||document).querySelectorAll("tbody tr.click").forEach(tr=>{
     if(tr.hasAttribute("tabindex"))return;
@@ -3017,7 +2935,7 @@ function viewPanel(el,ta){
   }
 
   const porCliente=DB.clientes.map(c=>{
-    const ss=showsDe(c.id).filter(s=>s.estado!=="cancelado"&&s.estado!=="oferta"&&(s.fecha||"").slice(0,4)===filtro.anio);
+    const ss=showsDe(c.id).filter(s=>s.estado!=="cancelado"&&(s.fecha||"").slice(0,4)===filtro.anio);
     return {c,n:ss.length,ing:ss.reduce((t,s)=>t+calc(s).comis,0),fac:ss.reduce((t,s)=>t+calc(s).bruto,0)};
   }).filter(x=>x.n>0).sort((a,b)=>b.ing-a.ing);
 
@@ -3053,8 +2971,7 @@ function viewPanel(el,ta){
     <div class="cell"><div class="lab">Ingreso MALO ${filtro.anio}</div><div class="val v-malo">${eur0(K.ingresoMalo)}</div>
       <div class="note">Margen tras gastos propios: <span class="strong">${eur0(K.margenMalo)}</span></div></div>
     <div class="cell"><div class="lab">Facturación gestionada</div><div class="val">${eur0(K.facturacion)}</div>
-      <div class="note">${K.shows} shows en firme · comisión media ${K.facturacion?pct(K.ingresoMalo/K.facturacion*100):"—"}</div>
-      ${K.pipeline?`<div class="note">+ ${eur0(K.pipeline)} en ${K.ofertas} oferta${K.ofertas===1?"":"s"} sin cerrar (no cuenta aquí)</div>`:""}</div>
+      <div class="note">${K.shows} shows · comisión media ${K.facturacion?pct(K.ingresoMalo/K.facturacion*100):"—"}</div></div>
     <div class="cell"><div class="lab">Pendiente de cobro</div><div class="val ${K.pdteCobro>0?"v-alert":"v-mute"}">${eur0(K.pdteCobro)}</div>
       <div class="note">${impagados.length} fuera de plazo</div></div>
     <div class="cell"><div class="lab">Pendiente de liquidar</div><div class="val v-artist">${eur0(K.pdteLiq)}</div>
@@ -3147,7 +3064,7 @@ function viewInicioPortal(el,ta){
   const mios=DB.shows.filter(s=>s.clienteId===c.id||s.djId===c.id||(s.djs||[]).includes(c.id));
   const prox=mios.filter(s=>s.fecha&&s.fecha>=H&&s.estado!=="cancelado")
     .sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,6);
-  const anioShows=mios.filter(s=>s.fecha&&s.fecha.slice(0,4)===anio&&s.estado!=="cancelado"&&s.estado!=="oferta").length;
+  const anioShows=mios.filter(s=>s.fecha&&s.fecha.slice(0,4)===anio&&s.estado!=="cancelado").length;
   const rangoAnio={desde:anio+"-01",hasta:anio+"-12"};
   const genAnio=sumaEnRango(bolsilloCancionesPorMes(c.id),rangoAnio)+sumaEnRango(bolsilloShowsPorMes(c.id),rangoAnio);
   const redes=REDES_CRECIMIENTO.map(red=>{
@@ -3372,10 +3289,6 @@ function viewShows(el,ta){
   const tot=list.filter(s=>s.estado!=="cancelado").reduce((t,s)=>{const c=calc(s);
     t.bruto+=c.bruto;t.comis+=c.comis;t.neto+=c.neto;t.gastos+=c.gArt+c.gMalo+c.gProm;return t},
     {bruto:0,comis:0,neto:0,gastos:0});
-  /* Estos totales son de lo que estas viendo, ofertas incluidas. Se dice, para
-     que no choquen con la «facturacion en firme» del Panel. */
-  const totOferta=list.filter(s=>s.estado==="oferta").reduce((t,s)=>t+calc(s).bruto,0);
-  const notaOferta=totOferta?`<div class="note">incluye ${eur0(totOferta)} en ofertas</div>`:"";
   const pag=paginar(list,"shows");list=pag.list;
   document.getElementById("viewSub").textContent=filtro.verAntiguos
     ? `${list.length} registros · con antiguos`
@@ -3396,7 +3309,7 @@ function viewShows(el,ta){
   <div class="strip" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
     ${""/* Los totales cuadran siempre con lo que se ve en la tabla, así que hay que
           decir si son solo de las próximas o de todo el histórico filtrado. */}
-    <div class="cell" style="cursor:pointer" data-kpi="bruto"><div class="lab">Caché bruto${filtro.verAntiguos?"":" · próximos"}</div><div class="val">${eur0(tot.bruto)}</div>${notaOferta}</div>
+    <div class="cell" style="cursor:pointer" data-kpi="bruto"><div class="lab">Caché bruto${filtro.verAntiguos?"":" · próximos"}</div><div class="val">${eur0(tot.bruto)}</div></div>
     <div class="cell" style="cursor:pointer" data-kpi="neto"><div class="lab">Neto clientes${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-artist">${eur0(tot.neto)}</div></div>
     <div class="cell" style="cursor:pointer" data-kpi="comis"><div class="lab">Comisión MALO${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-malo">${eur0(tot.comis)}</div></div>
     <div class="cell" style="cursor:pointer" data-kpi="gastos"><div class="lab">Total gastos${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-alert">${eur0(tot.gastos)}</div></div>
@@ -3529,7 +3442,7 @@ function crearShowsDeProduccion(id){
 
 function formProduccion(id){
   const p=id?DB.producciones.find(x=>x.id===id):{id:uid("prd"),nombre:"",fecha:CAL.sel||hoy(),ciudad:"",venueId:"",
-    aforo:0,ivaEntrada:IVA_ENTRADA,modoFee:false,feeFijo:0,entradas:[{concepto:"Anticipada",precio:0,cupo:0,vendidas:""}],
+    aforo:0,ivaEntrada:IVA_ENTRADA,modoFee:false,feeFijo:0,entradas:[{concepto:"Anticipada",precio:0,vendidas:0}],
     otrosIngresos:[],lineup:[],costes:[],notas:""};
   openModal(`
   <header><h3>${id?"Editar producción":"Nueva producción"}</h3><div class="spacer"></div>
@@ -3568,9 +3481,6 @@ function formProduccion(id){
 
     <div id="bloqueEntradas">
       <div class="section-title">Entradas · precios con IVA incluido (PVP)</div>
-      <p class="dim tiny" style="margin:0 0 10px">Define aquí los tipos de entrada y su precio: esto <b>no</b> cuenta como vendido.
-        «Cupo» son las entradas puestas a la venta a ese precio (opcional, alimenta la previsión).
-        Deja <b>Vendidas</b> en blanco hasta que tengas la venta real.</p>
       <div id="entradas"></div>
       <button class="btn sm" id="addEnt" style="margin-top:4px">Añadir tipo de entrada</button>
     </div>
@@ -3625,15 +3535,13 @@ function formProduccion(id){
   let crew=JSON.parse(JSON.stringify(p.crew||[]));
 
   function pintaEntradas(){
-    const vac=v=>(v===undefined||v===null||String(v).trim()===""||n(v)===0)?"":n(v);
     document.getElementById("entradas").innerHTML=entradas.length?entradas.map((e,i)=>`
       <div class="ent-row">
-        <label class="ent-c wide" data-l="Concepto"><input placeholder="Anticipada, taquilla, VIP…" value="${esc(e.concepto||"")}" data-e="${i}" data-k="concepto"></label>
-        <label class="ent-c" data-l="PVP €"><input type="number" step="0.5" min="0" placeholder="0" value="${vac(e.precio)}" data-e="${i}" data-k="precio"></label>
-        <label class="ent-c" data-l="Cupo"><input type="number" step="1" min="0" placeholder="—" value="${vac(e.cupo)}" data-e="${i}" data-k="cupo"></label>
-        <label class="ent-c" data-l="Vendidas (real)"><input type="number" step="1" min="0" placeholder="sin datos" value="${vac(e.vendidas)}" data-e="${i}" data-k="vendidas" style="border-color:var(--artist)"></label>
-        <div class="ent-c" data-l="Recaudado"><div class="dim tiny" data-sub-e="${i}" style="text-align:right;font-family:var(--mono);padding:7px 0">${n(e.vendidas)?eur0(n(e.precio)*n(e.vendidas)):"—"}</div></div>
-        <div style="display:flex;justify-content:flex-end"><button class="x" data-del-e="${i}" title="Quitar" aria-label="Quitar">×</button></div></div>`).join("")
+        <input placeholder="Concepto (anticipada, taquilla, VIP…)" value="${esc(e.concepto||"")}" data-e="${i}" data-k="concepto">
+        <input type="number" step="0.5" min="0" placeholder="PVP" value="${n(e.precio)}" data-e="${i}" data-k="precio">
+        <input type="number" step="1" min="0" placeholder="Vendidas" value="${n(e.vendidas)}" data-e="${i}" data-k="vendidas">
+        <div class="dim tiny" style="text-align:right;font-family:var(--mono)">${eur0(n(e.precio)*n(e.vendidas))}</div>
+        <button class="x" data-del-e="${i}">×</button></div>`).join("")
       :`<p class="dim tiny" style="padding:4px 0">Sin entradas definidas. Sin precio no se puede calcular el punto de equilibrio.</p>`;
   }
   function pintaLista(campo,arr,cont,ph1,extra){
@@ -3655,47 +3563,41 @@ function formProduccion(id){
      el crew no tiene sentido. */
   function pintaPersonas(campo,arr,cont,esLineup){
     const salasUsadas=[...new Set(lineup.map(x=>String(x.sala||"").trim()).filter(Boolean))];
-    const nomCli=c=>String(c.nombre||c.nombreReal||"").trim();
-    const vac=v=>n(v)?n(v):"";
-    const selEstado=(x,k,i)=>`<select data-${campo}="${i}" data-k="${k}">
-          <option value="">—</option><option value="na" ${x[k]==="na"?"selected":""}>N/A</option>
-          <option value="pend" ${x[k]==="pend"?"selected":""}>Pendiente</option>
-          <option value="ok" ${x[k]==="ok"?"selected":""}>Confirmado</option></select>`;
-    document.getElementById(cont).innerHTML=arr.length?arr.map((x,i)=>{
-      /* Un solo campo para el artista: escribes y, si el nombre coincide con un
-         cliente de MALO, se enlaza solo (y se marca en violeta); si no, queda
-         como externo. Antes eran un select y un input pisandose. */
-      const cli=esLineup&&x.clienteId?DB.clientes.find(c=>c.id===x.clienteId):null;
-      const valArt=cli?nomCli(cli):(x.nombre||"");
-      return `
+    document.getElementById(cont).innerHTML=arr.length?`
+      <div class="lu-cab">
+        ${esLineup?`<div>Sala</div>`:""}
+        <div>${esLineup?"Artista":"Persona"}</div><div>Fee</div><div>Estado</div>
+        <div>Alojamiento</div><div>€</div><div>Transporte</div><div>€</div>${esLineup?`<div>Set</div>`:"<div></div>"}<div></div>
+      </div>`+arr.map((x,i)=>`
       <div class="lu-row${esLineup?"":" crew"}">
-        <label class="lu-c wide" data-l="${esLineup?"Artista":"Persona"}">
-          <input placeholder="${esLineup?"Nombre del artista":"Nombre"}" ${esLineup?`list="clientesLista" class="${cli?"lu-link":""}" data-art="${i}"`:""}
-            value="${esc(valArt)}" data-${campo}="${i}" data-k="${esLineup?"artista":"nombre"}">
-          ${cli?`<span class="lu-tag">Cliente MALO</span>`:(esLineup&&valArt?`<span class="lu-tag" style="color:var(--mute)">Externo</span>`:"")}
-        </label>
-        ${esLineup?`<label class="lu-c" data-l="Sala"><input placeholder="—" list="salasLista" value="${esc(x.sala||"")}" data-${campo}="${i}" data-k="sala"></label>`:""}
-        <label class="lu-c" data-l="Fee €"><input type="number" step="10" placeholder="0" value="${vac(x.cache)}" data-${campo}="${i}" data-k="cache"></label>
-        <label class="lu-c" data-l="Estado"><select data-${campo}="${i}" data-k="status">
+        ${esLineup?`<input placeholder="—" list="salasLista" value="${esc(x.sala||"")}" data-${campo}="${i}" data-k="sala">`:""}
+        ${esLineup?`<div class="lu-art">
+          <select data-${campo}="${i}" data-k="clienteId"><option value="">— externo —</option>
+            ${DB.clientes.map(c=>`<option value="${c.id}" ${x.clienteId===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}
+          </select>
+          ${!x.clienteId?`<input placeholder="Nombre del artista externo" value="${esc(x.nombre||"")}" data-${campo}="${i}" data-k="nombre">`:""}
+        </div>`
+        :`<input placeholder="Nombre" value="${esc(x.nombre||"")}" data-${campo}="${i}" data-k="nombre">`}
+        <input type="number" step="10" placeholder="0" value="${n(x.cache)}" data-${campo}="${i}" data-k="cache">
+        <select data-${campo}="${i}" data-k="status">
           ${Object.entries(ESTADO_LINEUP).map(([k,v])=>`<option value="${k}" ${(x.status||"pendiente")===k?"selected":""}>${v.label}</option>`).join("")}
-        </select></label>
-        <label class="lu-c" data-l="Alojamiento">${selEstado(x,"alojEstado",i)}</label>
-        <label class="lu-c" data-l="Alojamiento €"><input type="number" step="1" placeholder="0" value="${vac(x.alojImporte)}" data-${campo}="${i}" data-k="alojImporte"></label>
-        <label class="lu-c" data-l="Transporte">${selEstado(x,"transEstado",i)}</label>
-        <label class="lu-c" data-l="Transporte €"><input type="number" step="1" placeholder="0" value="${vac(x.transImporte)}" data-${campo}="${i}" data-k="transImporte"></label>
-        ${esLineup?`<label class="lu-c" data-l="Set"><input placeholder="1:30" value="${esc(x.setDuracion||"")}" data-${campo}="${i}" data-k="setDuracion"></label>`:""}
-        <div class="lu-x"><button class="x" data-del-${campo}="${i}" title="Quitar" aria-label="Quitar">×</button></div></div>`}).join("")
+        </select>
+        <select data-${campo}="${i}" data-k="alojEstado">
+          <option value="">—</option><option value="na" ${x.alojEstado==="na"?"selected":""}>N/A</option>
+          <option value="pend" ${x.alojEstado==="pend"?"selected":""}>Pendiente</option>
+          <option value="ok" ${x.alojEstado==="ok"?"selected":""}>Confirmado</option>
+        </select>
+        <input type="number" step="1" placeholder="0" value="${n(x.alojImporte)}" data-${campo}="${i}" data-k="alojImporte">
+        <select data-${campo}="${i}" data-k="transEstado">
+          <option value="">—</option><option value="na" ${x.transEstado==="na"?"selected":""}>N/A</option>
+          <option value="pend" ${x.transEstado==="pend"?"selected":""}>Pendiente</option>
+          <option value="ok" ${x.transEstado==="ok"?"selected":""}>Confirmado</option>
+        </select>
+        <input type="number" step="1" placeholder="0" value="${n(x.transImporte)}" data-${campo}="${i}" data-k="transImporte">
+        ${esLineup?`<input placeholder="1:30" value="${esc(x.setDuracion||"")}" data-${campo}="${i}" data-k="setDuracion">`:`<div></div>`}
+        <button class="x" data-del-${campo}="${i}">×</button></div>`).join("")
       +`<datalist id="salasLista">${salasUsadas.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>`
-      +(esLineup?`<datalist id="clientesLista">${DB.clientes.map(c=>`<option value="${esc(nomCli(c))}">`).join("")}</datalist>`:"")
       :`<p class="dim tiny" style="padding:4px 0">${esLineup?"Sin artistas todavía.":"Sin equipo asignado."}</p>`;
-  }
-  /* Resuelve el texto del campo Artista a clienteId (si coincide con un cliente)
-     o a nombre libre. Se llama al salir del campo, no en cada tecla. */
-  function resuelveArtista(i,txt){
-    const t=String(txt||"").trim();
-    const c=DB.clientes.find(x=>String(x.nombre||x.nombreReal||"").trim().toLowerCase()===t.toLowerCase());
-    if(c){lineup[i].clienteId=c.id;lineup[i].nombre=""}
-    else {lineup[i].clienteId="";lineup[i].nombre=t}
   }
   const pintaLineup=()=>pintaPersonas("l",lineup,"lineup",true);
   const pintaCrew  =()=>pintaPersonas("cw",crew,"crewLista",false);
@@ -3705,7 +3607,7 @@ function formProduccion(id){
     return {id:p.id,nombre:val("p_nombre"),fecha:val("p_fecha"),ciudad:val("p_ciudad"),venueId:val("p_venue"),
       aforo:num("p_aforo"),ivaEntrada:num("p_iva"),
       modoFee:document.getElementById("p_modo_fee").checked,feeFijo:num("p_fee"),
-      entradas:entradas.filter(e=>e.concepto||n(e.precio)||n(e.cupo)||n(e.vendidas)),
+      entradas:entradas.filter(e=>e.concepto||n(e.precio)||n(e.vendidas)),
       otrosIngresos:otros.filter(x=>x.concepto||n(x.importe)),
       estado:val("p_estado"),horario:val("p_horario"),
       sponsor:val("p_sponsor"),sponsorAportacion:num("p_sponsorimp"),
@@ -3716,25 +3618,15 @@ function formProduccion(id){
   }
   function pintaPL(){
     const d=leer(),c=calcProd(d);
-    const base=c.aforo||c.cupo||0;
-    const ancho=base?Math.min(100,c.vendidas/base*100):0;
-    const bePos=(base&&c.beEntradas!==null)?Math.min(100,c.beEntradas/base*100):null;
-    const avisoPrev=(!c.modoFee&&!c.hayVentas)?`
-      <div class="pill" style="font-size:11px;border-color:var(--artist);color:var(--artist)">
-        Sin ventas registradas — lo de abajo es previsión, no resultado</div>
-      ${c.objetivo&&c.precioMedio?`<table class="cascade" style="margin:12px 0 0">
-        <tr><td class="lbl">Previsión a cupo lleno <span class="dim">${c.objetivo} entradas · ${eur(c.precioMedio)} netos c/u</span></td><td>${eur(c.previsionNeta)}</td></tr>
-        <tr class="sub"><td class="lbl">Resultado en ese escenario</td>
-          <td style="color:${c.previsionBeneficio>=0?"var(--malo)":"var(--alert)"}">${eur(c.previsionBeneficio)}</td></tr>
-        ${c.beEntradas!==null?`<tr class="sub"><td class="lbl">Hace falta vender</td><td>${c.beEntradas} entradas</td></tr>`:""}
-      </table>`:`<p class="dim tiny" style="margin:8px 0 0">Pon precio (y cupo o aforo) para ver la previsión y el punto de equilibrio.</p>`}`:"";
-    document.getElementById("pl").innerHTML=avisoPrev+`
-      ${(!c.modoFee&&base&&c.hayVentas)?`<div class="bar-be">
+    const ancho=c.aforo?Math.min(100,c.vendidas/c.aforo*100):0;
+    const bePos=(c.aforo&&c.beEntradas!==null)?Math.min(100,c.beEntradas/c.aforo*100):null;
+    document.getElementById("pl").innerHTML=`
+      ${(!c.modoFee&&c.aforo)?`<div class="bar-be">
         <div class="fill" style="width:${ancho}%"></div>
         ${bePos!==null?`<div class="be" style="left:${bePos}%" title="Punto de equilibrio"></div>`:""}
-        <div class="lbl">${c.vendidas} / ${base} · ${Math.round(ancho)} % ${c.aforo?"de aforo":"del cupo"}</div></div>
+        <div class="lbl">${c.vendidas} / ${c.aforo} · ${Math.round(ancho)} % de aforo</div></div>
       <div class="strip-legend"><div><span class="sw" style="background:rgba(143,121,242,.55)"></span>Vendidas</div>
-        ${bePos!==null?`<div><span class="sw" style="background:var(--malo)"></span>Punto de equilibrio: ${c.beEntradas} entradas (${Math.round(c.beEntradas/base*100)} % ${c.aforo?"del aforo":"del cupo"})</div>`:""}</div>`
+        ${bePos!==null?`<div><span class="sw" style="background:var(--malo)"></span>Punto de equilibrio: ${c.beEntradas} entradas (${Math.round(c.beOcupacion)} % del aforo)</div>`:""}</div>`
       :c.modoFee?`<div class="pill malo" style="font-size:11px">Fee fijo pactado — el resultado no depende de la asistencia</div>`:""}
       <div class="fgrid" style="margin-top:18px">
         <div class="f s6"><table class="cascade">
@@ -3743,7 +3635,7 @@ function formProduccion(id){
           ${c.otros?`<tr><td class="lbl">+ Otros ingresos</td><td>${eur(c.otros)}</td></tr>`:""}
           <tr class="total"><td class="lbl">Ingresos</td><td>${eur(c.ingresos)}</td></tr>`
           :`
-          <tr><td class="lbl">Taquilla PVP <span class="dim">${c.hayVentas?c.vendidas+" entradas vendidas":"sin ventas registradas"}</span></td><td>${eur(c.taquillaPVP)}</td></tr>
+          <tr><td class="lbl">Taquilla PVP <span class="dim">${c.vendidas} entradas</span></td><td>${eur(c.taquillaPVP)}</td></tr>
           <tr class="sub"><td class="lbl">− IVA ${pct(c.ivaE)}</td><td>−${eur(c.taquillaPVP-c.taquillaNeta)}</td></tr>
           <tr><td class="lbl">Taquilla sin IVA</td><td>${eur(c.taquillaNeta)}</td></tr>
           ${c.otros?`<tr><td class="lbl">+ Otros ingresos</td><td>${eur(c.otros)}</td></tr>`:""}
@@ -3751,8 +3643,6 @@ function formProduccion(id){
         </table></div>
         <div class="f s6"><table class="cascade">
           <tr><td class="lbl">Cachés del line-up</td><td>${eur(c.cacheArtistas)}</td></tr>
-          ${c.viajesLineup?`<tr><td class="lbl">Alojamiento y transporte del line-up</td><td>${eur(c.viajesLineup)}</td></tr>`:""}
-          ${c.costeCrew?`<tr><td class="lbl">Equipo · crew <span class="dim">${c.crewFees?eur(c.crewFees)+" fees":""}${c.crewFees&&c.viajesCrew?" + ":""}${c.viajesCrew?eur(c.viajesCrew)+" viajes":""}</span></td><td>${eur(c.costeCrew)}</td></tr>`:""}
           <tr><td class="lbl">Producción y otros costes</td><td>${eur(c.costesOtros)}</td></tr>
           <tr class="total"><td class="lbl" style="color:var(--alert)">Costes</td><td style="color:var(--alert)">${eur(c.costes)}</td></tr>
         </table>
@@ -3765,40 +3655,22 @@ function formProduccion(id){
       </div>`;
   }
   const root=document.querySelector(".modal");
-  /* CLAVE: mientras escribes NO se repinta ningun bloque que contenga el campo
-     que tienes enfocado. Antes `pintaEntradas()` reescribia el innerHTML en
-     cada tecla, el input desaparecia y perdias el foco: solo dejaba teclear un
-     caracter. Ahora en `input` se actualiza el modelo, el subtotal de la fila y
-     el P&L (que no contiene campos), y el repintado se reserva para anadir,
-     borrar o resolver el artista, que si cambian la estructura. */
   function aplica(e){
     const t=e.target,v=t.value;
-    const num_=k=>["precio","cupo","vendidas","importe","cache","alojImporte","transImporte"].includes(k);
-    const k=t.dataset.k;
-    if(t.dataset.e!==undefined){
-      const i=+t.dataset.e;
-      /* «vendidas» y «cupo» vacios se guardan como "" para distinguir
-         «no lo se todavia» de «cero vendidas». */
-      entradas[i][k]=num_(k)?((k==="vendidas"||k==="cupo")&&String(v).trim()===""?"":n(v)):v;
-      const sub=root.querySelector(`[data-sub-e="${i}"]`);
-      if(sub)sub.textContent=n(entradas[i].vendidas)?eur0(n(entradas[i].precio)*n(entradas[i].vendidas)):"—";
-    }
-    if(t.dataset.o!==undefined)otros[+t.dataset.o][k]=num_(k)?n(v):v;
-    if(t.dataset.l!==undefined){
-      if(k==="artista")resuelveArtista(+t.dataset.l,v);
-      else lineup[+t.dataset.l][k]=num_(k)?n(v):v;
-    }
-    if(t.dataset.cw!==undefined)crew[+t.dataset.cw][k]=num_(k)?n(v):v;
-    if(t.dataset.c!==undefined&&t.dataset.cw===undefined)costes[+t.dataset.c][k]=num_(k)?n(v):v;
+    const num_=k=>["precio","vendidas","importe","cache","alojImporte","transImporte"].includes(k);
+    if(t.dataset.e!==undefined)entradas[+t.dataset.e][t.dataset.k]=num_(t.dataset.k)?n(v):v;
+    if(t.dataset.o!==undefined)otros[+t.dataset.o][t.dataset.k]=num_(t.dataset.k)?n(v):v;
+    if(t.dataset.l!==undefined)lineup[+t.dataset.l][t.dataset.k]=num_(t.dataset.k)?n(v):v;
+    if(t.dataset.cw!==undefined)crew[+t.dataset.cw][t.dataset.k]=num_(t.dataset.k)?n(v):v;
+    if(t.dataset.c!==undefined&&t.dataset.cw===undefined)costes[+t.dataset.c][t.dataset.k]=num_(t.dataset.k)?n(v):v;
+    if(t.dataset.e!==undefined)pintaEntradas();
+    /* Al enlazar (o desenlazar) un cliente hay que repintar la fila: si es
+       externo aparece el campo de nombre libre, y si es cliente sobra. */
+    if(t.dataset.l!==undefined&&t.dataset.k==="clienteId")pintaLineup();
     pintaPL();
   }
   root.addEventListener("input",aplica);
   root.addEventListener("change",aplica);
-  /* Al salir del campo de artista se repinta la fila para mostrar la etiqueta
-     «Cliente MALO» / «Externo». Nunca mientras se escribe. */
-  root.addEventListener("focusout",e=>{
-    if(e.target.dataset&&e.target.dataset.art!==undefined){pintaLineup();pintaPL()}
-  });
   root.addEventListener("click",e=>{
     const map=[["delE",entradas,pintaEntradas],["delO",otros,pintaOtros],["delL",lineup,pintaLineup],
       ["delCw",crew,pintaCrew],["delC",costes,pintaCostes]];
@@ -3819,12 +3691,11 @@ function formProduccion(id){
     pintaPL();
   });
   buscable("p_venue");
-  document.getElementById("addEnt").addEventListener("click",()=>{entradas.push({concepto:"",precio:0,cupo:"",vendidas:""});pintaEntradas();pintaPL()});
+  document.getElementById("addEnt").addEventListener("click",()=>{entradas.push({concepto:"",precio:0,vendidas:0});pintaEntradas();pintaPL()});
   document.getElementById("addOtro").addEventListener("click",()=>{otros.push({concepto:"",importe:0});pintaOtros();pintaPL()});
   document.getElementById("addLine").addEventListener("click",()=>{
     lineup.push({clienteId:"",nombre:"",cache:0,sala:"",status:"pendiente",alojEstado:"",alojImporte:0,transEstado:"",transImporte:0,setDuracion:""});
-    pintaLineup();pintaPL();
-    const f=document.querySelector('#lineup .lu-row:last-of-type [data-art]');if(f)f.focus();});
+    pintaLineup();pintaPL()});
   document.getElementById("addCrew").addEventListener("click",()=>{
     crew.push({nombre:"",cache:0,status:"confirmado",alojEstado:"",alojImporte:0,transEstado:"",transImporte:0});
     pintaCrew();pintaPL()});
@@ -4207,7 +4078,9 @@ function viewTemas(el,ta){
     WeTransfer, que es como se mueven de todas formas.</p>
   </div></div>`;
 
-  buscadorEspera("tmq",v=>{filtro.temaQ=v});
+  const q=document.getElementById("tmq");
+  if(q)q.addEventListener("input",e=>{filtro.temaQ=e.target.value;
+    clearTimeout(window.__tmT);window.__tmT=setTimeout(render,220)});
   const fc=document.getElementById("tmcli");
   if(fc){fc.addEventListener("change",e=>{filtro.temaCliente=e.target.value;render()});buscable("tmcli")}
   const fe=document.getElementById("tmest");
@@ -4423,11 +4296,9 @@ function bolsilloCancionesPorMes(clienteId){
 /* Ingresos de shows de un cliente: mapa "YYYY-MM" → neto (lo que se le transfiere) */
 function bolsilloShowsPorMes(clienteId){
   const out={};
-  showsDeArtista(clienteId).filter(s=>s.estado!=="cancelado"&&s.estado!=="oferta"&&s.fecha).forEach(s=>{
-    const imp=netoArtistaEnShow(s,clienteId);
-    if(!imp)return;
+  showsDe(clienteId).filter(s=>s.estado!=="cancelado"&&s.fecha).forEach(s=>{
     const key=s.fecha.slice(0,7);
-    out[key]=(out[key]||0)+imp;
+    out[key]=(out[key]||0)+calc(s).transfer;
   });
   return out;
 }
@@ -4459,9 +4330,7 @@ function crecimientoMensualRed(clienteId,red){
 }
 function rangoBolsillo(){
   const a=filtro.bolsilloAnio;
-  if(filtro.bolsilloModo==="mes"){const m=`${a}-${filtro.bolsilloMes}`;
-    /* Antes decia siempre «este mes», tambien mirando marzo de 2024. */
-    return {desde:m,hasta:m,label:`${AG_MESES[+filtro.bolsilloMes-1].toLowerCase()} ${a}`}}
+  if(filtro.bolsilloModo==="mes"){const m=`${a}-${filtro.bolsilloMes}`;return {desde:m,hasta:m,label:"este mes"}}
   if(filtro.bolsilloModo==="trimestre"){const t=+filtro.bolsilloTrim,m0=(t-1)*3+1,m1=m0+2;
     return {desde:`${a}-${pad(m0)}`,hasta:`${a}-${pad(m1)}`,label:`T${t} ${a}`}}
   if(filtro.bolsilloModo==="anio")return {desde:`${a}-01`,hasta:`${a}-12`,label:a};
@@ -4534,7 +4403,8 @@ function viewMisCanciones(el,ta){
     </tr>`}).join("")}</tbody></table>
   </div></div>`;
 
-  buscadorEspera("cnq",v=>{filtro.cancionQ=v});
+  const q=document.getElementById("cnq");
+  if(q)q.addEventListener("input",e=>{filtro.cancionQ=e.target.value;clearTimeout(window.__cnT);window.__cnT=setTimeout(render,220)});
   const fc=document.getElementById("cncli");
   if(fc){fc.addEventListener("change",e=>{filtro.cancionArtista=e.target.value;render()});buscable("cncli")}
   const or=document.getElementById("ordCanciones");
@@ -4694,10 +4564,7 @@ function formCancion(id){
     }
     if(j!==undefined&&ingresos[+j]){
       const k=e.target.dataset.k;
-      /* Si se vacia el campo de mes hay que guardar "" y no "-01", que se
-         guardaba y dejaba el ingreso fuera de todos los rangos sin avisar. */
-      ingresos[+j][k]=(k==="bruto"||k==="unidades")?n(e.target.value)
-        :(k==="mes"?(e.target.value?e.target.value+"-01":""):e.target.value);
+      ingresos[+j][k]=(k==="bruto"||k==="unidades")?n(e.target.value):(k==="mes"?e.target.value+"-01":e.target.value);
       if(k==="bruto")pintaCascadaCancion();
     }
   });
@@ -4832,7 +4699,7 @@ function saveCancion(isNew){
 }
 
 function viewBolsillo(el,ta){
-  const artistas=DB.clientes.slice().filter(c=>cancionesDe(c.id).length||showsDeArtista(c.id).length)
+  const artistas=DB.clientes.slice().filter(c=>cancionesDe(c.id).length||showsDe(c.id).length)
     .sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
   if(!filtro.bolsilloArtista&&artistas.length)filtro.bolsilloArtista=artistas[0].id;
   ta.innerHTML=`<select id="bsArt" style="background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;padding:6px 10px">
@@ -4868,10 +4735,8 @@ function viewBolsillo(el,ta){
   }).filter(Boolean).filter(x=>x.total>0).sort((a,b)=>b.total-a.total);
 
   const combinado=[];
-  showsDeArtista(cli).filter(s=>s.estado!=="cancelado"&&s.estado!=="oferta"&&s.fecha&&s.fecha.slice(0,7)>=r.desde&&s.fecha.slice(0,7)<=r.hasta)
-    .forEach(s=>{const imp=netoArtistaEnShow(s,cli);if(!imp)return;
-      combinado.push({fecha:s.fecha,tipo:s.clienteId===cli?"show":"show · como DJ",
-        titulo:nomPromotor(s.promotorId)!=="—"?nomPromotor(s.promotorId):(s.ciudad||"Show"),importe:imp})});
+  showsDe(cli).filter(s=>s.estado!=="cancelado"&&s.fecha&&s.fecha.slice(0,7)>=r.desde&&s.fecha.slice(0,7)<=r.hasta)
+    .forEach(s=>combinado.push({fecha:s.fecha,tipo:"show",titulo:nomPromotor(s.promotorId)!=="—"?nomPromotor(s.promotorId):(s.ciudad||"Show"),importe:calc(s).transfer}));
   participacionesDe(cli).forEach(p=>{
     const c=(DB.canciones||[]).find(x=>x.id===p.cancionId);if(!c)return;
     ingresosDe(c.id).filter(i=>(i.mes||"").slice(0,7)>=r.desde&&(i.mes||"").slice(0,7)<=r.hasta)
@@ -6109,6 +5974,45 @@ function contactoTarea(t){
   if(p&&(p.telefono||p.email))return {tel:p.telefono||"",email:p.email||"",de:p.nombre};
   return {tel:"",email:"",de:""};
 }
+/* Tareas «Abrir plaza en {provincia}»: no tienen UN contacto sino VARIOS (todos
+   los promotores de esa provincia sin tocar). El botón de WhatsApp abre un
+   selector para elegir a quién escribir, en vez de ir siempre al primero. */
+function esTareaPlaza(t){return /^tar-plaza-/.test((t&&t.id)||"")}
+function contactosDePlaza(t){
+  if(!esTareaPlaza(t))return [];
+  const m=/Abrir plaza en (.+?) ·/.exec((t&&t.texto)||"");
+  const prov=m?m[1].trim():"";
+  if(!prov)return [];
+  return DB.promotores.filter(p=>{
+    if(p.estadoRelacion==="descartado")return false;
+    if(!p.telefono&&!p.email)return false;
+    const pr=p.ciudad?provinciaDe(p.ciudad):null;
+    return pr&&pr.provincia===prov;
+  }).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
+}
+function elegirContactoPlaza(taskId){
+  const t=DB.tareas.find(x=>x.id===taskId); if(!t)return;
+  const cs=contactosDePlaza(t);
+  if(!cs.length){toast("No hay contactos con teléfono o email en esta plaza");return}
+  if(cs.length===1){const p=cs[0];
+    if(p.telefono){window.open(waLink(p.telefono,""),"_blank","noopener");return}
+    if(p.email){window.location.href=`mailto:${p.email}`;return}}
+  openModal(`
+  <header><h3>¿A quién escribimos?</h3><div class="spacer"></div>
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    <p class="hint" style="margin-bottom:12px">${esc(t.texto)}</p>
+    <div class="card"><table><tbody>
+    ${cs.map(p=>`<tr>
+      <td class="strong">${esc(p.nombre||"—")}${p.ciudad?` <span class="dim tiny">· ${esc(p.ciudad)}</span>`:""}
+        ${p.estadoRelacion?`<div class="tiny dim">${esc((ESTADO_REL[p.estadoRelacion]||{}).label||p.estadoRelacion)}</div>`:""}</td>
+      <td style="width:1%;white-space:nowrap;text-align:right">
+        ${p.telefono?`<a href="${waLink(p.telefono,"")}" target="_blank" rel="noopener" class="pill" style="border-color:#25D366;color:#25D366" title="${esc(p.telefono)}">WhatsApp</a>`:""}
+        ${p.email?`<a href="mailto:${esc(p.email)}?subject=${encodeURIComponent(t.texto)}" class="pill artist" style="margin-left:5px" title="${esc(p.email)}">Email</a>`:""}
+      </td></tr>`).join("")}
+    </tbody></table></div>
+  </div>`);
+}
 const PRIORIDADES={alta:{label:"Alta",color:"#ED5564"},normal:{label:"Normal",color:"#8A94B0"},baja:{label:"Baja",color:"#34D399"}};
 
 function viewEquipo(el,ta){
@@ -6149,8 +6053,13 @@ function viewEquipo(el,ta){
                 const mp=/^tar-liq-.+-(\d{4})-(\d{2})$/.exec(t.id||"");
                 acc.push(`<a href="#" class="pill violet" data-act="reporte" data-id="${t.clienteId}"${mp?` data-anio="${mp[1]}" data-mes="${mp[2]}"`:""} title="Abrir el reporte de liquidación">Reporte</a>`);
               }
-              if(ct.tel)acc.push(`<a href="${waLink(ct.tel,t.texto)}" target="_blank" rel="noopener" class="pill" style="border-color:#25D366;color:#25D366" onclick="event.stopPropagation()" title="WhatsApp a ${esc(ct.de)}">WhatsApp</a>`);
-              if(ct.email)acc.push(`<a href="mailto:${esc(ct.email)}?subject=${encodeURIComponent(t.texto)}" class="pill artist" onclick="event.stopPropagation()" title="Email a ${esc(ct.de)}">Email</a>`);
+              const plaza=contactosDePlaza(t);
+              if(plaza.length>1){
+                acc.push(`<a href="#" class="pill" style="border-color:#25D366;color:#25D366" data-act="wa-plaza" data-id="${t.id}" title="Elige a quién escribir · ${plaza.length} contactos">WhatsApp…</a>`);
+              }else{
+                if(ct.tel)acc.push(`<a href="${waLink(ct.tel,t.texto)}" target="_blank" rel="noopener" class="pill" style="border-color:#25D366;color:#25D366" onclick="event.stopPropagation()" title="WhatsApp a ${esc(ct.de)}">WhatsApp</a>`);
+                if(ct.email)acc.push(`<a href="mailto:${esc(ct.email)}?subject=${encodeURIComponent(t.texto)}" class="pill artist" onclick="event.stopPropagation()" title="Email a ${esc(ct.de)}">Email</a>`);
+              }
               return acc.length?`<div style="display:flex;gap:5px;align-items:flex-start;flex-shrink:0">${acc.join("")}</div>`:"";
             })()}
           </div>`}).join("")
@@ -10170,8 +10079,7 @@ function formShow(id,comoNuevo){
       /* al marcar cobrado, la fecha de cobro se pone sola a hoy si está vacía:
          el rating de puntualidad del promotor la necesita. */
       const f=document.getElementById("c_cob");if(f&&!f.value)f.value=hoy()}
-    const g=e.target.dataset.g;
-    if(g!==undefined){const kg=e.target.dataset.k;gastos[+g][kg]=kg==="importe"?n(e.target.value):e.target.value}
+    const g=e.target.dataset.g;if(g!==undefined)gastos[+g][e.target.dataset.k]=e.target.value;
     const a=e.target.dataset.a;if(a!==undefined)adjuntos[+a][e.target.dataset.k]=e.target.dataset.k==="importe"?n(e.target.value):e.target.value;
     pintaCascada();
   });
@@ -10179,9 +10087,7 @@ function formShow(id,comoNuevo){
     const d=e.target.closest("[data-del-g]");
     if(d){gastos.splice(+d.dataset.delG,1);pintaGastos();pintaCascada();return}
     const da=e.target.closest("[data-del-a]");
-    /* pintaCascada() tambien aqui: sin ella, al borrar un adjunto con importe
-       los numeros de la cascada se quedaban con el valor viejo. */
-    if(da){adjuntos.splice(+da.dataset.delA,1);pintaAdjuntos();pintaCascada()}});
+    if(da){adjuntos.splice(+da.dataset.delA,1);pintaAdjuntos()}});
   document.getElementById("addAdj").addEventListener("click",()=>{adjuntos.push({tipo:"gasto",concepto:"",importe:0,url:""});pintaAdjuntos()});
   document.getElementById("addGasto").addEventListener("click",()=>{gastos.push({concepto:"",importe:0,cargo:"artista"});pintaGastos();pintaCascada()});
   function pintaDjHint(){
@@ -10388,6 +10294,7 @@ document.addEventListener("click",e=>{
     if(act==="contrato")return contratoShow(el.dataset.id);
     if(act==="plantilla-ruta")return formPlantillaRuta(el.dataset.id);
     if(act==="reporte")return reporteLiquidacion(el.dataset.id,el.dataset.mes,el.dataset.anio);
+    if(act==="wa-plaza")return elegirContactoPlaza(el.dataset.id);
     if(act==="ensenar-loc")return formLocalidades();
     if(act==="ver-huerfanos"){
       const h=huerfanos();
