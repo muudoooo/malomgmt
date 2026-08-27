@@ -1858,6 +1858,10 @@ function fromRow(tabla,row){
 }
 function normalizaEntidad(tabla,o){
   // asegura que los jsonb vengan como el tipo esperado aunque la fila los traiga vacíos/null
+  if(tabla==="canciones"){
+    // distribucion es jsonb: fromRow convierte null en "", así que lo devolvemos a objeto
+    o.distribucion=o.distribucion&&typeof o.distribucion==="object"?o.distribucion:{};
+  }
   if(tabla==="temas"){
     o.enlaces=Array.isArray(o.enlaces)?o.enlaces:[];
     o.splits=Array.isArray(o.splits)?o.splits:[];
@@ -2003,7 +2007,7 @@ async function loadRemote(){
   /* Mis Canciones + Bolsillo: si el SQL no se ha ejecutado, la app funciona
      igual pero deja de mandar estas tablas al guardar. */
   DB.sinCanciones=!!can.error;
-  DB.canciones=DB.sinCanciones?[]:(can.data||[]).map(r=>fromRow("canciones",r));
+  DB.canciones=DB.sinCanciones?[]:(can.data||[]).map(r=>normalizaEntidad("canciones",fromRow("canciones",r)));
   if(DB.sinCanciones)console.warn("Tabla «canciones» no disponible:",can.error.message);
   /* Columna «distribucion» (Distribuir canción): sin ella se puede rellenar el
      formulario y generar el email, pero ese cajón no se guarda. */
@@ -3741,10 +3745,12 @@ const DIST_TIPO=["Original","Live","Acústico","Cover","Remix"];
 const DIST_PARENTAL=["No","Sí"];
 function distDe(c){return (c&&c.distribucion)||{}}
 function distribEnviada(c){return !!distDe(c).enviado}
-/* Solo entran en «Distribuir canción» las canciones que pasan por este flujo
-   (tienen datos de distribución). El catálogo antiguo ya distribuido vive en
-   «Mis Canciones» y no debe aparecer aquí como «por preparar». */
-function enDistribucion(c){const d=c&&c.distribucion;return !!(d&&typeof d==="object"&&Object.keys(d).length)}
+/* Solo entran en «Distribuir canción» las canciones ENVIADAS a distribución por
+   este flujo (distribucion.enviado===true). Ojo: no vale «tiene algún dato en
+   distribucion», porque editar el videoclip en Mis Canciones deja {videoUrl:""}
+   y colaría la canción en la cola sin haberla enviado. El catálogo antiguo ya
+   distribuido vive en «Mis Canciones». */
+function enDistribucion(c){const d=c&&c.distribucion;return !!(d&&typeof d==="object"&&d.enviado)}
 
 function viewDistribuir(el,ta){
   const portal=esArtistaPortal();
