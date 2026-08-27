@@ -688,6 +688,28 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
 .cn-flag{font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;
   padding:2px 6px;border-radius:4px;border:1px solid var(--rule-2);color:var(--mute)}
 .cn-flag.warn{border-color:rgba(240,86,143,.5);color:var(--malo)}
+/* ── Salir de la app: hoja de enlace externo ─────────────────────────────
+   Un navegador NO permite elegir con que aplicacion se abre un enlace: eso lo
+   decide el sistema. Lo que si se puede es preguntar antes de salir y ofrecer
+   la app nativa del sitio (por su esquema propio) cuando existe. */
+.ex-bg{position:fixed;inset:0;background:rgba(4,5,7,.72);backdrop-filter:blur(3px);
+  z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;
+  animation:fondoIn .16s ease-out}
+.ex-card{background:var(--panel);border:1px solid var(--rule-2);border-radius:11px;
+  width:100%;max-width:380px;padding:18px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+.ex-card h4{margin:0 0 3px;font-size:15px}
+.ex-host{font-family:var(--mono);font-size:11px;color:var(--malo);word-break:break-all;margin-bottom:3px}
+.ex-url{font-size:11px;color:var(--mute);word-break:break-all;margin-bottom:14px;
+  max-height:44px;overflow:hidden}
+.ex-btns{display:flex;flex-direction:column;gap:7px}
+.ex-btns .btn{width:100%;justify-content:center}
+.ex-pie{display:flex;align-items:center;gap:7px;margin-top:13px;font-size:11px;color:var(--mute)}
+.ex-pie input{width:auto}
+@media(max-width:600px){
+  .ex-bg{align-items:flex-end;padding:0}
+  .ex-card{max-width:none;border-radius:13px 13px 0 0;border-bottom:0;
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+}
 .bar-be{position:relative;height:26px;border-radius:5px;background:var(--panel-2);border:1px solid var(--rule);overflow:hidden}
 .bar-be .fill{height:100%;background:rgba(143,121,242,.55)}
 .bar-be .be{position:absolute;top:0;bottom:0;width:2px;background:var(--malo)}
@@ -1375,6 +1397,7 @@ tr.fila-activa td{background:color-mix(in srgb,var(--malo) 7%,transparent)}
      aquí y pintaban un rectángulo detrás del apartado activo. -->
 <div class="dock" id="dock" role="navigation" aria-label="Apartados"></div>
 <div id="modalRoot"></div>
+<div id="exRoot"></div>
 <div id="drawerRoot"></div>
 <div id="toastRoot"></div>
 
@@ -1615,7 +1638,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.018";
+const APP_VERSION="0.019";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1624,6 +1647,11 @@ const APP_VERSION="0.018";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-27",v:"0.019",cambios:[
+    "Las portadas guardadas como enlace de Google Drive ya se ven. Antes se guardaban bien pero el navegador recibía una página en vez de una imagen, así que el hueco salía vacío.",
+    "Si una portada no carga (enlace roto o sin permiso), sale el recuadro con las iniciales del título en vez de una imagen rota.",
+    "Al tocar un enlace que lleva fuera de MALO se pregunta antes: abrir en la app del sitio (Spotify, Instagram, YouTube, Maps, WhatsApp), abrir en una pestaña nueva o copiar el enlace. Se puede desactivar desde el propio aviso.",
+    "Aviso: elegir con qué navegador se abre un enlace no lo puede hacer ninguna página web, eso lo decide el móvil o el ordenador. Lo que sí se puede es abrir la app del sitio, que es lo que hace el botón de arriba."]},
   {fecha:"2026-08-27",v:"0.018",cambios:[
     "Canciones · Catálogo se ve como galería: la carátula grande de cada tema, agrupada por mixtape o release, con lo que ha generado la canción y lo que queda a repartir. Botón para volver a la tabla de siempre.",
     "Nueva producción: las entradas se definen con su precio y su cupo sin que eso cuente como vendido. «Vendidas» se rellena cuando hay venta real, y hasta entonces el resultado se muestra como previsión.",
@@ -2492,6 +2520,9 @@ function redUrl(k,v){
 }
 function catContacto(id){const p=DB.promotores.find(x=>x.id===id);return CONTACTO_CAT[p?p.categoria:"promotor"]||CONTACTO_CAT.promotor}
 function iniciales(nom){return String(nom||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase()}
+/* Portada de una cancion lista para un <img>: convierte los enlaces de Drive
+   (que devuelven una pagina, no una imagen) y deja pasar el resto tal cual. */
+function portadaImg(c){return normalizaFoto((c&&c.portadaUrl)||"")}
 function normalizaFoto(url){
   if(!url)return "";
   const u=String(url).trim();
@@ -4044,7 +4075,7 @@ function viewDistribuir(el,ta){
   </tr></thead><tbody>
     ${list.map(c=>{const d=distDe(c);return `<tr class="click" data-distrib="${c.id}">
       <td class="strong"><span style="display:flex;align-items:center;gap:8px">
-        ${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}
+        ${portadaImg(c)?`<img src="${esc(portadaImg(c))}" alt="" loading="lazy" onerror="this.remove()" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}
         <span>${esc(c.titulo||"(sin título)")}${d.tipo&&d.tipo!=="Original"?` <span class="dim tiny">· ${esc(d.tipo)}</span>`:""}</span></span></td>
       <td>${esc(nomCliente(c.artistaId))}</td>
       <td class="tiny">${c.fechaLanzamiento?fecha(c.fechaLanzamiento):"—"}</td>
@@ -4398,7 +4429,7 @@ function viewMisCanciones(el,ta){
     if(g[SINGLES])claves.push(SINGLES);
     return claves.map(k=>({clave:k,single:k===SINGLES,
       nombre:k===SINGLES?"Singles / sueltas":k,temas:g[k],
-      portada:k===SINGLES?null:(g[k].find(c=>c.portadaUrl)||{}).portadaUrl}));
+      portada:k===SINGLES?null:portadaImg(g[k].find(c=>portadaImg(c)))}));
   }
 
   /* Doce meses de bruto para la linea de tendencia de cada ficha. */
@@ -4428,8 +4459,9 @@ function viewMisCanciones(el,ta){
     return `<button type="button" class="cn-card" data-cancion="${c.id}" style="--c:${ca.color}"
       aria-label="${esc(tit)} · ${bruto?eur0(bruto)+" generados":"sin liquidaciones"}">
       <div class="cn-art">
-        ${c.portadaUrl
-          ? `<img src="${esc(c.portadaUrl)}" alt="" loading="lazy" decoding="async">`
+        ${portadaImg(c)
+          ? `<img src="${esc(portadaImg(c))}" alt="" loading="lazy" decoding="async"
+               onerror="this.closest('.cn-art').innerHTML='<div class=\'cn-ph\' aria-hidden=\'true\'>${esc(inicialesTit(c.titulo))}</div>'+this.closest('.cn-art').querySelector('.cn-tit').outerHTML">`
           : `<div class="cn-ph" aria-hidden="true">${esc(inicialesTit(c.titulo))}</div>`}
         <div class="cn-tit"><b>${esc(tit)}</b><span>${esc(nomCliente(c.artistaId))}</span></div>
       </div>
@@ -4469,7 +4501,7 @@ function viewMisCanciones(el,ta){
       <div class="note">No suman 100 %</div></div>
   </div>
   `+(galeria?(list.length?gruposDe(list).map(g=>`
-    <div class="cn-sec">${g.portada?`<img src="${esc(g.portada)}" alt="" loading="lazy">`:""}
+    <div class="cn-sec">${g.portada?`<img src="${esc(g.portada)}" alt="" loading="lazy" onerror="this.remove()">`:""}
       <h4>${esc(g.nombre)}</h4>
       <span class="n">${g.temas.length} ${g.temas.length===1?"tema":"temas"}</span>
       <span class="ln"></span>
@@ -4482,7 +4514,7 @@ function viewMisCanciones(el,ta){
   <tbody>${(()=>{
     const fila=c=>{const bruto=brutoTotalCancion(c.id),pool=cascadaCancion(c).pool,suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
       return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
-      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" alt="" loading="lazy" style="width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
+      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${portadaImg(c)?`<img src="${esc(portadaImg(c))}" alt="" loading="lazy" onerror="this.remove()" style="width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
       <td><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(c.artistaId))}</span></td>
       <td class="dim">${esc(c.distribuidora||"—")}${c.cuentaPortal?`<div class="tiny dim">cta. ${esc(c.cuentaPortal)}</div>`:""}</td>
       <td class="num ${bruto?"strong":"dim"}">${bruto?eur0(bruto):"—"}</td>
@@ -4490,7 +4522,7 @@ function viewMisCanciones(el,ta){
       <td class="num"><span class="${Math.abs(suma-100)<0.01?"":"v-alert strong"}" style="font-family:var(--mono)">${pct(suma)}</span></td>
     </tr>`};
     return gruposDe(list).map(g=>{
-      const thumb=g.portada?`<img src="${esc(g.portada)}" alt="" loading="lazy" style="width:22px;height:22px;object-fit:cover;border-radius:3px;flex:none">`:"";
+      const thumb=g.portada?`<img src="${esc(g.portada)}" alt="" loading="lazy" onerror="this.remove()" style="width:22px;height:22px;object-fit:cover;border-radius:3px;flex:none">`:"";
       return `<tr><td colspan="6" style="padding:9px 12px;background:var(--panel-2);border-top:1px solid var(--rule)">
         <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px">${thumb}<span>${esc(g.nombre)}</span><span class="dim tiny" style="font-weight:400">· ${g.temas.length} ${g.temas.length===1?"tema":"temas"} · ${eur0(g.temas.reduce((a,c)=>a+brutoTotalCancion(c.id),0))}</span></span></td></tr>`
         +g.temas.map(fila).join("");
@@ -7191,6 +7223,105 @@ function openModal(html,narrow){
 }
 function closeModal(){cerrarNotas(true);document.getElementById("modalRoot").innerHTML="";
   document.querySelectorAll(".fila-activa").forEach(x=>x.classList.remove("fila-activa"))}
+/* ════════ SALIR DE LA APP ════════
+   Al tocar un enlace que lleva fuera, se pregunta antes en vez de irse sin
+   avisar. Ojo con la expectativa: una web no puede elegir el navegador con el
+   que se abre nada (Chrome, Safari... eso es del sistema operativo). Lo que si
+   se puede es abrir la APP nativa del sitio usando su esquema propio
+   (spotify:, instagram:, comgooglemaps:...), que en el movil es justo lo que
+   se quiere para no caer en el navegador embebido. Si el esquema no existe en
+   el dispositivo no pasa nada visible: por eso hay un respaldo por tiempo que
+   abre el enlace normal. */
+const EX_SIN_AVISO="malo.enlaces.sinAviso";
+/* Cada entrada: como se reconoce el sitio y como se construye el enlace de su
+   app. Devolver "" = ese sitio no tiene app conocida para esta URL. */
+const EX_APPS=[
+  {re:/(^|\.)open\.spotify\.com$/, nombre:"Spotify",
+   app:u=>"spotify:"+u.pathname.replace(/^\//,"").replace(/\//g,":")},
+  {re:/(^|\.)instagram\.com$/, nombre:"Instagram",
+   app:u=>{const m=u.pathname.match(/^\/([A-Za-z0-9._]+)\/?$/);
+           return m?"instagram://user?username="+m[1]:"instagram://app"}},
+  {re:/(^|\.)(youtube\.com|youtu\.be)$/, nombre:"YouTube",
+   app:u=>{const v=u.searchParams.get("v")||(/youtu\.be$/.test(u.hostname)?u.pathname.slice(1):"");
+           return v?"vnd.youtube://"+v:""}},
+  {re:/(^|\.)(google\.com|google\.es)$/, nombre:"Google Maps",
+   app:u=>/^\/maps/.test(u.pathname)?"comgooglemaps://?q="+encodeURIComponent(u.searchParams.get("q")||u.pathname):""},
+  {re:/(^|\.)maps\.app\.goo\.gl$/, nombre:"Google Maps", app:()=>""},
+  {re:/(^|\.)(wa\.me|api\.whatsapp\.com)$/, nombre:"WhatsApp",
+   app:u=>{const t=u.pathname.replace(/^\//,"")||u.searchParams.get("phone")||"";
+           return t?"whatsapp://send?phone="+t:""}},
+  {re:/(^|\.)(twitter\.com|x\.com)$/, nombre:"X", app:()=>""},
+  {re:/(^|\.)tiktok\.com$/, nombre:"TikTok", app:()=>""},
+  {re:/(^|\.)drive\.google\.com$/, nombre:"Drive", app:()=>""}
+];
+function exAppDe(u){
+  const e=EX_APPS.find(x=>x.re.test(u.hostname));
+  if(!e)return null;
+  let esquema="";try{esquema=e.app(u)||""}catch(_){}
+  return {nombre:e.nombre,esquema};
+}
+function cierraExterno(){const n=document.getElementById("exRoot");if(n)n.innerHTML=""}
+function abreExterno(url){
+  let u;try{u=new URL(url,location.href)}catch(_){window.open(url,"_blank","noopener");return}
+  const info=exAppDe(u);
+  const root=document.getElementById("exRoot");
+  root.innerHTML=`
+  <div class="ex-bg" id="exBg" role="dialog" aria-modal="true" aria-labelledby="exTit">
+    <div class="ex-card">
+      <h4 id="exTit">Salir de MALO</h4>
+      <div class="ex-host">${esc(u.hostname.replace(/^www\./,""))}</div>
+      <div class="ex-url">${esc(u.pathname+(u.search||""))}</div>
+      <div class="ex-btns">
+        ${info&&info.esquema?`<button class="btn primary" id="exApp">Abrir en ${esc(info.nombre)}</button>`:""}
+        <button class="btn ${info&&info.esquema?"":"primary"}" id="exWeb">Abrir en una pestaña nueva</button>
+        <button class="btn" id="exCopiar">Copiar enlace</button>
+        <button class="btn ghost" id="exNo">Cancelar</button>
+      </div>
+      <label class="ex-pie"><input type="checkbox" id="exNunca"> No volver a preguntarme en este dispositivo</label>
+    </div>
+  </div>`;
+  const recuerda=()=>{ if(document.getElementById("exNunca").checked)
+    {try{localStorage.setItem(EX_SIN_AVISO,"1")}catch(_){}} };
+  const web=()=>{recuerda();cierraExterno();window.open(u.href,"_blank","noopener")};
+  document.getElementById("exBg").addEventListener("mousedown",e=>{if(e.target.id==="exBg")cierraExterno()});
+  document.getElementById("exNo").addEventListener("click",cierraExterno);
+  document.getElementById("exWeb").addEventListener("click",web);
+  document.getElementById("exCopiar").addEventListener("click",async()=>{
+    recuerda();
+    try{await navigator.clipboard.writeText(u.href);toast("Enlace copiado")}
+    catch(_){toast("No se pudo copiar: "+u.href)}
+    cierraExterno();
+  });
+  const ba=document.getElementById("exApp");
+  if(ba)ba.addEventListener("click",()=>{
+    recuerda();cierraExterno();
+    /* Si la app no esta instalada, el esquema no hace nada y seguimos aqui:
+       por eso a los 900 ms se abre el enlace normal. Si la app si abre, la
+       pestana pasa a segundo plano y el respaldo no llega a ejecutarse. */
+    const t=setTimeout(()=>{ if(!document.hidden)window.open(u.href,"_blank","noopener") },900);
+    document.addEventListener("visibilitychange",()=>clearTimeout(t),{once:true});
+    location.href=info.esquema;
+  });
+  const p=document.querySelector(".ex-card .btn.primary");if(p)p.focus();
+}
+/* Delegado global: cualquier <a> que salga del dominio de la app. Se salta con
+   data-directo en el propio enlace (por ejemplo enlaces de descarga). */
+document.addEventListener("click",e=>{
+  const a=e.target.closest&&e.target.closest("a[href]");
+  if(!a||a.dataset.directo!==undefined)return;
+  const href=a.getAttribute("href")||"";
+  if(!/^https?:\/\//i.test(href))return;          // mailto:, tel:, #ancla, blob:
+  let u;try{u=new URL(href,location.href)}catch(_){return}
+  if(u.host===location.host)return;                // dentro de la app
+  try{if(localStorage.getItem(EX_SIN_AVISO)==="1")return}catch(_){}
+  e.preventDefault();
+  abreExterno(u.href);
+},true);
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&document.getElementById("exRoot")&&document.getElementById("exRoot").innerHTML.trim())
+    {e.stopPropagation();cierraExterno()}
+},true);
+
 function toast(m){document.getElementById("toastRoot").innerHTML=`<div class="toast">${esc(m)}</div>`;setTimeout(()=>{document.getElementById("toastRoot").innerHTML=""},5000)}
 function val(id){const e=document.getElementById(id);return e?e.value.trim():""}
 function num(id){return n(val(id))}
