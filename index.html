@@ -1555,88 +1555,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.017";
-/* ── Novedades de cada versión ──────────────────────────────────────────────
-   Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
-   que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
-   ARRIBA de esta lista (la primera es la actual), o suma los cambios a la
-   entrada de hoy si ya existe. Escrito para leer, no para programadores: qué
-   cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
-   se pinta como dd/mm/aaaa), v y cambios. */
-const CHANGELOG=[
-  {fecha:"2026-08-27",v:"0.017",cambios:[
-    "El logo de MALO se ve completo, sin recortar, y dentro de un círculo más grande (barra lateral y móvil).",
-    "Nueva pestaña «Novedades» aquí en Configuración con el historial de cambios día a día.",
-    "Al entrar con una versión nueva salta un aviso para que sepas que hay cambios.",
-    "«Mis Canciones» y «Distribuir canción» se unen en una sola sección, «Canciones», con pestañas Catálogo y Distribuir. Un solo sitio, también en el portal del artista.",
-    "La cola de distribución solo lista las canciones realmente enviadas: editar el videoclip de una canción del catálogo ya no la mete en la cola.",
-    "«Distribuir canción» permite partir de una canción que ya está en el catálogo, para no duplicarla.",
-    "En la tarea «Abrir plaza» el botón de WhatsApp ya no escribe a un único contacto: abre un selector con todos los promotores de esa provincia (con teléfono y email, sin los descartados).",
-    "El apartado «Capturas» pasa a llamarse «Transcripción».",
-    "Cifras coherentes entre secciones y arreglos de foco en los formularios."]},
-  {fecha:"2026-08-26",v:"0.016",cambios:[
-    "Portal del cliente (rol artista): menú propio con Inicio, Agenda, Canciones, Bolsillo y Redes. El inicio muestra sus próximas fechas, lo generado en el año y sus seguidores. Solo lectura.",
-    "«Equipo y permisos» gestiona el rol de cada miembro y con qué cliente está vinculado, con la guía de invitación.",
-    "Producción: entradas y line-up ya son utilizables.",
-    "Login de cliente completo: recuperar contraseña por email, entrada con enlace mágico, ver u ocultar la contraseña, aviso de Bloq Mayús, medidor de fuerza (mínimo 8) y mensajes de error claros.",
-    "«Distribuir canción»: el artista o el equipo rellenan toda la información de la distribuidora (formato, tipo, feat, ISRC, parental, hook de TikTok, portada, WAV y videoclip, créditos, líneas C/P, tracklist, mood, pitch, plan de marketing) y al enviar se crea la entrada en el catálogo y se compila el email listo para copiar.",
-    "Copia de seguridad diaria automática y gratuita a Google Drive (03:00), con 30 días de historial.",
-    "Arreglado el «Error al sincronizar» que les salía a los gestores al cerrar mes o al tocar el selector de Drive.",
-    "Seguridad: las funciones del servidor comprueban el rol de quien llama (antes un artista podía llegar al Drive y a las redes de otro), cabeceras de seguridad en Netlify y política de contenido en modo bloqueo.",
-    "Permisos de base de datos revisados a fondo: se limpian las 22 políticas antiguas y se acotan mensajes y avisos push."]},
-  {fecha:"2026-08-25",v:"0.016",cambios:[
-    "Paleta «Medianoche», elegida entre cuatro propuestas: rótulos en caja normal, pills rellenas, bordes mínimos y un acento por pantalla.",
-    "Escritorio rediseñado: la ficha se abre como cajón lateral, la barra de menú va agrupada con iconos y el Panel pasa a dos columnas con el próximo show destacado.",
-    "Formulario de show: el DJ habitual se ve al cambiar de cliente, el cliente se hereda del filtro activo, la ciudad y el país los pone el contratante, la fecha de cobro se calcula sola y se limpian los DJs del colectivo.",
-    "Caché del DJ en el reparto (parejas artista-DJ, editable en la ficha y por show), la sala autorrellena ciudad y aforo, y la tarjeta económica se actualiza en vivo.",
-    "Redes: gráfica total a 12 meses y mes a mes por red con los colores de cada marca. Bolsillo: evolución mensual con la misma lectura, con diferencia y desglose.",
-    "Chip «ruta N%» en la ficha y en el Panel, y gráfica agregada de seguidores en Redes.",
-    "Instagram Plan B: cada artista conecta su cuenta desde Redes.",
-    "Política de privacidad y eliminación de datos (requisito de revisión de Meta)."]},
-  {fecha:"2026-08-21",v:"0.011",cambios:[
-    "Redes: métricas extra por red (engagement, oyentes, audiencia, contenido destacado) y comparativa entre artistas.",
-    "Móvil: dock de 5 destinos, Shows dentro de la agenda y el próximo show destacado en el Panel.",
-    "Móvil: ficha de show con resumen y botones grandes; Redes con el color de cada marca y la diferencia respecto al mes anterior.",
-    "Animaciones: entrada en cascada, deslizamiento al cambiar de sección en el móvil y la ficha abriéndose como hoja.",
-    "Repulido general: esquinas más suaves, foco rosa en los campos y barras de scroll finas.",
-    "Botón «mostrar más» en Contactos, Clientes y Shows: 60 por tanda en vez de cargar la lista entera."]},
-  {fecha:"2026-08-20",v:"0.006",cambios:[
-    "Nuevas secciones «Mis Canciones» y «Bolsillo».",
-    "Canciones con portada, audio, créditos y género, guardados en Drive.",
-    "Colaboradores y productor en el título (ft. / prod.), con previsualización en vivo al editar.",
-    "Nuevo panel «Redes»: seguidores de Instagram, TikTok y YouTube por artista, con el crecimiento mensual.",
-    "Redes se actualiza sola consultando YouTube e Instagram; Spotify se lleva por revisión mensual porque cerraron su API pública en febrero de 2026.",
-    "Arreglado el tope de 1.000 filas de la base de datos que dejaba cifras cortas en Canciones y Bolsillo.",
-    "Pasada de accesibilidad: contraste de rótulos, filas navegables con el teclado y transiciones del menú."]},
-  {fecha:"2026-08-19",v:"0.006",cambios:[
-    "Pasada de móvil: tablas dentro de la ficha, filtros plegados y todo a tamaño de dedo.",
-    "En listas largas la ficha se recorta y las cifras salen fuera de las barras.",
-    "Generador de contratos, y en la hoja de ruta los campos vacíos ya no se imprimen.",
-    "Comprobación automática antes de publicar: un index.html roto ya no puede llegar a producción."]},
-  {fecha:"2026-08-18",v:"0.004",cambios:[
-    "Drive funciona con una sola cuenta de MALO a través del servidor, en vez de pedirle permisos a cada uno.",
-    "Subir archivos a Drive desde el propio panel.",
-    "El panel dice siempre con qué cuenta de Google está leyendo.",
-    "Configuración pasa a cuatro pestañas y aparecen los roles de equipo.",
-    "Arreglos de CORS, de identificación de la aplicación y una llave sobrante que rompía toda la app."]},
-  {fecha:"2026-08-17",v:"0.003",cambios:[
-    "Integración con Google Drive: conectar una carpeta y ver sus archivos desde Documentos.",
-    "Solo un administrador puede elegir la carpeta madre.",
-    "Al conectar Google se pide también el permiso de Drive.",
-    "Ajustes de formato en el móvil."]},
-  {fecha:"2026-08-16",v:"0.002",cambios:[
-    "Géneros y servicios pasan a ser etiquetas.",
-    "SoundCloud añadido a la ficha de cliente.",
-    "Retirada la sección de WhatsApp."]},
-  {fecha:"2026-08-15",v:"—",cambios:[
-    "Primera subida de la app al repositorio, con service worker para avisos y uso sin conexión.",
-    "Nueva categoría de contratante: fiestas mayores."]}
-];
-/* El historial de arriba se reconstruyó el 27-ago-2026 a partir de los 83
-   commits del repositorio, agrupado por día. Va por FECHA y no por versión
-   porque APP_VERSION no se subió en cada publicación (la 0.016 abarca del 25
-   al 27 de agosto, y la 0.017 es la primera que se sube junto a su entrada).
-   La «v» de cada bloque es la que estaba publicada ese día. */
+const APP_VERSION="0.016";
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -1918,7 +1837,7 @@ const TABLE_MAP={
     distribuidora:"distribuidora",feeDistribucionPct:"fee_distribucion_pct",mgmtPct:"mgmt_pct",
     cuentaPortal:"cuenta_portal",notas:"notas",genero:"genero",creditos:"creditos",
     driveFolderId:"drive_folder_id",portadaDriveId:"portada_drive_id",portadaUrl:"portada_url",
-    audioDriveId:"audio_drive_id",audioUrl:"audio_url",distribucion:"distribucion"},
+    audioDriveId:"audio_drive_id",audioUrl:"audio_url",distribucion:"distribucion",mixtape:"mixtape"},
   cancionParticipantes:{id:"id",cancionId:"cancion_id",clienteId:"cliente_id",nombre:"nombre",rol:"rol",pct:"pct"},
   cancionIngresos:{id:"id",cancionId:"cancion_id",mes:"mes",bruto:"bruto",unidades:"unidades",canal:"canal"},
   redesSnapshots:{id:"id",clienteId:"cliente_id",red:"red",fecha:"fecha",seguidores:"seguidores",notas:"notas",extra:"extra"}
@@ -4220,15 +4139,29 @@ function viewMisCanciones(el,ta){
 
   <div class="card"><div class="body flush">
   <table><thead><tr><th>Título</th><th>Artista</th><th>Distribuidora</th><th class="num">Bruto histórico</th><th class="num">Reparto</th></tr></thead>
-  <tbody>${list.map(c=>{
-    const bruto=brutoTotalCancion(c.id),suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
-    return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
+  <tbody>${(()=>{
+    const fila=c=>{const bruto=brutoTotalCancion(c.id),suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
+      return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
       <td class="strong"><span style="display:flex;align-items:center;gap:8px">${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
       <td><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(c.artistaId))}</span></td>
       <td class="dim">${esc(c.distribuidora||"—")}${c.cuentaPortal?`<div class="tiny dim">cta. ${esc(c.cuentaPortal)}</div>`:""}</td>
       <td class="num">${eur0(bruto)}</td>
       <td class="num"><span class="${Math.abs(suma-100)<0.01?"":"v-alert strong"}" style="font-family:var(--mono)">${pct(suma)}</span></td>
-    </tr>`}).join("")}</tbody></table>
+    </tr>`};
+    const SINGLES=" ";
+    const grupos={};
+    list.forEach(c=>{const k=(c.mixtape||"").trim()||SINGLES;(grupos[k]=grupos[k]||[]).push(c)});
+    const claves=Object.keys(grupos).filter(k=>k!==SINGLES).sort((a,b)=>a.localeCompare(b));
+    if(grupos[SINGLES])claves.push(SINGLES);
+    return claves.map(k=>{
+      const arr=grupos[k],single=k===SINGLES,nombre=single?"Singles / sueltas":k;
+      const th=single?null:arr.find(c=>c.portadaUrl);
+      const thumb=th?`<img src="${esc(th.portadaUrl)}" style="width:22px;height:22px;object-fit:cover;border-radius:3px;flex:none">`:"";
+      return `<tr><td colspan="5" style="padding:9px 12px;background:var(--panel-2);border-top:1px solid var(--rule)">
+        <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px">${thumb}<span>${esc(nombre)}</span><span class="dim tiny" style="font-weight:400">· ${arr.length} ${arr.length===1?"tema":"temas"}</span></span></td></tr>`
+        +arr.map(fila).join("");
+    }).join("");
+  })()}</tbody></table>
   </div></div>`;
 
   const q=document.getElementById("cnq");
@@ -4260,6 +4193,9 @@ function formCancion(id){
           .map(x=>`<option value="${x.id}" ${o.artistaId===x.id?"selected":""}>${esc(x.nombre||x.nombreReal)}</option>`).join("")}
       </select></div>
       <div class="f s3"><label>ISRC</label><input id="cn_isrc" value="${esc(o.isrc||"")}" placeholder="BK4DA..."></div>
+      <div class="f s6"><label>Mixtape / release <span class="dim" style="text-transform:none">· a qué lanzamiento pertenece</span></label>
+        <input id="cn_mixtape" list="cn_mixtape_list" value="${esc(o.mixtape||"")}" placeholder="EP, mixtape o álbum (o vacío si es single)">
+        <datalist id="cn_mixtape_list">${[...new Set((DB.canciones||[]).map(x=>x.mixtape).filter(Boolean))].sort().map(m=>`<option value="${esc(m)}">`).join("")}</datalist></div>
       <div class="f s4"><label>Distribuidora</label><input id="cn_dist" value="${esc(o.distribuidora||"ADA")}" placeholder="ADA, Believe…"></div>
       <div class="f s4"><label>Cuenta del portal</label><input id="cn_cuenta" value="${esc(o.cuentaPortal||"")}" placeholder="Nº de cuenta ADA"></div>
       <div class="f s2"><label>Lanzamiento</label><input id="cn_flanz" type="date" value="${esc(o.fechaLanzamiento||"")}"></div>
@@ -4432,7 +4368,7 @@ function formCancion(id){
   window.__leerCancion=()=>{
     const vivo=(DB.canciones||[]).find(x=>x.id===o.id)||{};
     return {
-      id:o.id,titulo:val("cn_tit"),artistaId:val("cn_cli"),isrc:val("cn_isrc"),
+      id:o.id,titulo:val("cn_tit"),artistaId:val("cn_cli"),isrc:val("cn_isrc"),mixtape:val("cn_mixtape"),
       distribuidora:val("cn_dist")||"ADA",cuentaPortal:val("cn_cuenta"),fechaLanzamiento:val("cn_flanz"),
       feeDistribucionPct:num("cn_fee"),mgmtPct:num("cn_mgmt"),notas:val("cn_notas"),
       genero:val("cn_genero"),creditos:val("cn_creditos"),
@@ -6287,7 +6223,7 @@ function viewCapturas(el,ta){
 
 let CFG_TAB="datos";
 const CFG_TABS=[["datos","Datos"],["integraciones","Integraciones"],
-  ["empresa","Datos Empresa"],["equipo","Equipo y permisos"],["novedades","Novedades"]];
+  ["empresa","Datos Empresa"],["equipo","Equipo y permisos"]];
 
 /* ── Ajustes compartidos del equipo ── */
 function cfgAjustes(){return (DB.empresa&&DB.empresa.ajustes)||{}}
@@ -6356,7 +6292,7 @@ function viewDatos(el,ta){
   const sub=document.getElementById("viewSub");
   if(sub)sub.textContent=t[1];
   ({datos:cfgTabDatos,integraciones:cfgTabIntegraciones,
-    empresa:cfgTabEmpresa,equipo:cfgTabEquipo,novedades:cfgTabNovedades})[t[0]](el);
+    empresa:cfgTabEmpresa,equipo:cfgTabEquipo})[t[0]](el);
 
   const tabs=`<div class="cfg-tabs">`+CFG_TABS.map(([id,lab])=>
     `<button class="btn ${CFG_TAB===id?"primary":"ghost"} sm" data-cfg-tab="${id}">${lab}</button>`
@@ -6371,46 +6307,6 @@ function viewDatos(el,ta){
   (movil?el:ta).querySelectorAll("[data-cfg-tab]").forEach(b=>b.addEventListener("click",()=>{
     CFG_TAB=b.dataset.cfgTab;render();window.scrollTo(0,0);
   }));
-}
-
-/* ── Pestaña 5 · Novedades ──────────────────────────────────────────────────
-   Lee CHANGELOG (arriba del archivo). Abrir esta pestaña marca la versión como
-   vista, así que el aviso de "versión nueva" no vuelve a salir hasta la
-   siguiente publicación. La marca es por navegador (localStorage), no por
-   usuario: si entras desde otro móvil, el aviso sale otra vez. */
-const VER_VISTA_KEY="malo_version_vista";
-function versionVista(){ try{return localStorage.getItem(VER_VISTA_KEY)||""}catch(e){return ""} }
-function marcaVersionVista(){ try{localStorage.setItem(VER_VISTA_KEY,APP_VERSION)}catch(e){} }
-function avisoNovedades(){
-  const antes=versionVista();
-  if(antes===APP_VERSION)return;
-  /* Primera vez en este navegador: no hay nada que anunciar, solo se apunta. */
-  if(!antes){ marcaVersionVista(); return; }
-  toast("Versión "+APP_VERSION+" publicada · mira Configuración › Novedades");
-}
-function cfgTabNovedades(el){
-  marcaVersionVista();
-  const bloques=CHANGELOG.map((r,i)=>`
-    <div style="padding:${i?"18px":"0"} 0 0;${i?"border-top:1px solid var(--rule);margin-top:18px":""}">
-      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:9px;flex-wrap:wrap">
-        <span class="strong" style="font-size:14px">${esc(fecha(r.fecha))}</span>
-        <span class="dim tiny">v ${esc(r.v)} · ${r.cambios.length} ${r.cambios.length===1?"cambio":"cambios"}</span>
-        ${i?"":`<span class="badge">Actual</span>`}
-      </div>
-      <ul style="margin:0;padding-left:18px;color:var(--mute);font-size:12.5px;line-height:1.7">
-        ${r.cambios.map(c=>`<li>${esc(c)}</li>`).join("")}
-      </ul>
-    </div>`).join("");
-  el.innerHTML=`
-  <div class="card"><header><h3>Novedades de la app</h3></header><div class="body">
-    <p style="color:var(--mute);font-size:12.5px;margin-bottom:20px">
-      Todo lo que se publica queda apuntado aquí, de lo más nuevo a lo más viejo.
-      Estás usando la <strong style="color:var(--bone)">v ${esc(APP_VERSION)}</strong>.
-      Si al entrar te sale un aviso de versión nueva, es esta pestaña lo que tienes que mirar.</p>
-    ${bloques}
-    <p class="dim tiny" style="margin-top:20px">Historial completo desde el 15 de agosto de 2026, el día de la primera subida.
-      Va por fecha porque hasta la 0.017 el número de versión no se subía en cada publicación.</p>
-  </div></div>`;
 }
 
 /* ── Pestaña 1 · Datos ──────────────────────────────────────────────────── */
@@ -10504,7 +10400,6 @@ async function startApp(){
   try{ cierreDeMes(); }catch(e){ console.error("cierreDeMes",e); }
   try{ recordatoriosFrios(); }catch(e){ console.error("recordatoriosFrios",e); }
   render();
-  try{ avisoNovedades(); }catch(e){ console.error("avisoNovedades",e); }
 }
 /* El botón del móvil reutiliza el mismo PNG que la barra lateral: el base64 pesa
    y no hay por qué llevarlo dos veces en el archivo. */
