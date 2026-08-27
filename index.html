@@ -563,15 +563,22 @@ html.dw-sin-scroll-x{overflow-x:hidden}
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--sans)}
 .demo-barra button{background:rgba(0,0,0,.18);border:0;color:#231704;padding:3px 10px;
   border-radius:4px;font-size:11.5px;cursor:pointer;font-family:var(--sans)}
-.lu-cab,.lu-row{display:grid;grid-template-columns:88px minmax(150px,1.4fr) 78px 108px 106px 66px 106px 66px 62px 30px;
-  gap:5px;align-items:center;margin-bottom:5px}
-.lu-cab.crew,.lu-row.crew{grid-template-columns:minmax(150px,1.4fr) 78px 108px 106px 66px 106px 66px 62px 30px}
-.lu-cab{font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--mute-2);margin-bottom:6px}
-.lu-row input,.lu-row select{padding:5px 7px;font-size:12px;min-width:0;width:100%}
-.lu-art{display:flex;flex-direction:column;gap:3px;min-width:0}
-@media(max-width:900px){.lu-cab{display:none}
-  .lu-row,.lu-row.crew{grid-template-columns:1fr 1fr;padding:9px;border:1px solid var(--rule);border-radius:6px}}
+.lu-cab{display:none}
+/* Una ficha por persona: el rotulo va pegado a cada campo (data-l). Antes eran
+   diez columnas de 60-100 px dentro de un modal estrecho, con el select de
+   artista pisando el input del nombre. */
+.lu-row,.lu-row.crew{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 8px;
+  padding:11px;margin-bottom:10px;border:1px solid var(--rule);border-radius:7px;background:var(--panel-2)}
+.lu-row input,.lu-row select{padding:6px 8px;font-size:12px;min-width:0;width:100%}
+.lu-c{display:flex;flex-direction:column;min-width:0}
+.lu-c::before{content:attr(data-l);font-family:var(--mono);font-size:8.5px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-bottom:3px;white-space:nowrap}
+.lu-c.wide{grid-column:1/-1}
+.lu-x{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:-4px}
+.lu-link{border-color:var(--artist)!important}
+.lu-tag{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--artist);margin-top:3px}
+@media(max-width:640px){.lu-row,.lu-row.crew{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .buscable-wrap{position:relative}
 .buscable-input{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;
@@ -631,9 +638,56 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
 .adj-row{display:grid;grid-template-columns:120px 1fr 110px 1.6fr 34px;gap:8px;margin-bottom:8px;align-items:center}
 @media(max-width:700px){.adj-row{grid-template-columns:1fr 1fr}}
 .adj-row input,.adj-row select{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:7px 9px;width:100%}
-.ent-row{display:grid;grid-template-columns:1fr 110px 110px 120px 34px;gap:8px;margin-bottom:8px;align-items:center}
-@media(max-width:700px){.ent-row{grid-template-columns:1fr 1fr}}
-.ent-row input,.ent-row select{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:7px 9px;width:100%}
+.ent-cab{display:none}
+.ent-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 30px;gap:10px 8px;
+  padding:11px;margin-bottom:10px;align-items:end;
+  border:1px solid var(--rule);border-radius:7px;background:var(--panel-2)}
+.ent-row input{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:6px 8px;width:100%;font-size:12px}
+.ent-c{display:flex;flex-direction:column;min-width:0}
+.ent-c::before{content:attr(data-l);font-family:var(--mono);font-size:8.5px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-bottom:3px;white-space:nowrap}
+.ent-c.wide{grid-column:1/-1}
+@media(max-width:640px){.ent-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* ── Galeria de canciones ───────────────────────────────────────────────
+   Ficha por cancion con la caratula grande, agrupada por mixtape/release igual
+   que la tabla. La caratula lleva aspect-ratio 1/1 y loading="lazy": el hueco
+   se reserva antes de que baje la imagen, asi la cuadricula no salta. */
+.cn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:16px}
+@media(max-width:520px){.cn-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}}
+.cn-sec{display:flex;align-items:center;gap:9px;margin:22px 0 11px}
+.cn-sec:first-child{margin-top:0}
+.cn-sec img{width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none}
+.cn-sec h4{margin:0;font-size:13px;font-weight:600}
+.cn-sec .n{font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.cn-sec .ln{flex:1;height:1px;background:var(--rule)}
+.cn-card{position:relative;display:flex;flex-direction:column;text-align:left;
+  background:var(--panel-2);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
+  cursor:pointer;color:inherit;font:inherit;padding:0;width:100%;
+  transition:border-color .16s ease,transform .16s ease}
+.cn-card:hover{border-color:var(--rule-2);transform:translateY(-2px)}
+.cn-card:focus-visible{outline:2px solid var(--malo);outline-offset:2px}
+.cn-art{position:relative;aspect-ratio:1/1;background:var(--ink);overflow:hidden}
+.cn-art img{width:100%;height:100%;object-fit:cover;display:block}
+/* Sin caratula: las iniciales del titulo sobre el color del artista. */
+.cn-art .cn-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--sans);font-weight:800;font-size:34px;letter-spacing:.02em;color:rgba(255,255,255,.9);
+  background:linear-gradient(150deg,var(--c,#8F79F2) 0%,rgba(14,15,18,.92) 100%)}
+.cn-art .cn-tit{position:absolute;left:0;right:0;bottom:0;padding:26px 10px 9px;
+  background:linear-gradient(to top,rgba(9,10,13,.93) 12%,rgba(9,10,13,.72) 55%,transparent 100%)}
+.cn-art .cn-tit b{display:block;font-size:13px;line-height:1.25;color:#fff;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cn-art .cn-tit span{display:block;font-size:10.5px;color:rgba(255,255,255,.72);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cn-body{padding:10px 11px 11px;display:flex;flex-direction:column;gap:2px}
+.cn-lab{font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+.cn-eur{font-family:var(--mono);font-size:19px;font-weight:600;color:var(--malo);line-height:1.1}
+.cn-eur.cero{color:var(--mute-2);font-size:13px;font-weight:400}
+.cn-sub{font-size:10.5px;color:var(--mute)}
+.cn-spark{margin-top:7px;height:22px;display:block;width:100%}
+.cn-flags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.cn-flag{font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 6px;border-radius:4px;border:1px solid var(--rule-2);color:var(--mute)}
+.cn-flag.warn{border-color:rgba(240,86,143,.5);color:var(--malo)}
 .bar-be{position:relative;height:26px;border-radius:5px;background:var(--panel-2);border:1px solid var(--rule);overflow:hidden}
 .bar-be .fill{height:100%;background:rgba(143,121,242,.55)}
 .bar-be .be{position:absolute;top:0;bottom:0;width:2px;background:var(--malo)}
@@ -1419,6 +1473,12 @@ function makeDemoClient(){
       signInWithPassword(){return Promise.resolve({data:{user:USUARIO},error:null})},
       updateUser(){return Promise.resolve({data:{user:USUARIO},error:null})},
       signOut(){return Promise.resolve({error:null})},
+      /* La pantalla de login llama a estos tres. Sin ellos, en modo demo
+         pulsar «Olvidé mi contraseña» lanzaba un TypeError y el mensaje se
+         quedaba congelado en «Enviando…» para siempre. */
+      resetPasswordForEmail(){return Promise.resolve({data:{},error:{message:"En la demo no se envían correos."}})},
+      signInWithOtp(){return Promise.resolve({data:{},error:{message:"En la demo no se envían correos."}})},
+      verifyOtp(){return Promise.resolve({data:{user:USUARIO},error:null})},
       onAuthStateChange(){return {data:{subscription:{unsubscribe(){}}}}}
     }
   };
@@ -1555,7 +1615,97 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.016";
+const APP_VERSION="0.018";
+/* ── Novedades de cada versión ──────────────────────────────────────────────
+   Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
+   que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
+   ARRIBA de esta lista (la primera es la actual), o suma los cambios a la
+   entrada de hoy si ya existe. Escrito para leer, no para programadores: qué
+   cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
+   se pinta como dd/mm/aaaa), v y cambios. */
+const CHANGELOG=[
+  {fecha:"2026-08-27",v:"0.018",cambios:[
+    "Canciones · Catálogo se ve como galería: la carátula grande de cada tema, agrupada por mixtape o release, con lo que ha generado la canción y lo que queda a repartir. Botón para volver a la tabla de siempre.",
+    "Nueva producción: las entradas se definen con su precio y su cupo sin que eso cuente como vendido. «Vendidas» se rellena cuando hay venta real, y hasta entonces el resultado se muestra como previsión.",
+    "El line-up y el equipo pasan a una ficha por persona, con el nombre de cada campo a la vista. El artista es un solo campo: si coincide con un cliente de MALO se enlaza solo, y si no queda como externo.",
+    "Arreglado: al escribir en un formulario ya no se pierde el foco tras el primer carácter.",
+    "Los campos de fecha abren el calendario pulsando en cualquier parte, y Escape cierra la ventana aunque el cursor esté dentro de un campo.",
+    "El Panel ya no cuenta las ofertas sin cerrar como facturación: salen en su propia línea. Cuadra con el Informe de ganancias.",
+    "Bolsillo y portal del artista: un DJ del line-up de un colectivo ve su parte del reparto, y los totales van en neto (el IVA no es dinero suyo).",
+    "En el resultado de una producción, el desglose de costes ya suma el total: faltaban los viajes del line-up y el coste del equipo."]},
+  {fecha:"2026-08-27",v:"0.017",cambios:[
+    "El logo de MALO se ve completo, sin recortar, y dentro de un círculo más grande (barra lateral y móvil).",
+    "Nueva pestaña «Novedades» aquí en Configuración con el historial de cambios día a día.",
+    "Al entrar con una versión nueva salta un aviso para que sepas que hay cambios.",
+    "«Mis Canciones» y «Distribuir canción» se unen en una sola sección, «Canciones», con pestañas Catálogo y Distribuir. Un solo sitio, también en el portal del artista.",
+    "La cola de distribución solo lista las canciones realmente enviadas: editar el videoclip de una canción del catálogo ya no la mete en la cola.",
+    "«Distribuir canción» permite partir de una canción que ya está en el catálogo, para no duplicarla.",
+    "En la tarea «Abrir plaza» el botón de WhatsApp ya no escribe a un único contacto: abre un selector con todos los promotores de esa provincia (con teléfono y email, sin los descartados).",
+    "El apartado «Capturas» pasa a llamarse «Transcripción».",
+    "Cifras coherentes entre secciones y arreglos de foco en los formularios."]},
+  {fecha:"2026-08-26",v:"0.016",cambios:[
+    "Portal del cliente (rol artista): menú propio con Inicio, Agenda, Canciones, Bolsillo y Redes. El inicio muestra sus próximas fechas, lo generado en el año y sus seguidores. Solo lectura.",
+    "«Equipo y permisos» gestiona el rol de cada miembro y con qué cliente está vinculado, con la guía de invitación.",
+    "Producción: entradas y line-up ya son utilizables.",
+    "Login de cliente completo: recuperar contraseña por email, entrada con enlace mágico, ver u ocultar la contraseña, aviso de Bloq Mayús, medidor de fuerza (mínimo 8) y mensajes de error claros.",
+    "«Distribuir canción»: el artista o el equipo rellenan toda la información de la distribuidora (formato, tipo, feat, ISRC, parental, hook de TikTok, portada, WAV y videoclip, créditos, líneas C/P, tracklist, mood, pitch, plan de marketing) y al enviar se crea la entrada en el catálogo y se compila el email listo para copiar.",
+    "Copia de seguridad diaria automática y gratuita a Google Drive (03:00), con 30 días de historial.",
+    "Arreglado el «Error al sincronizar» que les salía a los gestores al cerrar mes o al tocar el selector de Drive.",
+    "Seguridad: las funciones del servidor comprueban el rol de quien llama (antes un artista podía llegar al Drive y a las redes de otro), cabeceras de seguridad en Netlify y política de contenido en modo bloqueo.",
+    "Permisos de base de datos revisados a fondo: se limpian las 22 políticas antiguas y se acotan mensajes y avisos push."]},
+  {fecha:"2026-08-25",v:"0.016",cambios:[
+    "Paleta «Medianoche», elegida entre cuatro propuestas: rótulos en caja normal, pills rellenas, bordes mínimos y un acento por pantalla.",
+    "Escritorio rediseñado: la ficha se abre como cajón lateral, la barra de menú va agrupada con iconos y el Panel pasa a dos columnas con el próximo show destacado.",
+    "Formulario de show: el DJ habitual se ve al cambiar de cliente, el cliente se hereda del filtro activo, la ciudad y el país los pone el contratante, la fecha de cobro se calcula sola y se limpian los DJs del colectivo.",
+    "Caché del DJ en el reparto (parejas artista-DJ, editable en la ficha y por show), la sala autorrellena ciudad y aforo, y la tarjeta económica se actualiza en vivo.",
+    "Redes: gráfica total a 12 meses y mes a mes por red con los colores de cada marca. Bolsillo: evolución mensual con la misma lectura, con diferencia y desglose.",
+    "Chip «ruta N%» en la ficha y en el Panel, y gráfica agregada de seguidores en Redes.",
+    "Instagram Plan B: cada artista conecta su cuenta desde Redes.",
+    "Política de privacidad y eliminación de datos (requisito de revisión de Meta)."]},
+  {fecha:"2026-08-21",v:"0.011",cambios:[
+    "Redes: métricas extra por red (engagement, oyentes, audiencia, contenido destacado) y comparativa entre artistas.",
+    "Móvil: dock de 5 destinos, Shows dentro de la agenda y el próximo show destacado en el Panel.",
+    "Móvil: ficha de show con resumen y botones grandes; Redes con el color de cada marca y la diferencia respecto al mes anterior.",
+    "Animaciones: entrada en cascada, deslizamiento al cambiar de sección en el móvil y la ficha abriéndose como hoja.",
+    "Repulido general: esquinas más suaves, foco rosa en los campos y barras de scroll finas.",
+    "Botón «mostrar más» en Contactos, Clientes y Shows: 60 por tanda en vez de cargar la lista entera."]},
+  {fecha:"2026-08-20",v:"0.006",cambios:[
+    "Nuevas secciones «Mis Canciones» y «Bolsillo».",
+    "Canciones con portada, audio, créditos y género, guardados en Drive.",
+    "Colaboradores y productor en el título (ft. / prod.), con previsualización en vivo al editar.",
+    "Nuevo panel «Redes»: seguidores de Instagram, TikTok y YouTube por artista, con el crecimiento mensual.",
+    "Redes se actualiza sola consultando YouTube e Instagram; Spotify se lleva por revisión mensual porque cerraron su API pública en febrero de 2026.",
+    "Arreglado el tope de 1.000 filas de la base de datos que dejaba cifras cortas en Canciones y Bolsillo.",
+    "Pasada de accesibilidad: contraste de rótulos, filas navegables con el teclado y transiciones del menú."]},
+  {fecha:"2026-08-19",v:"0.006",cambios:[
+    "Pasada de móvil: tablas dentro de la ficha, filtros plegados y todo a tamaño de dedo.",
+    "En listas largas la ficha se recorta y las cifras salen fuera de las barras.",
+    "Generador de contratos, y en la hoja de ruta los campos vacíos ya no se imprimen.",
+    "Comprobación automática antes de publicar: un index.html roto ya no puede llegar a producción."]},
+  {fecha:"2026-08-18",v:"0.004",cambios:[
+    "Drive funciona con una sola cuenta de MALO a través del servidor, en vez de pedirle permisos a cada uno.",
+    "Subir archivos a Drive desde el propio panel.",
+    "El panel dice siempre con qué cuenta de Google está leyendo.",
+    "Configuración pasa a cuatro pestañas y aparecen los roles de equipo.",
+    "Arreglos de CORS, de identificación de la aplicación y una llave sobrante que rompía toda la app."]},
+  {fecha:"2026-08-17",v:"0.003",cambios:[
+    "Integración con Google Drive: conectar una carpeta y ver sus archivos desde Documentos.",
+    "Solo un administrador puede elegir la carpeta madre.",
+    "Al conectar Google se pide también el permiso de Drive.",
+    "Ajustes de formato en el móvil."]},
+  {fecha:"2026-08-16",v:"0.002",cambios:[
+    "Géneros y servicios pasan a ser etiquetas.",
+    "SoundCloud añadido a la ficha de cliente.",
+    "Retirada la sección de WhatsApp."]},
+  {fecha:"2026-08-15",v:"—",cambios:[
+    "Primera subida de la app al repositorio, con service worker para avisos y uso sin conexión.",
+    "Nueva categoría de contratante: fiestas mayores."]}
+];
+/* El historial de arriba se reconstruyó el 27-ago-2026 a partir de los 83
+   commits del repositorio, agrupado por día. Va por FECHA y no por versión
+   porque APP_VERSION no se subió en cada publicación (la 0.016 abarca del 25
+   al 27 de agosto, y la 0.017 es la primera que se sube junto a su entrada).
+   La «v» de cada bloque es la que estaba publicada ese día. */
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -1665,6 +1815,11 @@ function calcProd(p){
   const ivaE=n(p.ivaEntrada!==undefined?p.ivaEntrada:IVA_ENTRADA);
   const ent=modoFee?[]:(p.entradas||[]);
   const vendidas=ent.reduce((t,e)=>t+n(e.vendidas),0);
+  /* Poner un tipo de entrada con su precio NO significa haberla vendido. Solo
+     hay ventas si alguna fila trae un numero en «vendidas»: mientras no lo
+     traiga, el P&L habla de prevision, no de resultado. */
+  const hayVentas=ent.some(e=>String(e.vendidas??"").trim()!==""&&n(e.vendidas)>0);
+  const cupo=ent.reduce((t,e)=>t+n(e.cupo),0);
   const taquillaPVP=ent.reduce((t,e)=>t+n(e.precio)*n(e.vendidas),0);   // precios con IVA incluido
   const taquillaNeta=taquillaPVP/(1+ivaE/100);
   const feeFijo=modoFee?n(p.feeFijo):0;
@@ -1692,7 +1847,13 @@ function calcProd(p){
   // toFixed(6) evita que 200.00000000000003 se redondee a 201 por coma flotante
   const beEntradas=(!modoFee&&precioMedio>0)?Math.ceil(+(aCubrir/precioMedio).toFixed(6)):null;
   const aforo=n(p.aforo);
-  return {modoFee,feeFijo,ivaE,vendidas,taquillaPVP,taquillaNeta,otros,sponsor,ingresos,cacheArtistas,
+  /* Prevision: taquilla si se llenara el cupo declarado (y si no hay cupo, el
+     aforo). Sirve para juzgar la produccion antes de vender una sola entrada. */
+  const objetivo=(!modoFee)?(cupo||aforo||0):0;
+  const previsionNeta=objetivo*precioMedio;
+  const previsionBeneficio=previsionNeta+otros+sponsor-costes;
+  return {modoFee,feeFijo,ivaE,vendidas,hayVentas,cupo,objetivo,previsionNeta,previsionBeneficio,
+    taquillaPVP,taquillaNeta,otros,sponsor,ingresos,cacheArtistas,
     viajesLineup,crewFees,viajesCrew,costeCrew,costesOtros,costes,beneficio,
     precioMedio,beEntradas,aforo,
     ocupacion:(!modoFee&&aforo)?vendidas/aforo*100:null,
@@ -2296,6 +2457,33 @@ function showsPagaP(pid){return DB.shows.filter(s=>s.promotorId===pid)}
 function showsColaboraP(pid){return DB.shows.filter(s=>s.promotorId!==pid&&colabsDe(s).includes(pid))}
 function showsDe(id){return DB.shows.filter(s=>s.clienteId===id)}
 function vivos(){return DB.shows.filter(s=>s.estado!=="cancelado")}
+/* Todos los shows en los que participa un artista: como contratado o como DJ
+   del line-up de un colectivo. */
+function showsDeArtista(id){return DB.shows.filter(s=>s.clienteId===id||s.djId===id||(s.djs||[]).includes(id))}
+/* Lo que un show genera PARA el artista, en neto: si es el contratado, su neto
+   (el IVA es de Hacienda y el IRPF una retencion, no ingreso suyo); si va como
+   DJ de un colectivo, la parte que le asigna el reparto interno. Mismo criterio
+   que el bloque «como DJ» del Informe de ganancias. */
+function netoArtistaEnShow(s,id){
+  if(s.clienteId===id)return calc(s).neto;
+  if(djsDelShow(s).includes(id)||s.djId===id)return repartoDjs(s).porDj;
+  return 0;
+}
+/* Buscador con espera: al repintar la vista el input desaparece, asi que hay
+   que devolverle el foco y el cursor. Sin esto se escribe un caracter y se
+   pierde el foco (pasaba en Distribuir cancion y en Mis Canciones). */
+function buscadorEspera(id,set){
+  const q=document.getElementById(id);if(!q)return;
+  q.addEventListener("input",e=>{
+    set(e.target.value);
+    clearTimeout(window.__bqT);
+    window.__bqT=setTimeout(()=>{
+      render();
+      const i=document.getElementById(id);
+      if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}
+    },220);
+  });
+}
 function redUrl(k,v){
   if(!v)return "";v=String(v).trim();
   if(/^https?:\/\//i.test(v))return v;
@@ -2344,15 +2532,19 @@ function comisionesPorMes(anio){
 }
 function kpis(anio){
   let ingresoMalo=0,margenMalo=0,facturacion=0,pdteCobro=0,pdteLiq=0,terceros=0,shows=0;
+  /* Pipeline = lo que hay ofertado y sin cerrar. Se cuenta aparte: sumarlo a la
+     facturacion daba un total distinto del que sale en el Informe de ganancias. */
+  let pipeline=0,ofertas=0;
   vivos().forEach(s=>{
     const c=calc(s),enAnio=!anio||(s.fecha||"").slice(0,4)===String(anio);
     const cobrado=s.cobro&&s.cobro.estado==="cobrado",liquidado=s.liq&&s.liq.estado==="liquidado";
-    if(enAnio){shows++;facturacion+=c.bruto;ingresoMalo+=c.comis;margenMalo+=c.margen}
+    if(enAnio&&s.estado==="oferta"){ofertas++;pipeline+=c.bruto}
+    if(enAnio&&s.estado!=="oferta"){shows++;facturacion+=c.bruto;ingresoMalo+=c.comis;margenMalo+=c.margen}
     if(!cobrado&&(s.estado==="contratado"||s.estado==="ejecutado"))pdteCobro+=c.bruto;
     if(!liquidado&&s.estado==="ejecutado")pdteLiq+=c.transfer;
     if(cobrado&&!liquidado)terceros+=c.transfer;
   });
-  return {ingresoMalo,margenMalo,facturacion,pdteCobro,pdteLiq,terceros,shows};
+  return {ingresoMalo,margenMalo,facturacion,pdteCobro,pdteLiq,terceros,shows,pipeline,ofertas};
 }
 /* Ítems unificados del calendario: shows (dinero) + eventos (iCal/manual) */
 function itemsCal(){
@@ -2603,7 +2795,7 @@ let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",doc
   ordenShows:"fecha_asc",ordenClientes:"cat",ordenContactos:"cat",relBD:"",ordenDocs:"fecha_desc",
   ordenMailing:"alpha",ordenMapa:"n_desc",anio:String(new Date().getFullYear()),
   temaQ:"",temaCliente:"",temaEstado:"",ordenTemas:"envio_desc",
-  cancionQ:"",cancionArtista:"",ordenCanciones:"alpha",
+  cancionQ:"",cancionArtista:"",ordenCanciones:"bruto_desc",cancionVista:"galeria",
   bolsilloArtista:"",bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
   redesArtista:""};
 const _n=new Date();
@@ -2673,6 +2865,26 @@ function tablasFicha(root){
 let FILTROS_ABIERTOS=false;
 /* Filas clicables accesibles por teclado: tabindex + Enter/Espacio abren la
    ficha igual que un toque. Corre tras cada render(), como tablasFicha(). */
+/* Un input[type=date] solo abre el calendario si aciertas en el iconito. Con
+   esto se abre pulsando en cualquier parte del campo (y con Enter), que es lo
+   que espera cualquiera. showPicker no existe en Safari < 16: si falla, el
+   campo sigue funcionando como siempre. */
+document.addEventListener("pointerup",e=>{
+  const t=e.target;
+  if(!t||t.tagName!=="INPUT")return;
+  if(t.type!=="date"&&t.type!=="month"&&t.type!=="time")return;
+  if(t.readOnly||t.disabled)return;
+  if(typeof t.showPicker!=="function")return;
+  try{t.showPicker()}catch(_){}
+},true);
+document.addEventListener("keydown",e=>{
+  const t=e.target;
+  if(e.key!=="Enter"||!t||t.tagName!=="INPUT")return;
+  if(t.type!=="date"&&t.type!=="month"&&t.type!=="time")return;
+  if(typeof t.showPicker!=="function")return;
+  e.preventDefault();try{t.showPicker()}catch(_){}
+});
+
 function filasTeclado(root){
   (root||document).querySelectorAll("tbody tr.click").forEach(tr=>{
     if(tr.hasAttribute("tabindex"))return;
@@ -2915,11 +3127,14 @@ document.getElementById("logoutBtn").addEventListener("click",async()=>{
   if(sb&&sb._demo){salirDemo();return}
   await sb.auth.signOut();location.reload();});
 document.addEventListener("keydown",e=>{
+  /* Escape cierra la ventana SIEMPRE, tambien con el cursor dentro de un campo:
+     al abrir un formulario el foco cae en el primer input, asi que con el
+     return de abajo Escape no cerraba nada justo cuando mas se usa. */
+  if(e.key==="Escape"){closeModal();return}
   /* e.target puede no ser un elemento (el propio document, por ejemplo) */
   if(e.target&&e.target.matches&&e.target.matches("input,select,textarea"))return;
   const v=VIEWS.find(x=>x.k===e.key);
   if(v){VIEW=v.id;render()}
-  if(e.key==="Escape")closeModal();
 });
 
 /* ════════ PANEL ════════ */
@@ -2937,7 +3152,7 @@ function viewPanel(el,ta){
   }
 
   const porCliente=DB.clientes.map(c=>{
-    const ss=showsDe(c.id).filter(s=>s.estado!=="cancelado"&&(s.fecha||"").slice(0,4)===filtro.anio);
+    const ss=showsDe(c.id).filter(s=>s.estado!=="cancelado"&&s.estado!=="oferta"&&(s.fecha||"").slice(0,4)===filtro.anio);
     return {c,n:ss.length,ing:ss.reduce((t,s)=>t+calc(s).comis,0),fac:ss.reduce((t,s)=>t+calc(s).bruto,0)};
   }).filter(x=>x.n>0).sort((a,b)=>b.ing-a.ing);
 
@@ -2973,7 +3188,8 @@ function viewPanel(el,ta){
     <div class="cell"><div class="lab">Ingreso MALO ${filtro.anio}</div><div class="val v-malo">${eur0(K.ingresoMalo)}</div>
       <div class="note">Margen tras gastos propios: <span class="strong">${eur0(K.margenMalo)}</span></div></div>
     <div class="cell"><div class="lab">Facturación gestionada</div><div class="val">${eur0(K.facturacion)}</div>
-      <div class="note">${K.shows} shows · comisión media ${K.facturacion?pct(K.ingresoMalo/K.facturacion*100):"—"}</div></div>
+      <div class="note">${K.shows} shows en firme · comisión media ${K.facturacion?pct(K.ingresoMalo/K.facturacion*100):"—"}</div>
+      ${K.pipeline?`<div class="note">+ ${eur0(K.pipeline)} en ${K.ofertas} oferta${K.ofertas===1?"":"s"} sin cerrar (no cuenta aquí)</div>`:""}</div>
     <div class="cell"><div class="lab">Pendiente de cobro</div><div class="val ${K.pdteCobro>0?"v-alert":"v-mute"}">${eur0(K.pdteCobro)}</div>
       <div class="note">${impagados.length} fuera de plazo</div></div>
     <div class="cell"><div class="lab">Pendiente de liquidar</div><div class="val v-artist">${eur0(K.pdteLiq)}</div>
@@ -3066,7 +3282,7 @@ function viewInicioPortal(el,ta){
   const mios=DB.shows.filter(s=>s.clienteId===c.id||s.djId===c.id||(s.djs||[]).includes(c.id));
   const prox=mios.filter(s=>s.fecha&&s.fecha>=H&&s.estado!=="cancelado")
     .sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,6);
-  const anioShows=mios.filter(s=>s.fecha&&s.fecha.slice(0,4)===anio&&s.estado!=="cancelado").length;
+  const anioShows=mios.filter(s=>s.fecha&&s.fecha.slice(0,4)===anio&&s.estado!=="cancelado"&&s.estado!=="oferta").length;
   const rangoAnio={desde:anio+"-01",hasta:anio+"-12"};
   const genAnio=sumaEnRango(bolsilloCancionesPorMes(c.id),rangoAnio)+sumaEnRango(bolsilloShowsPorMes(c.id),rangoAnio);
   const redes=REDES_CRECIMIENTO.map(red=>{
@@ -3291,6 +3507,10 @@ function viewShows(el,ta){
   const tot=list.filter(s=>s.estado!=="cancelado").reduce((t,s)=>{const c=calc(s);
     t.bruto+=c.bruto;t.comis+=c.comis;t.neto+=c.neto;t.gastos+=c.gArt+c.gMalo+c.gProm;return t},
     {bruto:0,comis:0,neto:0,gastos:0});
+  /* Estos totales son de lo que estas viendo, ofertas incluidas. Se dice, para
+     que no choquen con la «facturacion en firme» del Panel. */
+  const totOferta=list.filter(s=>s.estado==="oferta").reduce((t,s)=>t+calc(s).bruto,0);
+  const notaOferta=totOferta?`<div class="note">incluye ${eur0(totOferta)} en ofertas</div>`:"";
   const pag=paginar(list,"shows");list=pag.list;
   document.getElementById("viewSub").textContent=filtro.verAntiguos
     ? `${list.length} registros · con antiguos`
@@ -3311,7 +3531,7 @@ function viewShows(el,ta){
   <div class="strip" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
     ${""/* Los totales cuadran siempre con lo que se ve en la tabla, así que hay que
           decir si son solo de las próximas o de todo el histórico filtrado. */}
-    <div class="cell" style="cursor:pointer" data-kpi="bruto"><div class="lab">Caché bruto${filtro.verAntiguos?"":" · próximos"}</div><div class="val">${eur0(tot.bruto)}</div></div>
+    <div class="cell" style="cursor:pointer" data-kpi="bruto"><div class="lab">Caché bruto${filtro.verAntiguos?"":" · próximos"}</div><div class="val">${eur0(tot.bruto)}</div>${notaOferta}</div>
     <div class="cell" style="cursor:pointer" data-kpi="neto"><div class="lab">Neto clientes${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-artist">${eur0(tot.neto)}</div></div>
     <div class="cell" style="cursor:pointer" data-kpi="comis"><div class="lab">Comisión MALO${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-malo">${eur0(tot.comis)}</div></div>
     <div class="cell" style="cursor:pointer" data-kpi="gastos"><div class="lab">Total gastos${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-alert">${eur0(tot.gastos)}</div></div>
@@ -3444,7 +3664,7 @@ function crearShowsDeProduccion(id){
 
 function formProduccion(id){
   const p=id?DB.producciones.find(x=>x.id===id):{id:uid("prd"),nombre:"",fecha:CAL.sel||hoy(),ciudad:"",venueId:"",
-    aforo:0,ivaEntrada:IVA_ENTRADA,modoFee:false,feeFijo:0,entradas:[{concepto:"Anticipada",precio:0,vendidas:0}],
+    aforo:0,ivaEntrada:IVA_ENTRADA,modoFee:false,feeFijo:0,entradas:[{concepto:"Anticipada",precio:0,cupo:0,vendidas:""}],
     otrosIngresos:[],lineup:[],costes:[],notas:""};
   openModal(`
   <header><h3>${id?"Editar producción":"Nueva producción"}</h3><div class="spacer"></div>
@@ -3483,6 +3703,9 @@ function formProduccion(id){
 
     <div id="bloqueEntradas">
       <div class="section-title">Entradas · precios con IVA incluido (PVP)</div>
+      <p class="dim tiny" style="margin:0 0 10px">Define aquí los tipos de entrada y su precio: esto <b>no</b> cuenta como vendido.
+        «Cupo» son las entradas puestas a la venta a ese precio (opcional, alimenta la previsión).
+        Deja <b>Vendidas</b> en blanco hasta que tengas la venta real.</p>
       <div id="entradas"></div>
       <button class="btn sm" id="addEnt" style="margin-top:4px">Añadir tipo de entrada</button>
     </div>
@@ -3537,13 +3760,15 @@ function formProduccion(id){
   let crew=JSON.parse(JSON.stringify(p.crew||[]));
 
   function pintaEntradas(){
+    const vac=v=>(v===undefined||v===null||String(v).trim()===""||n(v)===0)?"":n(v);
     document.getElementById("entradas").innerHTML=entradas.length?entradas.map((e,i)=>`
       <div class="ent-row">
-        <input placeholder="Concepto (anticipada, taquilla, VIP…)" value="${esc(e.concepto||"")}" data-e="${i}" data-k="concepto">
-        <input type="number" step="0.5" min="0" placeholder="PVP" value="${n(e.precio)}" data-e="${i}" data-k="precio">
-        <input type="number" step="1" min="0" placeholder="Vendidas" value="${n(e.vendidas)}" data-e="${i}" data-k="vendidas">
-        <div class="dim tiny" style="text-align:right;font-family:var(--mono)">${eur0(n(e.precio)*n(e.vendidas))}</div>
-        <button class="x" data-del-e="${i}">×</button></div>`).join("")
+        <label class="ent-c wide" data-l="Concepto"><input placeholder="Anticipada, taquilla, VIP…" value="${esc(e.concepto||"")}" data-e="${i}" data-k="concepto"></label>
+        <label class="ent-c" data-l="PVP €"><input type="number" step="0.5" min="0" placeholder="0" value="${vac(e.precio)}" data-e="${i}" data-k="precio"></label>
+        <label class="ent-c" data-l="Cupo"><input type="number" step="1" min="0" placeholder="—" value="${vac(e.cupo)}" data-e="${i}" data-k="cupo"></label>
+        <label class="ent-c" data-l="Vendidas (real)"><input type="number" step="1" min="0" placeholder="sin datos" value="${vac(e.vendidas)}" data-e="${i}" data-k="vendidas" style="border-color:var(--artist)"></label>
+        <div class="ent-c" data-l="Recaudado"><div class="dim tiny" data-sub-e="${i}" style="text-align:right;font-family:var(--mono);padding:7px 0">${n(e.vendidas)?eur0(n(e.precio)*n(e.vendidas)):"—"}</div></div>
+        <div style="display:flex;justify-content:flex-end"><button class="x" data-del-e="${i}" title="Quitar" aria-label="Quitar">×</button></div></div>`).join("")
       :`<p class="dim tiny" style="padding:4px 0">Sin entradas definidas. Sin precio no se puede calcular el punto de equilibrio.</p>`;
   }
   function pintaLista(campo,arr,cont,ph1,extra){
@@ -3565,41 +3790,47 @@ function formProduccion(id){
      el crew no tiene sentido. */
   function pintaPersonas(campo,arr,cont,esLineup){
     const salasUsadas=[...new Set(lineup.map(x=>String(x.sala||"").trim()).filter(Boolean))];
-    document.getElementById(cont).innerHTML=arr.length?`
-      <div class="lu-cab">
-        ${esLineup?`<div>Sala</div>`:""}
-        <div>${esLineup?"Artista":"Persona"}</div><div>Fee</div><div>Estado</div>
-        <div>Alojamiento</div><div>€</div><div>Transporte</div><div>€</div>${esLineup?`<div>Set</div>`:"<div></div>"}<div></div>
-      </div>`+arr.map((x,i)=>`
+    const nomCli=c=>String(c.nombre||c.nombreReal||"").trim();
+    const vac=v=>n(v)?n(v):"";
+    const selEstado=(x,k,i)=>`<select data-${campo}="${i}" data-k="${k}">
+          <option value="">—</option><option value="na" ${x[k]==="na"?"selected":""}>N/A</option>
+          <option value="pend" ${x[k]==="pend"?"selected":""}>Pendiente</option>
+          <option value="ok" ${x[k]==="ok"?"selected":""}>Confirmado</option></select>`;
+    document.getElementById(cont).innerHTML=arr.length?arr.map((x,i)=>{
+      /* Un solo campo para el artista: escribes y, si el nombre coincide con un
+         cliente de MALO, se enlaza solo (y se marca en violeta); si no, queda
+         como externo. Antes eran un select y un input pisandose. */
+      const cli=esLineup&&x.clienteId?DB.clientes.find(c=>c.id===x.clienteId):null;
+      const valArt=cli?nomCli(cli):(x.nombre||"");
+      return `
       <div class="lu-row${esLineup?"":" crew"}">
-        ${esLineup?`<input placeholder="—" list="salasLista" value="${esc(x.sala||"")}" data-${campo}="${i}" data-k="sala">`:""}
-        ${esLineup?`<div class="lu-art">
-          <select data-${campo}="${i}" data-k="clienteId"><option value="">— externo —</option>
-            ${DB.clientes.map(c=>`<option value="${c.id}" ${x.clienteId===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}
-          </select>
-          ${!x.clienteId?`<input placeholder="Nombre del artista externo" value="${esc(x.nombre||"")}" data-${campo}="${i}" data-k="nombre">`:""}
-        </div>`
-        :`<input placeholder="Nombre" value="${esc(x.nombre||"")}" data-${campo}="${i}" data-k="nombre">`}
-        <input type="number" step="10" placeholder="0" value="${n(x.cache)}" data-${campo}="${i}" data-k="cache">
-        <select data-${campo}="${i}" data-k="status">
+        <label class="lu-c wide" data-l="${esLineup?"Artista":"Persona"}">
+          <input placeholder="${esLineup?"Nombre del artista":"Nombre"}" ${esLineup?`list="clientesLista" class="${cli?"lu-link":""}" data-art="${i}"`:""}
+            value="${esc(valArt)}" data-${campo}="${i}" data-k="${esLineup?"artista":"nombre"}">
+          ${cli?`<span class="lu-tag">Cliente MALO</span>`:(esLineup&&valArt?`<span class="lu-tag" style="color:var(--mute)">Externo</span>`:"")}
+        </label>
+        ${esLineup?`<label class="lu-c" data-l="Sala"><input placeholder="—" list="salasLista" value="${esc(x.sala||"")}" data-${campo}="${i}" data-k="sala"></label>`:""}
+        <label class="lu-c" data-l="Fee €"><input type="number" step="10" placeholder="0" value="${vac(x.cache)}" data-${campo}="${i}" data-k="cache"></label>
+        <label class="lu-c" data-l="Estado"><select data-${campo}="${i}" data-k="status">
           ${Object.entries(ESTADO_LINEUP).map(([k,v])=>`<option value="${k}" ${(x.status||"pendiente")===k?"selected":""}>${v.label}</option>`).join("")}
-        </select>
-        <select data-${campo}="${i}" data-k="alojEstado">
-          <option value="">—</option><option value="na" ${x.alojEstado==="na"?"selected":""}>N/A</option>
-          <option value="pend" ${x.alojEstado==="pend"?"selected":""}>Pendiente</option>
-          <option value="ok" ${x.alojEstado==="ok"?"selected":""}>Confirmado</option>
-        </select>
-        <input type="number" step="1" placeholder="0" value="${n(x.alojImporte)}" data-${campo}="${i}" data-k="alojImporte">
-        <select data-${campo}="${i}" data-k="transEstado">
-          <option value="">—</option><option value="na" ${x.transEstado==="na"?"selected":""}>N/A</option>
-          <option value="pend" ${x.transEstado==="pend"?"selected":""}>Pendiente</option>
-          <option value="ok" ${x.transEstado==="ok"?"selected":""}>Confirmado</option>
-        </select>
-        <input type="number" step="1" placeholder="0" value="${n(x.transImporte)}" data-${campo}="${i}" data-k="transImporte">
-        ${esLineup?`<input placeholder="1:30" value="${esc(x.setDuracion||"")}" data-${campo}="${i}" data-k="setDuracion">`:`<div></div>`}
-        <button class="x" data-del-${campo}="${i}">×</button></div>`).join("")
+        </select></label>
+        <label class="lu-c" data-l="Alojamiento">${selEstado(x,"alojEstado",i)}</label>
+        <label class="lu-c" data-l="Alojamiento €"><input type="number" step="1" placeholder="0" value="${vac(x.alojImporte)}" data-${campo}="${i}" data-k="alojImporte"></label>
+        <label class="lu-c" data-l="Transporte">${selEstado(x,"transEstado",i)}</label>
+        <label class="lu-c" data-l="Transporte €"><input type="number" step="1" placeholder="0" value="${vac(x.transImporte)}" data-${campo}="${i}" data-k="transImporte"></label>
+        ${esLineup?`<label class="lu-c" data-l="Set"><input placeholder="1:30" value="${esc(x.setDuracion||"")}" data-${campo}="${i}" data-k="setDuracion"></label>`:""}
+        <div class="lu-x"><button class="x" data-del-${campo}="${i}" title="Quitar" aria-label="Quitar">×</button></div></div>`}).join("")
       +`<datalist id="salasLista">${salasUsadas.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>`
+      +(esLineup?`<datalist id="clientesLista">${DB.clientes.map(c=>`<option value="${esc(nomCli(c))}">`).join("")}</datalist>`:"")
       :`<p class="dim tiny" style="padding:4px 0">${esLineup?"Sin artistas todavía.":"Sin equipo asignado."}</p>`;
+  }
+  /* Resuelve el texto del campo Artista a clienteId (si coincide con un cliente)
+     o a nombre libre. Se llama al salir del campo, no en cada tecla. */
+  function resuelveArtista(i,txt){
+    const t=String(txt||"").trim();
+    const c=DB.clientes.find(x=>String(x.nombre||x.nombreReal||"").trim().toLowerCase()===t.toLowerCase());
+    if(c){lineup[i].clienteId=c.id;lineup[i].nombre=""}
+    else {lineup[i].clienteId="";lineup[i].nombre=t}
   }
   const pintaLineup=()=>pintaPersonas("l",lineup,"lineup",true);
   const pintaCrew  =()=>pintaPersonas("cw",crew,"crewLista",false);
@@ -3609,7 +3840,7 @@ function formProduccion(id){
     return {id:p.id,nombre:val("p_nombre"),fecha:val("p_fecha"),ciudad:val("p_ciudad"),venueId:val("p_venue"),
       aforo:num("p_aforo"),ivaEntrada:num("p_iva"),
       modoFee:document.getElementById("p_modo_fee").checked,feeFijo:num("p_fee"),
-      entradas:entradas.filter(e=>e.concepto||n(e.precio)||n(e.vendidas)),
+      entradas:entradas.filter(e=>e.concepto||n(e.precio)||n(e.cupo)||n(e.vendidas)),
       otrosIngresos:otros.filter(x=>x.concepto||n(x.importe)),
       estado:val("p_estado"),horario:val("p_horario"),
       sponsor:val("p_sponsor"),sponsorAportacion:num("p_sponsorimp"),
@@ -3620,15 +3851,25 @@ function formProduccion(id){
   }
   function pintaPL(){
     const d=leer(),c=calcProd(d);
-    const ancho=c.aforo?Math.min(100,c.vendidas/c.aforo*100):0;
-    const bePos=(c.aforo&&c.beEntradas!==null)?Math.min(100,c.beEntradas/c.aforo*100):null;
-    document.getElementById("pl").innerHTML=`
-      ${(!c.modoFee&&c.aforo)?`<div class="bar-be">
+    const base=c.aforo||c.cupo||0;
+    const ancho=base?Math.min(100,c.vendidas/base*100):0;
+    const bePos=(base&&c.beEntradas!==null)?Math.min(100,c.beEntradas/base*100):null;
+    const avisoPrev=(!c.modoFee&&!c.hayVentas)?`
+      <div class="pill" style="font-size:11px;border-color:var(--artist);color:var(--artist)">
+        Sin ventas registradas — lo de abajo es previsión, no resultado</div>
+      ${c.objetivo&&c.precioMedio?`<table class="cascade" style="margin:12px 0 0">
+        <tr><td class="lbl">Previsión a cupo lleno <span class="dim">${c.objetivo} entradas · ${eur(c.precioMedio)} netos c/u</span></td><td>${eur(c.previsionNeta)}</td></tr>
+        <tr class="sub"><td class="lbl">Resultado en ese escenario</td>
+          <td style="color:${c.previsionBeneficio>=0?"var(--malo)":"var(--alert)"}">${eur(c.previsionBeneficio)}</td></tr>
+        ${c.beEntradas!==null?`<tr class="sub"><td class="lbl">Hace falta vender</td><td>${c.beEntradas} entradas</td></tr>`:""}
+      </table>`:`<p class="dim tiny" style="margin:8px 0 0">Pon precio (y cupo o aforo) para ver la previsión y el punto de equilibrio.</p>`}`:"";
+    document.getElementById("pl").innerHTML=avisoPrev+`
+      ${(!c.modoFee&&base&&c.hayVentas)?`<div class="bar-be">
         <div class="fill" style="width:${ancho}%"></div>
         ${bePos!==null?`<div class="be" style="left:${bePos}%" title="Punto de equilibrio"></div>`:""}
-        <div class="lbl">${c.vendidas} / ${c.aforo} · ${Math.round(ancho)} % de aforo</div></div>
+        <div class="lbl">${c.vendidas} / ${base} · ${Math.round(ancho)} % ${c.aforo?"de aforo":"del cupo"}</div></div>
       <div class="strip-legend"><div><span class="sw" style="background:rgba(143,121,242,.55)"></span>Vendidas</div>
-        ${bePos!==null?`<div><span class="sw" style="background:var(--malo)"></span>Punto de equilibrio: ${c.beEntradas} entradas (${Math.round(c.beOcupacion)} % del aforo)</div>`:""}</div>`
+        ${bePos!==null?`<div><span class="sw" style="background:var(--malo)"></span>Punto de equilibrio: ${c.beEntradas} entradas (${Math.round(c.beEntradas/base*100)} % ${c.aforo?"del aforo":"del cupo"})</div>`:""}</div>`
       :c.modoFee?`<div class="pill malo" style="font-size:11px">Fee fijo pactado — el resultado no depende de la asistencia</div>`:""}
       <div class="fgrid" style="margin-top:18px">
         <div class="f s6"><table class="cascade">
@@ -3637,7 +3878,7 @@ function formProduccion(id){
           ${c.otros?`<tr><td class="lbl">+ Otros ingresos</td><td>${eur(c.otros)}</td></tr>`:""}
           <tr class="total"><td class="lbl">Ingresos</td><td>${eur(c.ingresos)}</td></tr>`
           :`
-          <tr><td class="lbl">Taquilla PVP <span class="dim">${c.vendidas} entradas</span></td><td>${eur(c.taquillaPVP)}</td></tr>
+          <tr><td class="lbl">Taquilla PVP <span class="dim">${c.hayVentas?c.vendidas+" entradas vendidas":"sin ventas registradas"}</span></td><td>${eur(c.taquillaPVP)}</td></tr>
           <tr class="sub"><td class="lbl">− IVA ${pct(c.ivaE)}</td><td>−${eur(c.taquillaPVP-c.taquillaNeta)}</td></tr>
           <tr><td class="lbl">Taquilla sin IVA</td><td>${eur(c.taquillaNeta)}</td></tr>
           ${c.otros?`<tr><td class="lbl">+ Otros ingresos</td><td>${eur(c.otros)}</td></tr>`:""}
@@ -3645,6 +3886,8 @@ function formProduccion(id){
         </table></div>
         <div class="f s6"><table class="cascade">
           <tr><td class="lbl">Cachés del line-up</td><td>${eur(c.cacheArtistas)}</td></tr>
+          ${c.viajesLineup?`<tr><td class="lbl">Alojamiento y transporte del line-up</td><td>${eur(c.viajesLineup)}</td></tr>`:""}
+          ${c.costeCrew?`<tr><td class="lbl">Equipo · crew <span class="dim">${c.crewFees?eur(c.crewFees)+" fees":""}${c.crewFees&&c.viajesCrew?" + ":""}${c.viajesCrew?eur(c.viajesCrew)+" viajes":""}</span></td><td>${eur(c.costeCrew)}</td></tr>`:""}
           <tr><td class="lbl">Producción y otros costes</td><td>${eur(c.costesOtros)}</td></tr>
           <tr class="total"><td class="lbl" style="color:var(--alert)">Costes</td><td style="color:var(--alert)">${eur(c.costes)}</td></tr>
         </table>
@@ -3657,22 +3900,40 @@ function formProduccion(id){
       </div>`;
   }
   const root=document.querySelector(".modal");
+  /* CLAVE: mientras escribes NO se repinta ningun bloque que contenga el campo
+     que tienes enfocado. Antes `pintaEntradas()` reescribia el innerHTML en
+     cada tecla, el input desaparecia y perdias el foco: solo dejaba teclear un
+     caracter. Ahora en `input` se actualiza el modelo, el subtotal de la fila y
+     el P&L (que no contiene campos), y el repintado se reserva para anadir,
+     borrar o resolver el artista, que si cambian la estructura. */
   function aplica(e){
     const t=e.target,v=t.value;
-    const num_=k=>["precio","vendidas","importe","cache","alojImporte","transImporte"].includes(k);
-    if(t.dataset.e!==undefined)entradas[+t.dataset.e][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.o!==undefined)otros[+t.dataset.o][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.l!==undefined)lineup[+t.dataset.l][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.cw!==undefined)crew[+t.dataset.cw][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.c!==undefined&&t.dataset.cw===undefined)costes[+t.dataset.c][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.e!==undefined)pintaEntradas();
-    /* Al enlazar (o desenlazar) un cliente hay que repintar la fila: si es
-       externo aparece el campo de nombre libre, y si es cliente sobra. */
-    if(t.dataset.l!==undefined&&t.dataset.k==="clienteId")pintaLineup();
+    const num_=k=>["precio","cupo","vendidas","importe","cache","alojImporte","transImporte"].includes(k);
+    const k=t.dataset.k;
+    if(t.dataset.e!==undefined){
+      const i=+t.dataset.e;
+      /* «vendidas» y «cupo» vacios se guardan como "" para distinguir
+         «no lo se todavia» de «cero vendidas». */
+      entradas[i][k]=num_(k)?((k==="vendidas"||k==="cupo")&&String(v).trim()===""?"":n(v)):v;
+      const sub=root.querySelector(`[data-sub-e="${i}"]`);
+      if(sub)sub.textContent=n(entradas[i].vendidas)?eur0(n(entradas[i].precio)*n(entradas[i].vendidas)):"—";
+    }
+    if(t.dataset.o!==undefined)otros[+t.dataset.o][k]=num_(k)?n(v):v;
+    if(t.dataset.l!==undefined){
+      if(k==="artista")resuelveArtista(+t.dataset.l,v);
+      else lineup[+t.dataset.l][k]=num_(k)?n(v):v;
+    }
+    if(t.dataset.cw!==undefined)crew[+t.dataset.cw][k]=num_(k)?n(v):v;
+    if(t.dataset.c!==undefined&&t.dataset.cw===undefined)costes[+t.dataset.c][k]=num_(k)?n(v):v;
     pintaPL();
   }
   root.addEventListener("input",aplica);
   root.addEventListener("change",aplica);
+  /* Al salir del campo de artista se repinta la fila para mostrar la etiqueta
+     «Cliente MALO» / «Externo». Nunca mientras se escribe. */
+  root.addEventListener("focusout",e=>{
+    if(e.target.dataset&&e.target.dataset.art!==undefined){pintaLineup();pintaPL()}
+  });
   root.addEventListener("click",e=>{
     const map=[["delE",entradas,pintaEntradas],["delO",otros,pintaOtros],["delL",lineup,pintaLineup],
       ["delCw",crew,pintaCrew],["delC",costes,pintaCostes]];
@@ -3693,11 +3954,12 @@ function formProduccion(id){
     pintaPL();
   });
   buscable("p_venue");
-  document.getElementById("addEnt").addEventListener("click",()=>{entradas.push({concepto:"",precio:0,vendidas:0});pintaEntradas();pintaPL()});
+  document.getElementById("addEnt").addEventListener("click",()=>{entradas.push({concepto:"",precio:0,cupo:"",vendidas:""});pintaEntradas();pintaPL()});
   document.getElementById("addOtro").addEventListener("click",()=>{otros.push({concepto:"",importe:0});pintaOtros();pintaPL()});
   document.getElementById("addLine").addEventListener("click",()=>{
     lineup.push({clienteId:"",nombre:"",cache:0,sala:"",status:"pendiente",alojEstado:"",alojImporte:0,transEstado:"",transImporte:0,setDuracion:""});
-    pintaLineup();pintaPL()});
+    pintaLineup();pintaPL();
+    const f=document.querySelector('#lineup .lu-row:last-of-type [data-art]');if(f)f.focus();});
   document.getElementById("addCrew").addEventListener("click",()=>{
     crew.push({nombre:"",cache:0,status:"confirmado",alojEstado:"",alojImporte:0,transEstado:"",transImporte:0});
     pintaCrew();pintaPL()});
@@ -4043,9 +4305,11 @@ function bolsilloCancionesPorMes(clienteId){
 /* Ingresos de shows de un cliente: mapa "YYYY-MM" → neto (lo que se le transfiere) */
 function bolsilloShowsPorMes(clienteId){
   const out={};
-  showsDe(clienteId).filter(s=>s.estado!=="cancelado"&&s.fecha).forEach(s=>{
+  showsDeArtista(clienteId).filter(s=>s.estado!=="cancelado"&&s.estado!=="oferta"&&s.fecha).forEach(s=>{
+    const imp=netoArtistaEnShow(s,clienteId);
+    if(!imp)return;
     const key=s.fecha.slice(0,7);
-    out[key]=(out[key]||0)+calc(s).transfer;
+    out[key]=(out[key]||0)+imp;
   });
   return out;
 }
@@ -4077,7 +4341,9 @@ function crecimientoMensualRed(clienteId,red){
 }
 function rangoBolsillo(){
   const a=filtro.bolsilloAnio;
-  if(filtro.bolsilloModo==="mes"){const m=`${a}-${filtro.bolsilloMes}`;return {desde:m,hasta:m,label:"este mes"}}
+  if(filtro.bolsilloModo==="mes"){const m=`${a}-${filtro.bolsilloMes}`;
+    /* Antes decia siempre «este mes», tambien mirando marzo de 2024. */
+    return {desde:m,hasta:m,label:`${AG_MESES[+filtro.bolsilloMes-1].toLowerCase()} ${a}`}}
   if(filtro.bolsilloModo==="trimestre"){const t=+filtro.bolsilloTrim,m0=(t-1)*3+1,m1=m0+2;
     return {desde:`${a}-${pad(m0)}`,hasta:`${a}-${pad(m1)}`,label:`T${t} ${a}`}}
   if(filtro.bolsilloModo==="anio")return {desde:`${a}-01`,hasta:`${a}-12`,label:a};
@@ -4118,6 +4384,67 @@ function viewMisCanciones(el,ta){
 
   const sinCerrar=list0.filter(c=>Math.abs(sumaParticipantesPct(c.id)-100)>0.01);
   const brutoTotal=list0.reduce((a,c)=>a+brutoTotalCancion(c.id),0);
+  const poolTotal=list0.reduce((a,c)=>a+cascadaCancion(c).pool,0);
+  const conIngresos=list0.filter(c=>brutoTotalCancion(c.id)>0).length;
+  const galeria=filtro.cancionVista!=="tabla";
+
+  /* Agrupacion por mixtape/release, con los singles al final. La usan la
+     galeria y la tabla, para que las dos vistas cuenten lo mismo. */
+  const SINGLES=" ";
+  function gruposDe(arr){
+    const g={};
+    arr.forEach(c=>{const k=(c.mixtape||"").trim()||SINGLES;(g[k]=g[k]||[]).push(c)});
+    const claves=Object.keys(g).filter(k=>k!==SINGLES).sort((a,b)=>a.localeCompare(b));
+    if(g[SINGLES])claves.push(SINGLES);
+    return claves.map(k=>({clave:k,single:k===SINGLES,
+      nombre:k===SINGLES?"Singles / sueltas":k,temas:g[k],
+      portada:k===SINGLES?null:(g[k].find(c=>c.portadaUrl)||{}).portadaUrl}));
+  }
+
+  /* Doce meses de bruto para la linea de tendencia de cada ficha. */
+  function serie12(cancionId){
+    const hoyD=new Date(),ms=[];
+    for(let i=11;i>=0;i--){const d=new Date(hoyD.getFullYear(),hoyD.getMonth()-i,1);
+      ms.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`)}
+    const porMes={};
+    ingresosDe(cancionId).forEach(i=>{const k=(i.mes||"").slice(0,7);if(k)porMes[k]=(porMes[k]||0)+n(i.bruto)});
+    return ms.map(k=>porMes[k]||0);
+  }
+  function sparkline(vals){
+    if(vals.filter(v=>v>0).length<2)return "";
+    const W=100,H=22,vmax=Math.max(...vals);
+    const pts=vals.map((v,i)=>[(i/(vals.length-1))*W,H-2-(v/vmax)*(H-5)]);
+    const linea=pts.map((pt,i)=>(i?"L":"M")+pt[0].toFixed(1)+","+pt[1].toFixed(1)).join(" ");
+    return `<svg class="cn-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <path d="${linea} L${W},${H} L0,${H} Z" fill="rgba(240,86,143,.14)"/>
+      <path d="${linea}" fill="none" stroke="var(--malo)" stroke-width="1.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+    </svg>`;
+  }
+  const inicialesTit=t=>String(t||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
+  function ficha(c){
+    const bruto=brutoTotalCancion(c.id),pool=cascadaCancion(c).pool;
+    const suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
+    const tit=tituloConCreditos(c)||"(sin título)";
+    return `<button type="button" class="cn-card" data-cancion="${c.id}" style="--c:${ca.color}"
+      aria-label="${esc(tit)} · ${bruto?eur0(bruto)+" generados":"sin liquidaciones"}">
+      <div class="cn-art">
+        ${c.portadaUrl
+          ? `<img src="${esc(c.portadaUrl)}" alt="" loading="lazy" decoding="async">`
+          : `<div class="cn-ph" aria-hidden="true">${esc(inicialesTit(c.titulo))}</div>`}
+        <div class="cn-tit"><b>${esc(tit)}</b><span>${esc(nomCliente(c.artistaId))}</span></div>
+      </div>
+      <div class="cn-body">
+        <div class="cn-lab">Ha generado</div>
+        <div class="cn-eur ${bruto?"":"cero"}">${bruto?eur0(bruto):"Sin liquidaciones"}</div>
+        ${bruto?`<div class="cn-sub">${eur0(pool)} a repartir</div>`:`<div class="cn-sub">Añade el bruto mes a mes para verlo</div>`}
+        ${sparkline(serie12(c.id))}
+        <div class="cn-flags">
+          ${c.distribuidora?`<span class="cn-flag">${esc(c.distribuidora)}</span>`:""}
+          ${Math.abs(suma-100)>0.01?`<span class="cn-flag warn">reparto ${pct(suma)}</span>`:""}
+        </div>
+      </div>
+    </button>`;
+  }
 
   el.innerHTML=`
   <div class="filters">
@@ -4125,47 +4452,55 @@ function viewMisCanciones(el,ta){
     <select id="cncli"><option value="">Todos los artistas</option>
       ${DB.clientes.slice().sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""))
         .map(c=>`<option value="${c.id}" ${filtro.cancionArtista===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select>
-    ${selectOrden("ordCanciones",[["alpha","Título A-Z"],["artista","Artista A-Z"],["bruto_desc","Más generado primero"]],filtro.ordenCanciones)}
+    ${selectOrden("ordCanciones",[["bruto_desc","Más generado primero"],["alpha","Título A-Z"],["artista","Artista A-Z"]],filtro.ordenCanciones)}
+    <button class="btn sm" id="cnvista" aria-pressed="${galeria?"false":"true"}">${galeria?"Ver como tabla":"Ver como galería"}</button>
     ${(filtro.cancionQ||filtro.cancionArtista)?`<button class="btn ghost sm" id="cnclr">Quitar filtros</button>`:""}
   </div>
 
   <div class="strip">
-    <div class="cell"><div class="lab">Canciones</div><div class="val">${list0.length}</div></div>
-    <div class="cell"><div class="lab">Bruto acumulado (histórico)</div><div class="val v-malo">${eur0(brutoTotal)}</div></div>
+    <div class="cell"><div class="lab">Canciones</div><div class="val">${list0.length}</div>
+      <div class="note">${conIngresos} con liquidaciones cargadas</div></div>
+    <div class="cell"><div class="lab">Han generado (bruto histórico)</div><div class="val v-malo">${eur0(brutoTotal)}</div>
+      <div class="note">antes de distribuidora y management</div></div>
+    <div class="cell"><div class="lab">A repartir entre los participantes</div><div class="val v-artist">${eur0(poolTotal)}</div>
+      <div class="note">lo que queda tras los dos fees</div></div>
     <div class="cell"><div class="lab">Repartos que no cuadran</div>
       <div class="val ${sinCerrar.length?"v-alert":"v-mute"}">${sinCerrar.length}</div>
       <div class="note">No suman 100 %</div></div>
   </div>
-
+  `+(galeria?(list.length?gruposDe(list).map(g=>`
+    <div class="cn-sec">${g.portada?`<img src="${esc(g.portada)}" alt="" loading="lazy">`:""}
+      <h4>${esc(g.nombre)}</h4>
+      <span class="n">${g.temas.length} ${g.temas.length===1?"tema":"temas"}</span>
+      <span class="ln"></span>
+      <span class="n">${eur0(g.temas.reduce((a,c)=>a+brutoTotalCancion(c.id),0))}</span></div>
+    <div class="cn-grid">${g.temas.map(ficha).join("")}</div>`).join("")
+    :`<div class="card"><div class="empty"><p>No hay canciones con estos filtros.</p></div></div>`)
+  :`
   <div class="card"><div class="body flush">
-  <table><thead><tr><th>Título</th><th>Artista</th><th>Distribuidora</th><th class="num">Bruto histórico</th><th class="num">Reparto</th></tr></thead>
+  <table><thead><tr><th>Título</th><th>Artista</th><th>Distribuidora</th><th class="num">Ha generado</th><th class="num">A repartir</th><th class="num">Reparto</th></tr></thead>
   <tbody>${(()=>{
-    const fila=c=>{const bruto=brutoTotalCancion(c.id),suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
+    const fila=c=>{const bruto=brutoTotalCancion(c.id),pool=cascadaCancion(c).pool,suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
       return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
-      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
+      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" alt="" loading="lazy" style="width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
       <td><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(c.artistaId))}</span></td>
       <td class="dim">${esc(c.distribuidora||"—")}${c.cuentaPortal?`<div class="tiny dim">cta. ${esc(c.cuentaPortal)}</div>`:""}</td>
-      <td class="num">${eur0(bruto)}</td>
+      <td class="num ${bruto?"strong":"dim"}">${bruto?eur0(bruto):"—"}</td>
+      <td class="num v-artist">${bruto?eur0(pool):"—"}</td>
       <td class="num"><span class="${Math.abs(suma-100)<0.01?"":"v-alert strong"}" style="font-family:var(--mono)">${pct(suma)}</span></td>
     </tr>`};
-    const SINGLES=" ";
-    const grupos={};
-    list.forEach(c=>{const k=(c.mixtape||"").trim()||SINGLES;(grupos[k]=grupos[k]||[]).push(c)});
-    const claves=Object.keys(grupos).filter(k=>k!==SINGLES).sort((a,b)=>a.localeCompare(b));
-    if(grupos[SINGLES])claves.push(SINGLES);
-    return claves.map(k=>{
-      const arr=grupos[k],single=k===SINGLES,nombre=single?"Singles / sueltas":k;
-      const th=single?null:arr.find(c=>c.portadaUrl);
-      const thumb=th?`<img src="${esc(th.portadaUrl)}" style="width:22px;height:22px;object-fit:cover;border-radius:3px;flex:none">`:"";
-      return `<tr><td colspan="5" style="padding:9px 12px;background:var(--panel-2);border-top:1px solid var(--rule)">
-        <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px">${thumb}<span>${esc(nombre)}</span><span class="dim tiny" style="font-weight:400">· ${arr.length} ${arr.length===1?"tema":"temas"}</span></span></td></tr>`
-        +arr.map(fila).join("");
+    return gruposDe(list).map(g=>{
+      const thumb=g.portada?`<img src="${esc(g.portada)}" alt="" loading="lazy" style="width:22px;height:22px;object-fit:cover;border-radius:3px;flex:none">`:"";
+      return `<tr><td colspan="6" style="padding:9px 12px;background:var(--panel-2);border-top:1px solid var(--rule)">
+        <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px">${thumb}<span>${esc(g.nombre)}</span><span class="dim tiny" style="font-weight:400">· ${g.temas.length} ${g.temas.length===1?"tema":"temas"} · ${eur0(g.temas.reduce((a,c)=>a+brutoTotalCancion(c.id),0))}</span></span></td></tr>`
+        +g.temas.map(fila).join("");
     }).join("");
   })()}</tbody></table>
-  </div></div>`;
+  </div></div>`);
 
-  const q=document.getElementById("cnq");
-  if(q)q.addEventListener("input",e=>{filtro.cancionQ=e.target.value;clearTimeout(window.__cnT);window.__cnT=setTimeout(render,220)});
+  const vb=document.getElementById("cnvista");
+  if(vb)vb.addEventListener("click",()=>{filtro.cancionVista=galeria?"tabla":"galeria";render()});
+  buscadorEspera("cnq",v=>{filtro.cancionQ=v});
   const fc=document.getElementById("cncli");
   if(fc){fc.addEventListener("change",e=>{filtro.cancionArtista=e.target.value;render()});buscable("cncli")}
   const or=document.getElementById("ordCanciones");
@@ -4328,7 +4663,10 @@ function formCancion(id){
     }
     if(j!==undefined&&ingresos[+j]){
       const k=e.target.dataset.k;
-      ingresos[+j][k]=(k==="bruto"||k==="unidades")?n(e.target.value):(k==="mes"?e.target.value+"-01":e.target.value);
+      /* Si se vacia el campo de mes hay que guardar "" y no "-01", que se
+         guardaba y dejaba el ingreso fuera de todos los rangos sin avisar. */
+      ingresos[+j][k]=(k==="bruto"||k==="unidades")?n(e.target.value)
+        :(k==="mes"?(e.target.value?e.target.value+"-01":""):e.target.value);
       if(k==="bruto")pintaCascadaCancion();
     }
   });
@@ -4463,7 +4801,7 @@ function saveCancion(isNew){
 }
 
 function viewBolsillo(el,ta){
-  const artistas=DB.clientes.slice().filter(c=>cancionesDe(c.id).length||showsDe(c.id).length)
+  const artistas=DB.clientes.slice().filter(c=>cancionesDe(c.id).length||showsDeArtista(c.id).length)
     .sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
   if(!filtro.bolsilloArtista&&artistas.length)filtro.bolsilloArtista=artistas[0].id;
   ta.innerHTML=`<select id="bsArt" style="background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;padding:6px 10px">
@@ -4499,8 +4837,10 @@ function viewBolsillo(el,ta){
   }).filter(Boolean).filter(x=>x.total>0).sort((a,b)=>b.total-a.total);
 
   const combinado=[];
-  showsDe(cli).filter(s=>s.estado!=="cancelado"&&s.fecha&&s.fecha.slice(0,7)>=r.desde&&s.fecha.slice(0,7)<=r.hasta)
-    .forEach(s=>combinado.push({fecha:s.fecha,tipo:"show",titulo:nomPromotor(s.promotorId)!=="—"?nomPromotor(s.promotorId):(s.ciudad||"Show"),importe:calc(s).transfer}));
+  showsDeArtista(cli).filter(s=>s.estado!=="cancelado"&&s.estado!=="oferta"&&s.fecha&&s.fecha.slice(0,7)>=r.desde&&s.fecha.slice(0,7)<=r.hasta)
+    .forEach(s=>{const imp=netoArtistaEnShow(s,cli);if(!imp)return;
+      combinado.push({fecha:s.fecha,tipo:s.clienteId===cli?"show":"show · como DJ",
+        titulo:nomPromotor(s.promotorId)!=="—"?nomPromotor(s.promotorId):(s.ciudad||"Show"),importe:imp})});
   participacionesDe(cli).forEach(p=>{
     const c=(DB.canciones||[]).find(x=>x.id===p.cancionId);if(!c)return;
     ingresosDe(c.id).filter(i=>(i.mes||"").slice(0,7)>=r.desde&&(i.mes||"").slice(0,7)<=r.hasta)
@@ -6223,7 +6563,7 @@ function viewCapturas(el,ta){
 
 let CFG_TAB="datos";
 const CFG_TABS=[["datos","Datos"],["integraciones","Integraciones"],
-  ["empresa","Datos Empresa"],["equipo","Equipo y permisos"]];
+  ["empresa","Datos Empresa"],["equipo","Equipo y permisos"],["novedades","Novedades"]];
 
 /* ── Ajustes compartidos del equipo ── */
 function cfgAjustes(){return (DB.empresa&&DB.empresa.ajustes)||{}}
@@ -6292,7 +6632,7 @@ function viewDatos(el,ta){
   const sub=document.getElementById("viewSub");
   if(sub)sub.textContent=t[1];
   ({datos:cfgTabDatos,integraciones:cfgTabIntegraciones,
-    empresa:cfgTabEmpresa,equipo:cfgTabEquipo})[t[0]](el);
+    empresa:cfgTabEmpresa,equipo:cfgTabEquipo,novedades:cfgTabNovedades})[t[0]](el);
 
   const tabs=`<div class="cfg-tabs">`+CFG_TABS.map(([id,lab])=>
     `<button class="btn ${CFG_TAB===id?"primary":"ghost"} sm" data-cfg-tab="${id}">${lab}</button>`
@@ -6307,6 +6647,46 @@ function viewDatos(el,ta){
   (movil?el:ta).querySelectorAll("[data-cfg-tab]").forEach(b=>b.addEventListener("click",()=>{
     CFG_TAB=b.dataset.cfgTab;render();window.scrollTo(0,0);
   }));
+}
+
+/* ── Pestaña 5 · Novedades ──────────────────────────────────────────────────
+   Lee CHANGELOG (arriba del archivo). Abrir esta pestaña marca la versión como
+   vista, así que el aviso de "versión nueva" no vuelve a salir hasta la
+   siguiente publicación. La marca es por navegador (localStorage), no por
+   usuario: si entras desde otro móvil, el aviso sale otra vez. */
+const VER_VISTA_KEY="malo_version_vista";
+function versionVista(){ try{return localStorage.getItem(VER_VISTA_KEY)||""}catch(e){return ""} }
+function marcaVersionVista(){ try{localStorage.setItem(VER_VISTA_KEY,APP_VERSION)}catch(e){} }
+function avisoNovedades(){
+  const antes=versionVista();
+  if(antes===APP_VERSION)return;
+  /* Primera vez en este navegador: no hay nada que anunciar, solo se apunta. */
+  if(!antes){ marcaVersionVista(); return; }
+  toast("Versión "+APP_VERSION+" publicada · mira Configuración › Novedades");
+}
+function cfgTabNovedades(el){
+  marcaVersionVista();
+  const bloques=CHANGELOG.map((r,i)=>`
+    <div style="padding:${i?"18px":"0"} 0 0;${i?"border-top:1px solid var(--rule);margin-top:18px":""}">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:9px;flex-wrap:wrap">
+        <span class="strong" style="font-size:14px">${esc(fecha(r.fecha))}</span>
+        <span class="dim tiny">v ${esc(r.v)} · ${r.cambios.length} ${r.cambios.length===1?"cambio":"cambios"}</span>
+        ${i?"":`<span class="badge">Actual</span>`}
+      </div>
+      <ul style="margin:0;padding-left:18px;color:var(--mute);font-size:12.5px;line-height:1.7">
+        ${r.cambios.map(c=>`<li>${esc(c)}</li>`).join("")}
+      </ul>
+    </div>`).join("");
+  el.innerHTML=`
+  <div class="card"><header><h3>Novedades de la app</h3></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;margin-bottom:20px">
+      Todo lo que se publica queda apuntado aquí, de lo más nuevo a lo más viejo.
+      Estás usando la <strong style="color:var(--bone)">v ${esc(APP_VERSION)}</strong>.
+      Si al entrar te sale un aviso de versión nueva, es esta pestaña lo que tienes que mirar.</p>
+    ${bloques}
+    <p class="dim tiny" style="margin-top:20px">Historial completo desde el 15 de agosto de 2026, el día de la primera subida.
+      Va por fecha porque hasta la 0.017 el número de versión no se subía en cada publicación.</p>
+  </div></div>`;
 }
 
 /* ── Pestaña 1 · Datos ──────────────────────────────────────────────────── */
@@ -9843,7 +10223,8 @@ function formShow(id,comoNuevo){
       /* al marcar cobrado, la fecha de cobro se pone sola a hoy si está vacía:
          el rating de puntualidad del promotor la necesita. */
       const f=document.getElementById("c_cob");if(f&&!f.value)f.value=hoy()}
-    const g=e.target.dataset.g;if(g!==undefined)gastos[+g][e.target.dataset.k]=e.target.value;
+    const g=e.target.dataset.g;
+    if(g!==undefined){const kg=e.target.dataset.k;gastos[+g][kg]=kg==="importe"?n(e.target.value):e.target.value}
     const a=e.target.dataset.a;if(a!==undefined)adjuntos[+a][e.target.dataset.k]=e.target.dataset.k==="importe"?n(e.target.value):e.target.value;
     pintaCascada();
   });
@@ -9851,7 +10232,9 @@ function formShow(id,comoNuevo){
     const d=e.target.closest("[data-del-g]");
     if(d){gastos.splice(+d.dataset.delG,1);pintaGastos();pintaCascada();return}
     const da=e.target.closest("[data-del-a]");
-    if(da){adjuntos.splice(+da.dataset.delA,1);pintaAdjuntos()}});
+    /* pintaCascada() tambien aqui: sin ella, al borrar un adjunto con importe
+       los numeros de la cascada se quedaban con el valor viejo. */
+    if(da){adjuntos.splice(+da.dataset.delA,1);pintaAdjuntos();pintaCascada()}});
   document.getElementById("addAdj").addEventListener("click",()=>{adjuntos.push({tipo:"gasto",concepto:"",importe:0,url:""});pintaAdjuntos()});
   document.getElementById("addGasto").addEventListener("click",()=>{gastos.push({concepto:"",importe:0,cargo:"artista"});pintaGastos();pintaCascada()});
   function pintaDjHint(){
@@ -10400,6 +10783,7 @@ async function startApp(){
   try{ cierreDeMes(); }catch(e){ console.error("cierreDeMes",e); }
   try{ recordatoriosFrios(); }catch(e){ console.error("recordatoriosFrios",e); }
   render();
+  try{ avisoNovedades(); }catch(e){ console.error("avisoNovedades",e); }
 }
 /* El botón del móvil reutiliza el mismo PNG que la barra lateral: el base64 pesa
    y no hay por qué llevarlo dos veces en el archivo. */
