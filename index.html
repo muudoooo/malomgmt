@@ -652,8 +652,8 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
    Ficha por cancion con la caratula grande, agrupada por mixtape/release igual
    que la tabla. La caratula lleva aspect-ratio 1/1 y loading="lazy": el hueco
    se reserva antes de que baje la imagen, asi la cuadricula no salta. */
-.cn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:16px}
-@media(max-width:520px){.cn-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}}
+.cn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+@media(max-width:520px){.cn-grid{grid-template-columns:repeat(auto-fill,minmax(144px,1fr));gap:11px}}
 .cn-sec{display:flex;align-items:center;gap:9px;margin:22px 0 11px}
 .cn-sec:first-child{margin-top:0}
 .cn-sec img{width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none}
@@ -671,17 +671,17 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
 .cn-art img{width:100%;height:100%;object-fit:cover;display:block}
 /* Sin caratula: las iniciales del titulo sobre el color del artista. */
 .cn-art .cn-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-family:var(--sans);font-weight:800;font-size:34px;letter-spacing:.02em;color:rgba(255,255,255,.9);
+  font-family:var(--sans);font-weight:800;font-size:26px;letter-spacing:.02em;color:rgba(255,255,255,.9);
   background:linear-gradient(150deg,var(--c,#8F79F2) 0%,rgba(14,15,18,.92) 100%)}
-.cn-art .cn-tit{position:absolute;left:0;right:0;bottom:0;padding:26px 10px 9px;
+.cn-art .cn-tit{position:absolute;left:0;right:0;bottom:0;padding:22px 8px 7px;
   background:linear-gradient(to top,rgba(9,10,13,.93) 12%,rgba(9,10,13,.72) 55%,transparent 100%)}
-.cn-art .cn-tit b{display:block;font-size:13px;line-height:1.25;color:#fff;
+.cn-art .cn-tit b{display:block;font-size:11.5px;line-height:1.25;color:#fff;
   overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .cn-art .cn-tit span{display:block;font-size:10.5px;color:rgba(255,255,255,.72);margin-top:2px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cn-body{padding:10px 11px 11px;display:flex;flex-direction:column;gap:2px}
+.cn-body{padding:8px 9px 9px;display:flex;flex-direction:column;gap:1px}
 .cn-lab{font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
-.cn-eur{font-family:var(--mono);font-size:19px;font-weight:600;color:var(--malo);line-height:1.1}
+.cn-eur{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--malo);line-height:1.1}
 .cn-eur.cero{color:var(--mute-2);font-size:13px;font-weight:400}
 .cn-sub{font-size:10.5px;color:var(--mute)}
 .cn-spark{margin-top:7px;height:22px;display:block;width:100%}
@@ -689,6 +689,22 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
 .cn-flag{font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;
   padding:2px 6px;border-radius:4px;border:1px solid var(--rule-2);color:var(--mute)}
 .cn-flag.warn{border-color:rgba(240,86,143,.5);color:var(--malo)}
+/* Secciones plegables con <details>/<summary>: el navegador ya sabe abrir y
+   cerrar, y funciona con teclado sin escribir nada. */
+.cn-det{border:0;margin:0}
+.cn-det > summary{list-style:none;cursor:pointer}
+.cn-det > summary::-webkit-details-marker{display:none}
+.cn-det > summary .cn-sec{margin:20px 0 10px}
+.cn-det:first-of-type > summary .cn-sec{margin-top:0}
+.cn-sec .fle{font-family:var(--mono);font-size:10px;color:var(--mute);
+  transition:transform .15s ease;display:inline-block;width:11px;flex:none}
+.cn-det[open] > summary .cn-sec .fle{transform:rotate(90deg)}
+.cn-det > summary:focus-visible .cn-sec h4{outline:2px solid var(--malo);outline-offset:3px}
+.cn-det > summary:hover .cn-sec h4{color:var(--malo)}
+/* La portada mostrada es la del release, no la del single: se marca con un
+   punto para que se sepa que el tema tiene su propia caratula. */
+.cn-art .cn-alt{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;
+  background:rgba(255,255,255,.75);box-shadow:0 0 0 2px rgba(9,10,13,.5)}
 /* ── Salir de la app: hoja de enlace externo ─────────────────────────────
    Un navegador NO permite elegir con que aplicacion se abre un enlace: eso lo
    decide el sistema. Lo que si se puede es preguntar antes de salir y ofrecer
@@ -1639,7 +1655,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.021";
+const APP_VERSION="0.022";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1648,6 +1664,15 @@ const APP_VERSION="0.021";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-27",v:"0.022",cambios:[
+    "Canciones sale agrupado por artista de entrada, y dentro de cada artista primero sus discos y luego las sueltas.",
+    "Las portadas ya no ocupan media pantalla en ordenador: las fichas son bastante más pequeñas, así entran el doble por fila.",
+    "Manda la portada del disco: una canción que salió dentro de un mixtape se ve con la portada del proyecto. Hay un botón para volver a ver la portada con la que salió cada single.",
+    "Cada mixtape o album es un desplegable: se abre y se cierra, y la app recuerda cuáles dejaste abiertos.",
+    "Nuevo filtro para ver solo lo que salió en mixtape/album o solo los singles y las sueltas.",
+    "Se puede elegir un periodo (por ejemplo abril–agosto) y ver cuánto generó cada canción y el total en esos meses, no solo el histórico.",
+    "«Espera» pasa a Los del Volumen, que es de quien es según la distribuidora.",
+    "Catálogo limpio: fuera 3 canciones repetidas y los 11 casos en que el audio y el videoclip figuraban como dos canciones distintas se han unido en una sola (el dinero de las dos sigue contando). Quedan 127 canciones."]},
   {fecha:"2026-08-27",v:"0.021",cambios:[
     "Las 148 portadas ya están puestas y se ven. Se piden al tamaño que se va a ver (unos 30 KB cada una en vez de 124 KB): la galería completa pasa de ~18 MB a ~4 MB, que es la diferencia entre verse al instante y quedarse en blanco."]},
   {fecha:"2026-08-27",v:"0.020",cambios:[
@@ -2850,7 +2875,8 @@ let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",doc
   ordenShows:"fecha_asc",ordenClientes:"cat",ordenContactos:"cat",relBD:"",ordenDocs:"fecha_desc",
   ordenMailing:"alpha",ordenMapa:"n_desc",anio:String(new Date().getFullYear()),
   temaQ:"",temaCliente:"",temaEstado:"",ordenTemas:"envio_desc",
-  cancionQ:"",cancionArtista:"",ordenCanciones:"artista",cancionVista:"galeria",cancionGrupo:"release",
+  cancionQ:"",cancionArtista:"",ordenCanciones:"artista",cancionVista:"galeria",cancionGrupo:"artista",
+  cancionTipo:"",cancionPortada:"release",cancionDesde:"",cancionHasta:"",
   bolsilloArtista:"",bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
   redesArtista:""};
 const _n=new Date();
@@ -4310,6 +4336,23 @@ function participantesDe(cancionId){return (DB.cancionParticipantes||[]).filter(
 function ingresosDe(cancionId){return (DB.cancionIngresos||[]).filter(i=>i.cancionId===cancionId).sort((a,b)=>(a.mes||"").localeCompare(b.mes||""))}
 function sumaParticipantesPct(cancionId){return participantesDe(cancionId).reduce((a,p)=>a+n(p.pct),0)}
 function brutoTotalCancion(cancionId){return ingresosDe(cancionId).reduce((a,i)=>a+n(i.bruto),0)}
+/* Igual que el anterior pero solo entre dos meses («2026-04», «2026-08»). Los
+   extremos entran. Si no se pasa rango, es el historico completo. */
+function brutoCancionRango(cancionId,desde,hasta){
+  if(!desde&&!hasta)return brutoTotalCancion(cancionId);
+  return ingresosDe(cancionId).reduce((a,i)=>{
+    const m=(i.mes||"").slice(0,7);
+    if(!m)return a;
+    if(desde&&m<desde)return a;
+    if(hasta&&m>hasta)return a;
+    return a+n(i.bruto);
+  },0);
+}
+/* Los meses que de verdad tienen liquidaciones cargadas, para el selector de
+   rango: no tiene sentido ofrecer meses vacios. */
+function mesesConDatos(){
+  return [...new Set((DB.cancionIngresos||[]).map(i=>(i.mes||"").slice(0,7)).filter(Boolean))].sort();
+}
 /* Cascada: bruto → −% distribución → −% management (sobre el neto de distribución) → pool a repartir */
 function poolDeMes(cancion,bruto){
   const trasDist=n(bruto)*(1-n(cancion.feeDistribucionPct)/100);
@@ -4429,21 +4472,60 @@ function sumaEnRango(mapa,rango){return Object.entries(mapa).filter(([k])=>k>=ra
 
 function viewMisCanciones(el,ta){
   ta.innerHTML=`<button class="btn primary" data-act="new-cancion">Nueva canción</button>`;
+  /* Preferencias guardadas (agrupacion, filtro, periodo...). Solo la primera vez
+     que se entra en la vista: despues manda lo que toque el usuario. */
+  if(!window.__cancionPrefLeida){
+    window.__cancionPrefLeida=true;
+    try{
+      const g=JSON.parse(localStorage.getItem("malo.canciones.pref")||"{}")||{};
+      if(g.grupo)filtro.cancionGrupo=g.grupo;
+      if(g.tipo!==undefined)filtro.cancionTipo=g.tipo;
+      if(g.portada)filtro.cancionPortada=g.portada;
+      if(g.vista)filtro.cancionVista=g.vista;
+      if(g.orden)filtro.ordenCanciones=g.orden;
+      if(g.desde!==undefined)filtro.cancionDesde=g.desde;
+      if(g.hasta!==undefined)filtro.cancionHasta=g.hasta;
+    }catch(_){}
+  }
   const list0=(DB.canciones||[]).slice();
+  const SINGLES=" ";
+  const releaseDe=c=>(c.mixtape||"").trim();
+  /* Cuantas canciones hay en cada release: sirve para saber si algo es un disco
+     de verdad o una suelta (un «release» de un solo tema no es un release). */
+  const porRelease={};
+  list0.forEach(c=>{const k=releaseDe(c);if(k)porRelease[k]=(porRelease[k]||0)+1});
+  const esRelease=c=>{const k=releaseDe(c);return !!k&&porRelease[k]>1};
+
+  /* ── rango de meses ──────────────────────────────────────────────────────
+     Con rango puesto, TODAS las cifras de la vista son de ese periodo: las de
+     la cabecera, las de cada ficha y las de cada release. Sin rango, historico. */
+  const meses=mesesConDatos();
+  let desde=filtro.cancionDesde||"", hasta=filtro.cancionHasta||"";
+  if(desde&&hasta&&desde>hasta){const t=desde;desde=hasta;hasta=t}
+  const conRango=!!(desde||hasta);
+  const dinero=c=>brutoCancionRango(c.id,desde,hasta);
+  const poolDe=c=>{const b=dinero(c);
+    return b*(1-n(c.feeDistribucionPct)/100)*(1-n(c.mgmtPct)/100)};
+  const mesBonito=m=>{ if(!m)return "";
+    const AB=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    return AB[+m.slice(5,7)-1]+" "+m.slice(0,4); };
+
   let list=list0;
   if(filtro.cancionQ){const q=filtro.cancionQ.toLowerCase();
     list=list.filter(c=>[c.titulo,c.isrc,c.distribuidora,nomCliente(c.artistaId)].join(" ").toLowerCase().includes(q))}
   if(filtro.cancionArtista)list=list.filter(c=>c.artistaId===filtro.cancionArtista);
-  /* Sin filtros el orden por defecto es por artista y, dentro de cada artista,
-     alfabetico. Antes era «mas generado primero», que con 148 temas y 0 € en
-     casi todos dejaba el catalogo en un orden aparentemente aleatorio. */
+  if(filtro.cancionTipo==="release")list=list.filter(esRelease);
+  if(filtro.cancionTipo==="single")list=list.filter(c=>!esRelease(c));
+
   const porTitulo=(a,b)=>(tituloLimpio(a)||"").localeCompare(tituloLimpio(b)||"","es",{sensitivity:"base"});
   list=aplicarOrden(list,filtro.ordenCanciones,{
     alpha:porTitulo,
     artista:(a,b)=>nomCliente(a.artistaId).localeCompare(nomCliente(b.artistaId),"es",{sensitivity:"base"})||porTitulo(a,b),
-    bruto_desc:(a,b)=>brutoTotalCancion(b.id)-brutoTotalCancion(a.id)||porTitulo(a,b),
+    bruto_desc:(a,b)=>dinero(b)-dinero(a)||porTitulo(a,b),
   });
-  document.getElementById("viewSub").textContent=list0.length?`${list0.length} canción${list0.length===1?"":"es"}${list.length!==list0.length?` · ${list.length} con filtros`:""}`:"";
+  document.getElementById("viewSub").textContent=list0.length
+    ? `${list0.length} ${list0.length===1?"canción":"canciones"}${list.length!==list0.length?` · ${list.length} con filtros`:""}${conRango?` · ${mesBonito(desde||meses[0])} a ${mesBonito(hasta||meses[meses.length-1])}`:""}`
+    : "";
 
   if(!list0.length){
     el.innerHTML=`<div class="card"><div class="empty"><p><strong>Todavía no hay canciones.</strong><br>
@@ -4454,42 +4536,59 @@ function viewMisCanciones(el,ta){
   }
 
   const sinCerrar=list0.filter(c=>Math.abs(sumaParticipantesPct(c.id)-100)>0.01);
-  const brutoTotal=list0.reduce((a,c)=>a+brutoTotalCancion(c.id),0);
-  const poolTotal=list0.reduce((a,c)=>a+cascadaCancion(c).pool,0);
-  const conIngresos=list0.filter(c=>brutoTotalCancion(c.id)>0).length;
+  const brutoTotal=list.reduce((a,c)=>a+dinero(c),0);
+  const poolTotal=list.reduce((a,c)=>a+poolDe(c),0);
+  const conIngresos=list.filter(c=>dinero(c)>0).length;
   const conPortada=list0.filter(c=>portadaImg(c)).length;
   const galeria=filtro.cancionVista!=="tabla";
+  const nRel=Object.values(porRelease).filter(x=>x>1).length;
+  const nSingles=list0.filter(c=>!esRelease(c)).length;
 
-  /* Agrupacion. Tres modos: por release (mixtape/album), por artista o sin
-     agrupar. La usan la galeria y la tabla, para que las dos cuenten lo mismo.
-     Un «release» con una sola cancion no es un release: cae en Singles. */
-  const SINGLES=" ";
+  /* ── agrupacion ─────────────────────────────────────────────────────────── */
   function gruposDe(arr){
     if(filtro.cancionGrupo==="nada")
-      return [{clave:"",single:false,nombre:"",temas:arr,portada:null,suelto:true}];
+      return [{clave:"",nombre:"",temas:arr,suelto:true}];
     if(filtro.cancionGrupo==="artista"){
       const g={};
       arr.forEach(c=>{const k=nomCliente(c.artistaId)||"(sin artista)";(g[k]=g[k]||[]).push(c)});
       return Object.keys(g).sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}))
-        .map(k=>({clave:k,single:false,nombre:k,temas:g[k],portada:null,
-                  color:catDe((g[k][0]||{}).artistaId).color}));
+        .map(k=>({clave:"art:"+k,nombre:k,temas:g[k],color:catDe((g[k][0]||{}).artistaId).color}));
     }
     const g={};
-    arr.forEach(c=>{const k=(c.mixtape||"").trim()||SINGLES;(g[k]=g[k]||[]).push(c)});
-    /* Un grupo de un solo tema se junta con los singles: si no, salen 38
-       cabeceras con una ficha debajo cada una. */
-    Object.keys(g).forEach(k=>{
-      if(k!==SINGLES&&g[k].length<2){(g[SINGLES]=g[SINGLES]||[]).push(...g[k]);delete g[k]}
-    });
+    arr.forEach(c=>{const k=esRelease(c)?releaseDe(c):SINGLES;(g[k]=g[k]||[]).push(c)});
     const claves=Object.keys(g).filter(k=>k!==SINGLES)
       .sort((a,b)=>g[b].length-g[a].length||a.localeCompare(b,"es",{sensitivity:"base"}));
     if(g[SINGLES])claves.push(SINGLES);
-    return claves.map(k=>({clave:k,single:k===SINGLES,
-      nombre:k===SINGLES?"Singles y sueltas":k,temas:g[k],
-      portada:k===SINGLES?null:portadaImg(g[k].find(c=>portadaImg(c)),32)}));
+    return claves.map(k=>({clave:"rel:"+k,single:k===SINGLES,
+      nombre:k===SINGLES?"Singles y sueltas":k,temas:g[k]}));
   }
 
-  /* Doce meses de bruto para la linea de tendencia de cada ficha. */
+  /* ── portada del release ─────────────────────────────────────────────────
+     La portada que manda es la del proyecto que engloba el tema: se toma la mas
+     repetida entre sus canciones (la del disco), no la del single con el que
+     salio cada uno. Con «Ver portada del single» se ve la propia de cada tema,
+     y mientras manda la del release los temas que tienen otra llevan un punto. */
+  const portadaRelease={};
+  Object.keys(porRelease).forEach(rel=>{
+    if(porRelease[rel]<2)return;
+    const cuenta={};
+    list0.filter(c=>releaseDe(c)===rel).forEach(c=>{const u=c.portadaUrl;if(u)cuenta[u]=(cuenta[u]||0)+1});
+    const top=Object.entries(cuenta).sort((a,b)=>b[1]-a[1])[0];
+    if(top)portadaRelease[rel]=top[0];
+  });
+  const verSingle=filtro.cancionPortada==="single";
+  const portadaDe=(c,ancho)=>{
+    const rel=releaseDe(c);
+    const delRel=(!verSingle&&esRelease(c)&&portadaRelease[rel])?portadaRelease[rel]:null;
+    return portadaImg(delRel?{portadaUrl:delRel}:c,ancho);
+  };
+  const heredada=c=>{
+    if(verSingle||!esRelease(c))return false;
+    const r=portadaRelease[releaseDe(c)];
+    return !!(r&&c.portadaUrl&&c.portadaUrl!==r);
+  };
+
+  /* ── series y ficha ─────────────────────────────────────────────────────── */
   function serie12(cancionId){
     const hoyD=new Date(),ms=[];
     for(let i=11;i>=0;i--){const d=new Date(hoyD.getFullYear(),hoyD.getMonth()-i,1);
@@ -4500,7 +4599,7 @@ function viewMisCanciones(el,ta){
   }
   function sparkline(vals){
     if(vals.filter(v=>v>0).length<2)return "";
-    const W=100,H=22,vmax=Math.max(...vals);
+    const W=100,H=18,vmax=Math.max(...vals);
     const pts=vals.map((v,i)=>[(i/(vals.length-1))*W,H-2-(v/vmax)*(H-5)]);
     const linea=pts.map((pt,i)=>(i?"L":"M")+pt[0].toFixed(1)+","+pt[1].toFixed(1)).join(" ");
     return `<svg class="cn-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
@@ -4510,30 +4609,40 @@ function viewMisCanciones(el,ta){
   }
   const inicialesTit=t=>String(t||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
   function ficha(c){
-    const bruto=brutoTotalCancion(c.id),pool=cascadaCancion(c).pool;
-    const suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
+    const b=dinero(c), suma=sumaParticipantesPct(c.id), ca=catDe(c.artistaId);
     const tit=tituloConCreditos(c)||"(sin título)";
+    const img=portadaDe(c,150);
     return `<button type="button" class="cn-card" data-cancion="${c.id}" style="--c:${ca.color}"
-      aria-label="${esc(tit)} · ${bruto?eur0(bruto)+" generados":"sin liquidaciones"}">
+      aria-label="${esc(tit)} · ${b?eur0(b)+" generados":"sin ingresos en este periodo"}">
       <div class="cn-art">
-        ${portadaImg(c)
-          ? `<img src="${esc(portadaImg(c,200))}" alt="" loading="lazy" decoding="async"
-               onerror="this.closest('.cn-art').innerHTML='<div class=\'cn-ph\' aria-hidden=\'true\'>${esc(inicialesTit(c.titulo))}</div>'+this.closest('.cn-art').querySelector('.cn-tit').outerHTML">`
+        ${img
+          ? `<img src="${esc(img)}" alt="" loading="lazy" decoding="async"
+               onerror="this.closest('.cn-art').innerHTML='<div class=\\'cn-ph\\' aria-hidden=\\'true\\'>${esc(inicialesTit(c.titulo))}</div>'+this.closest('.cn-art').querySelector('.cn-tit').outerHTML">`
           : `<div class="cn-ph" aria-hidden="true">${esc(inicialesTit(c.titulo))}</div>`}
+        ${heredada(c)?`<span class="cn-alt" title="Este tema tiene su propia portada de single"></span>`:""}
         <div class="cn-tit"><b>${esc(tit)}</b><span>${esc(nomCliente(c.artistaId))}</span></div>
       </div>
       <div class="cn-body">
-        <div class="cn-lab">Ha generado</div>
-        <div class="cn-eur ${bruto?"":"cero"}">${bruto?eur0(bruto):"Sin liquidaciones"}</div>
-        ${bruto?`<div class="cn-sub">${eur0(pool)} a repartir</div>`:`<div class="cn-sub">Añade el bruto mes a mes para verlo</div>`}
-        ${sparkline(serie12(c.id))}
+        <div class="cn-lab">${conRango?"En el periodo":"Ha generado"}</div>
+        <div class="cn-eur ${b?"":"cero"}">${b?eur0(b):(conRango?"Sin ingresos":"Sin liquidaciones")}</div>
+        ${b?`<div class="cn-sub">${eur0(poolDe(c))} a repartir</div>`:""}
+        ${conRango?"":sparkline(serie12(c.id))}
         <div class="cn-flags">
-          ${c.distribuidora?`<span class="cn-flag">${esc(c.distribuidora)}</span>`:""}
           ${Math.abs(suma-100)>0.01?`<span class="cn-flag warn">reparto ${pct(suma)}</span>`:""}
         </div>
       </div>
     </button>`;
   }
+
+  /* Como quiere ver el catalogo cada uno se recuerda en su dispositivo: si no,
+     al recargar se perdia la agrupacion, el filtro y el periodo elegidos. */
+  try{localStorage.setItem("malo.canciones.pref",JSON.stringify({
+    grupo:filtro.cancionGrupo,tipo:filtro.cancionTipo,portada:filtro.cancionPortada,
+    vista:filtro.cancionVista,orden:filtro.ordenCanciones,desde:filtro.cancionDesde,hasta:filtro.cancionHasta}))}catch(_){}
+  /* Que secciones estan plegadas, recordado en este dispositivo. */
+  const PLEG="malo.canciones.plegados";
+  let plegados={};
+  try{plegados=JSON.parse(localStorage.getItem(PLEG)||"{}")||{}}catch(_){}
 
   el.innerHTML=`
   <div class="filters">
@@ -4541,72 +4650,105 @@ function viewMisCanciones(el,ta){
     <select id="cncli"><option value="">Todos los artistas</option>
       ${DB.clientes.slice().sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""))
         .map(c=>`<option value="${c.id}" ${filtro.cancionArtista===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select>
-    ${selectOrden("ordCanciones",[["artista","Artista A-Z"],["alpha","Título A-Z"],["bruto_desc","Más generado primero"]],filtro.ordenCanciones)}
+    <select id="cntipo" aria-label="Tipo">
+      <option value="" ${!filtro.cancionTipo?"selected":""}>Discos y singles</option>
+      <option value="release" ${filtro.cancionTipo==="release"?"selected":""}>Solo mixtapes / álbumes (${nRel})</option>
+      <option value="single" ${filtro.cancionTipo==="single"?"selected":""}>Solo singles y sueltas (${nSingles})</option>
+    </select>
     <select id="cngrupo" aria-label="Agrupar">
-      <option value="release" ${filtro.cancionGrupo==="release"?"selected":""}>Agrupar por release</option>
       <option value="artista" ${filtro.cancionGrupo==="artista"?"selected":""}>Agrupar por artista</option>
+      <option value="release" ${filtro.cancionGrupo==="release"?"selected":""}>Agrupar por release</option>
       <option value="nada" ${filtro.cancionGrupo==="nada"?"selected":""}>Sin agrupar</option>
     </select>
+    ${selectOrden("ordCanciones",[["artista","Artista A-Z"],["alpha","Título A-Z"],["bruto_desc","Más generado primero"]],filtro.ordenCanciones)}
+    <span class="dim tiny" style="display:flex;align-items:center;gap:5px">
+      <label for="cnDesde" style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase">Periodo</label>
+      <input type="month" id="cnDesde" value="${esc(desde)}" min="${esc(meses[0]||"")}" max="${esc(meses[meses.length-1]||"")}" style="width:132px">
+      <span>a</span>
+      <input type="month" id="cnHasta" value="${esc(hasta)}" min="${esc(meses[0]||"")}" max="${esc(meses[meses.length-1]||"")}" style="width:132px">
+    </span>
+    <button class="btn sm" id="cnportada" aria-pressed="${verSingle?"true":"false"}">${verSingle?"Ver portada del release":"Ver portada del single"}</button>
     <button class="btn sm" id="cnvista" aria-pressed="${galeria?"false":"true"}">${galeria?"Ver como tabla":"Ver como galería"}</button>
-    ${(filtro.cancionQ||filtro.cancionArtista)?`<button class="btn ghost sm" id="cnclr">Quitar filtros</button>`:""}
+    ${(filtro.cancionQ||filtro.cancionArtista||filtro.cancionTipo||conRango)?`<button class="btn ghost sm" id="cnclr">Quitar filtros</button>`:""}
   </div>
 
   <div class="strip">
-    <div class="cell"><div class="lab">Canciones</div><div class="val">${list0.length}</div>
-      <div class="note">${conIngresos} con liquidaciones cargadas</div>
-      <div class="note ${conPortada?"":"v-alert"}">${conPortada} con portada</div></div>
-    <div class="cell"><div class="lab">Han generado (bruto histórico)</div><div class="val v-malo">${eur0(brutoTotal)}</div>
-      <div class="note">antes de distribuidora y management</div></div>
+    <div class="cell"><div class="lab">Canciones</div><div class="val">${list.length}${list.length!==list0.length?`<span class="dim" style="font-size:14px"> de ${list0.length}</span>`:""}</div>
+      <div class="note">${nRel} discos · ${nSingles} sueltas</div>
+      <div class="note ${conPortada===list0.length?"":"v-alert"}">${conPortada} con portada</div></div>
+    <div class="cell"><div class="lab">${conRango?"Generado en el periodo":"Han generado (bruto histórico)"}</div>
+      <div class="val v-malo">${eur0(brutoTotal)}</div>
+      <div class="note">${conIngresos} con ingresos${conRango?" en el periodo":""}</div></div>
     <div class="cell"><div class="lab">A repartir entre los participantes</div><div class="val v-artist">${eur0(poolTotal)}</div>
       <div class="note">lo que queda tras los dos fees</div></div>
     <div class="cell"><div class="lab">Repartos que no cuadran</div>
       <div class="val ${sinCerrar.length?"v-alert":"v-mute"}">${sinCerrar.length}</div>
       <div class="note">No suman 100 %</div></div>
   </div>
-  `+(galeria?(list.length?gruposDe(list).map(g=>(g.suelto?"":`
-    <div class="cn-sec" style="--c:${g.color||"var(--malo)"}">
-      ${g.portada?`<img src="${esc(g.portada)}" alt="" loading="lazy" onerror="this.remove()">`:""}
-      ${(!g.portada&&g.color)?`<span class="cdot"></span>`:""}
-      <h4>${esc(g.nombre)}</h4>
-      <span class="n">${g.temas.length} ${g.temas.length===1?"tema":"temas"}</span>
-      <span class="ln"></span>
-      <span class="n">${eur0(g.temas.reduce((a,c)=>a+brutoTotalCancion(c.id),0))}</span></div>`)
-    +`<div class="cn-grid">${g.temas.map(ficha).join("")}</div>`).join("")
+  `+(galeria?(list.length?gruposDe(list).map(g=>{
+      if(g.suelto)return `<div class="cn-grid">${g.temas.map(ficha).join("")}</div>`;
+      const bru=g.temas.reduce((a,c)=>a+dinero(c),0);
+      const port=g.single?null:(portadaRelease[g.nombre]?portadaImg({portadaUrl:portadaRelease[g.nombre]},32):portadaDe(g.temas[0],32));
+      return `<details class="cn-det" ${plegados[g.clave]?"":"open"} data-grupo="${esc(g.clave)}"><summary>
+      <div class="cn-sec" style="--c:${g.color||"var(--malo)"}">
+        <span class="fle" aria-hidden="true">▶</span>
+        ${port?`<img src="${esc(port)}" alt="" loading="lazy" onerror="this.remove()">`:""}
+        ${(!port&&g.color)?`<span class="cdot"></span>`:""}
+        <h4>${esc(g.nombre)}</h4>
+        <span class="n">${g.temas.length} ${g.temas.length===1?"tema":"temas"}</span>
+        <span class="ln"></span>
+        <span class="n">${eur0(bru)}</span></div></summary>
+      <div class="cn-grid">${g.temas.map(ficha).join("")}</div></details>`}).join("")
     :`<div class="card"><div class="empty"><p>No hay canciones con estos filtros.</p></div></div>`)
   :`
   <div class="card"><div class="body flush">
-  <table><thead><tr><th>Título</th><th>Artista</th><th>Distribuidora</th><th class="num">Ha generado</th><th class="num">A repartir</th><th class="num">Reparto</th></tr></thead>
+  <table><thead><tr><th>Título</th><th>Artista</th><th>Release</th><th class="num">${conRango?"En el periodo":"Ha generado"}</th><th class="num">A repartir</th><th class="num">Reparto</th></tr></thead>
   <tbody>${(()=>{
-    const fila=c=>{const bruto=brutoTotalCancion(c.id),pool=cascadaCancion(c).pool,suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
+    const fila=c=>{const b=dinero(c),suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId),img=portadaDe(c,32);
       return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
-      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${portadaImg(c)?`<img src="${esc(portadaImg(c,32))}" alt="" loading="lazy" onerror="this.remove()" style="width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
+      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${img?`<img src="${esc(img)}" alt="" loading="lazy" onerror="this.remove()" style="width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
       <td><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(c.artistaId))}</span></td>
-      <td class="dim">${esc(c.distribuidora||"—")}${c.cuentaPortal?`<div class="tiny dim">cta. ${esc(c.cuentaPortal)}</div>`:""}</td>
-      <td class="num ${bruto?"strong":"dim"}">${bruto?eur0(bruto):"—"}</td>
-      <td class="num v-artist">${bruto?eur0(pool):"—"}</td>
+      <td class="dim">${esRelease(c)?esc(releaseDe(c)):`<span class="tiny">suelta</span>`}</td>
+      <td class="num ${b?"strong":"dim"}">${b?eur0(b):"—"}</td>
+      <td class="num v-artist">${b?eur0(poolDe(c)):"—"}</td>
       <td class="num"><span class="${Math.abs(suma-100)<0.01?"":"v-alert strong"}" style="font-family:var(--mono)">${pct(suma)}</span></td>
     </tr>`};
     return gruposDe(list).map(g=>{
       if(g.suelto)return g.temas.map(fila).join("");
-      const thumb=g.portada?`<img src="${esc(g.portada)}" alt="" loading="lazy" onerror="this.remove()" style="width:22px;height:22px;object-fit:cover;border-radius:3px;flex:none">`:"";
+      const bru=g.temas.reduce((a,c)=>a+dinero(c),0);
       return `<tr><td colspan="6" style="padding:9px 12px;background:var(--panel-2);border-top:1px solid var(--rule)">
-        <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px">${thumb}<span>${esc(g.nombre)}</span><span class="dim tiny" style="font-weight:400">· ${g.temas.length} ${g.temas.length===1?"tema":"temas"} · ${eur0(g.temas.reduce((a,c)=>a+brutoTotalCancion(c.id),0))}</span></span></td></tr>`
+        <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px"><span>${esc(g.nombre)}</span><span class="dim tiny" style="font-weight:400">· ${g.temas.length} ${g.temas.length===1?"tema":"temas"} · ${eur0(bru)}</span></span></td></tr>`
         +g.temas.map(fila).join("");
     }).join("");
   })()}</tbody></table>
   </div></div>`);
 
+  /* plegar y desplegar: se recuerda por grupo en este dispositivo */
+  el.querySelectorAll("details.cn-det").forEach(d=>{
+    d.addEventListener("toggle",()=>{
+      plegados[d.dataset.grupo]=!d.open;
+      try{localStorage.setItem(PLEG,JSON.stringify(plegados))}catch(_){}
+    });
+  });
   const vb=document.getElementById("cnvista");
   if(vb)vb.addEventListener("click",()=>{filtro.cancionVista=galeria?"tabla":"galeria";render()});
+  const pb=document.getElementById("cnportada");
+  if(pb)pb.addEventListener("click",()=>{filtro.cancionPortada=verSingle?"release":"single";render()});
+  const gt=document.getElementById("cntipo");
+  if(gt)gt.addEventListener("change",e=>{filtro.cancionTipo=e.target.value;render()});
   const gr=document.getElementById("cngrupo");
   if(gr)gr.addEventListener("change",e=>{filtro.cancionGrupo=e.target.value;render()});
+  const d1=document.getElementById("cnDesde"),d2=document.getElementById("cnHasta");
+  if(d1)d1.addEventListener("change",e=>{filtro.cancionDesde=e.target.value;render()});
+  if(d2)d2.addEventListener("change",e=>{filtro.cancionHasta=e.target.value;render()});
   buscadorEspera("cnq",v=>{filtro.cancionQ=v});
   const fc=document.getElementById("cncli");
   if(fc){fc.addEventListener("change",e=>{filtro.cancionArtista=e.target.value;render()});buscable("cncli")}
   const or=document.getElementById("ordCanciones");
   if(or)or.addEventListener("change",e=>{filtro.ordenCanciones=e.target.value;render()});
   const cl=document.getElementById("cnclr");
-  if(cl)cl.addEventListener("click",()=>{filtro.cancionQ="";filtro.cancionArtista="";render()});
+  if(cl)cl.addEventListener("click",()=>{filtro.cancionQ="";filtro.cancionArtista="";
+    filtro.cancionTipo="";filtro.cancionDesde="";filtro.cancionHasta="";render()});
 }
 
 function formCancion(id){
