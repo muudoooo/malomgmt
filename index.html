@@ -1555,7 +1555,33 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.016";
+const APP_VERSION="0.017";
+/* ── Novedades de cada versión ──────────────────────────────────────────────
+   Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
+   que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
+   ARRIBA de esta lista (la primera es la actual). Escrito para leer, no para
+   programadores: qué cambia de cara al uso, no qué función se ha tocado. */
+const CHANGELOG=[
+  {v:"0.017",fecha:"2026-08-27",cambios:[
+    "El logo de MALO se ve completo, sin recortar, y dentro de un círculo más grande (barra lateral y móvil).",
+    "Nueva pestaña «Novedades» aquí en Configuración con los cambios de cada versión publicada.",
+    "Al entrar con una versión nueva salta un aviso para que sepas que hay cambios."]},
+  {v:"0.016",fecha:"2026-08-27",cambios:[
+    "«Mis Canciones» y «Distribuir canción» se unen en una sola sección, «Canciones», con pestañas Catálogo y Distribuir. Un solo sitio, también en el portal del artista.",
+    "La cola de distribución solo lista las canciones realmente enviadas: editar el videoclip de una canción del catálogo ya no la mete en la cola.",
+    "En la tarea «Abrir plaza» el botón de WhatsApp ya no escribe a un único contacto: abre un selector con todos los promotores de esa provincia (con teléfono y email, sin los descartados).",
+    "El apartado «Capturas» pasa a llamarse «Transcripción».",
+    "Cifras del panel coherentes entre secciones y arreglos de foco en los formularios."]},
+  {v:"0.015",fecha:"2026-08-26",cambios:[
+    "Producción: entradas y line-up ya son utilizables (aforo, tramos y horarios).",
+    "Login de cliente: recuperar contraseña por email, entrada con enlace mágico, ver u ocultar la contraseña, aviso de Bloq Mayús, medidor de fuerza y mensajes de error claros.",
+    "Copia de seguridad diaria automática a Google Drive (03:00), con 30 días de historial.",
+    "Arreglado el «Error al sincronizar» que les salía a los gestores al cerrar mes o tocar el selector de Drive."]},
+  {v:"0.014",fecha:"2026-08-26",cambios:[
+    "Seguridad: cada función del servidor comprueba el rol de quien llama (antes un artista podía llegar al Drive y a las redes de otro).",
+    "Cabeceras de seguridad y política de contenido activas en modo bloqueo."]}
+];
+/* Antes de la 0.014 no se guardaba historial de cambios. */
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -6206,7 +6232,7 @@ function viewCapturas(el,ta){
 
 let CFG_TAB="datos";
 const CFG_TABS=[["datos","Datos"],["integraciones","Integraciones"],
-  ["empresa","Datos Empresa"],["equipo","Equipo y permisos"]];
+  ["empresa","Datos Empresa"],["equipo","Equipo y permisos"],["novedades","Novedades"]];
 
 /* ── Ajustes compartidos del equipo ── */
 function cfgAjustes(){return (DB.empresa&&DB.empresa.ajustes)||{}}
@@ -6275,7 +6301,7 @@ function viewDatos(el,ta){
   const sub=document.getElementById("viewSub");
   if(sub)sub.textContent=t[1];
   ({datos:cfgTabDatos,integraciones:cfgTabIntegraciones,
-    empresa:cfgTabEmpresa,equipo:cfgTabEquipo})[t[0]](el);
+    empresa:cfgTabEmpresa,equipo:cfgTabEquipo,novedades:cfgTabNovedades})[t[0]](el);
 
   const tabs=`<div class="cfg-tabs">`+CFG_TABS.map(([id,lab])=>
     `<button class="btn ${CFG_TAB===id?"primary":"ghost"} sm" data-cfg-tab="${id}">${lab}</button>`
@@ -6290,6 +6316,45 @@ function viewDatos(el,ta){
   (movil?el:ta).querySelectorAll("[data-cfg-tab]").forEach(b=>b.addEventListener("click",()=>{
     CFG_TAB=b.dataset.cfgTab;render();window.scrollTo(0,0);
   }));
+}
+
+/* ── Pestaña 5 · Novedades ──────────────────────────────────────────────────
+   Lee CHANGELOG (arriba del archivo). Abrir esta pestaña marca la versión como
+   vista, así que el aviso de "versión nueva" no vuelve a salir hasta la
+   siguiente publicación. La marca es por navegador (localStorage), no por
+   usuario: si entras desde otro móvil, el aviso sale otra vez. */
+const VER_VISTA_KEY="malo_version_vista";
+function versionVista(){ try{return localStorage.getItem(VER_VISTA_KEY)||""}catch(e){return ""} }
+function marcaVersionVista(){ try{localStorage.setItem(VER_VISTA_KEY,APP_VERSION)}catch(e){} }
+function avisoNovedades(){
+  const antes=versionVista();
+  if(antes===APP_VERSION)return;
+  /* Primera vez en este navegador: no hay nada que anunciar, solo se apunta. */
+  if(!antes){ marcaVersionVista(); return; }
+  toast("Versión "+APP_VERSION+" publicada · mira Configuración › Novedades");
+}
+function cfgTabNovedades(el){
+  marcaVersionVista();
+  const bloques=CHANGELOG.map((r,i)=>`
+    <div style="padding:${i?"18px":"0"} 0 0;${i?"border-top:1px solid var(--rule);margin-top:18px":""}">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:9px">
+        <span class="strong" style="font-size:14px">v ${esc(r.v)}</span>
+        <span class="dim tiny">${esc(fecha(r.fecha))}</span>
+        ${i?"":`<span class="badge">Actual</span>`}
+      </div>
+      <ul style="margin:0;padding-left:18px;color:var(--mute);font-size:12.5px;line-height:1.7">
+        ${r.cambios.map(c=>`<li>${esc(c)}</li>`).join("")}
+      </ul>
+    </div>`).join("");
+  el.innerHTML=`
+  <div class="card"><header><h3>Novedades de la app</h3></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;margin-bottom:20px">
+      Todo lo que se publica queda apuntado aquí, de lo más nuevo a lo más viejo.
+      Estás usando la <strong style="color:var(--bone)">v ${esc(APP_VERSION)}</strong>.
+      Si al entrar te sale un aviso de versión nueva, es esta pestaña lo que tienes que mirar.</p>
+    ${bloques}
+    <p class="dim tiny" style="margin-top:20px">Antes de la 0.014 no se guardaba historial de cambios.</p>
+  </div></div>`;
 }
 
 /* ── Pestaña 1 · Datos ──────────────────────────────────────────────────── */
@@ -10383,6 +10448,7 @@ async function startApp(){
   try{ cierreDeMes(); }catch(e){ console.error("cierreDeMes",e); }
   try{ recordatoriosFrios(); }catch(e){ console.error("recordatoriosFrios",e); }
   render();
+  try{ avisoNovedades(); }catch(e){ console.error("avisoNovedades",e); }
 }
 /* El botón del móvil reutiliza el mismo PNG que la barra lateral: el base64 pesa
    y no hay por qué llevarlo dos veces en el archivo. */
