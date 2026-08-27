@@ -55,4 +55,52 @@ if [ "$RES" != "OK" ]; then
 fi
 
 echo "  OK  index.html compila"
+
+# ── Freno de mano: borrados masivos ──────────────────────────────────────────
+#
+# Por que existe: el 27 ago 2026 dos commits distintos se escribieron a partir
+# de una copia vieja de index.html y revirtieron, sin un solo conflicto, dias de
+# trabajo (las entradas y el line-up de produccion, y despues el historial de
+# Novedades). Git no avisa: para el es un cambio legitimo.
+#
+# La firma es siempre la misma: un commit que quita muchisimas lineas mientras
+# dice estar anadiendo una cosa pequena. Esto lo corta y obliga a mirar.
+#
+# Saltarselo cuando el borrado SI es intencionado (una limpieza de codigo
+# muerto, por ejemplo):  git commit --no-verify
+#   o:  MALO_BORRADO_OK=1 git commit ...
+
+LIMITE=${MALO_LIMITE_BORRADO:-80}
+
+if [ -n "$MALO_BORRADO_OK" ]; then
+  echo "  ..  aviso de borrado masivo desactivado a mano"
+  exit 0
+fi
+
+# Solo si index.html ya existia en HEAD (en el primer commit no hay con que comparar)
+if git cat-file -e HEAD:index.html 2>/dev/null; then
+  QUITADAS=$(git diff --cached --numstat -- index.html | awk '{print $2}')
+  PUESTAS=$(git diff --cached --numstat -- index.html | awk '{print $1}')
+  QUITADAS=${QUITADAS:-0}
+  PUESTAS=${PUESTAS:-0}
+  NETO=$((QUITADAS - PUESTAS))
+  if [ "$NETO" -gt "$LIMITE" ]; then
+    echo ""
+    echo "  X  index.html PIERDE $NETO lineas netas - commit cancelado"
+    echo "     (quita $QUITADAS, anade $PUESTAS; el limite son $LIMITE)"
+    echo ""
+    echo "     Esto es exactamente lo que pasa cuando se reescribe el archivo"
+    echo "     entero a partir de una copia anterior: se borra el trabajo de"
+    echo "     otra sesion y git lo acepta como si fuera un cambio normal."
+    echo ""
+    echo "     Antes de insistir, comprueba que no te estas dejando nada:"
+    echo "       git diff --cached index.html | grep '^-' | less"
+    echo ""
+    echo "     Si el borrado es a proposito:"
+    echo "       MALO_BORRADO_OK=1 git commit ..."
+    echo ""
+    exit 1
+  fi
+fi
+
 exit 0
