@@ -2516,7 +2516,7 @@ const VIEWS=[
   {id:"panel",label:"Panel",k:"1"},
   {id:"calendario",label:"Calendario",k:"2"},
   {id:"shows",label:"Shows",k:"3"},
-  {id:"eventos",label:"Producciones",k:"4"},
+  {id:"producciones",label:"Producciones",k:"4"},
   {id:"clientes",label:"Clientes",k:"5"},
   {id:"contactos",label:"Contactos",k:"6"},
   {id:"documentos",label:"Documentos",k:"7"},
@@ -2526,7 +2526,7 @@ const VIEWS=[
   {id:"misCanciones",label:"Mis Canciones",k:"m"},
   {id:"bolsillo",label:"Bolsillo",k:"b"},
   {id:"redes",label:"Redes",k:"r"},
-  {id:"capturas",label:"Capturas",k:"c"},
+  {id:"capturas",label:"Transcripción",k:"c"},
   {id:"equipo",label:"Equipo",k:"0"},
   {id:"generadores",label:"Generadores",k:"g"},
   {id:"datos",label:"Configuración",k:"-"}
@@ -2537,7 +2537,7 @@ const ICONO_VIEW={
   panel:"M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
   calendario:"M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
   shows:"M12 4l2.4 5 5.6.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.6-.8z",
-  eventos:"M12 4l8 4-8 4-8-4zM4 12l8 4 8-4M4 16l8 4 8-4",
+  producciones:"M12 4l8 4-8 4-8-4zM4 12l8 4 8-4M4 16l8 4 8-4",
   clientes:"M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6",
   contactos:"M6 3h12v18H6zM3 8h3M3 12h3M3 16h3M12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM9 17c0-1.7 1.3-3 3-3s3 1.3 3 3",
   documentos:"M7 3h7l4 4v14H7zM14 3v4h4M10 13h6M10 17h4",
@@ -2562,7 +2562,7 @@ const DOCK_PRIMERO=["panel","shows","contactos","redes","calendario"];
 const NAV_GRUPOS=[
   ["Día a día",["panel","calendario","shows","contactos","clientes"]],
   ["Música",["distribuir","misCanciones","bolsillo","redes"]],
-  ["Gestión",["eventos","documentos","mailing","mapa","capturas"]],
+  ["Gestión",["producciones","documentos","mailing","mapa","capturas"]],
   ["Sistema",["equipo","generadores","datos"]]];
 const DOCK_VIEWS=[...DOCK_PRIMERO.map(id=>VIEWS.find(v=>v.id===id)),...VIEWS.filter(v=>!DOCK_PRIMERO.includes(v.id))];
 /* ── Portal del cliente (rol artista) ──
@@ -2780,9 +2780,9 @@ function render(){
   document.getElementById("viewTitle").textContent=(vistaDef(VIEW)||{label:""}).label;
   const el=document.getElementById("view"),ta=document.getElementById("topActions");
   ta.innerHTML="";document.getElementById("viewSub").textContent="";
-  ({panel:viewPanel,calendario:viewCalendario,shows:viewShows,eventos:viewEventos,
+  ({panel:viewPanel,calendario:viewCalendario,shows:viewShows,producciones:viewEventos,
     clientes:viewClientes,contactos:viewContactos,documentos:viewDocumentos,
-    mailing:viewMailing,mapa:viewMapa,temas:viewTemas,distribuir:viewDistribuir,
+    mailing:viewMailing,mapa:viewMapa,distribuir:viewDistribuir,
     misCanciones:viewMisCanciones,bolsillo:viewBolsillo,redes:viewRedes,
     equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos,
     inicio:viewInicioPortal})[VIEW](el,ta);
@@ -3725,16 +3725,6 @@ function saveProd(isNew){
 }
 
 
-/* ════════ TEMAS · archivo de subidas de los artistas ════════
-   Lo que se guarda de cada tema y cómo se reparte. El reparto de royalties de
-   verdad NO se hace aquí: para eso hacen falta las liquidaciones de las
-   plataformas, que no entran en la app. Aquí solo queda escrito quién lleva qué. */
-function temasDe(clienteId){return (DB.temas||[]).filter(t=>t.clienteId===clienteId)}
-function sumaSplits(t){return ((t&&t.splits)||[]).reduce((a,x)=>a+n(x.pct),0)}
-function splitsCuadran(t){const s=sumaSplits(t);return Math.abs(s-100)<0.01}
-/* Un tema sin nada escrito en el reparto no está «descuadrado»: está sin cerrar */
-function splitsSinCerrar(t){return !((t&&t.splits)||[]).length}
-
 /* ════════ DISTRIBUIR CANCIÓN ════════
    Formulario de solicitud de distribución con los campos que pide la
    distribuidora (subida + pitch). Al guardar crea una entrada en «Mis
@@ -3817,6 +3807,12 @@ function formDistribuir(id){
     ${(!portal&&id)?`<button class="btn danger sm" data-act="del-cancion" data-id="${o.id}">Eliminar</button>`:""}
     <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
   <div class="mbody">
+    ${(!portal&&!id)?`<div class="f s12" style="margin-bottom:14px"><label>Partir de una canción</label>
+      <select onchange="formDistribuir(this.value||null)">
+        <option value="">— Crear una canción nueva —</option>
+        ${(DB.canciones||[]).filter(c=>!enDistribucion(c)).sort((a,b)=>(a.titulo||"").localeCompare(b.titulo||"")).map(c=>`<option value="${esc(c.id)}">${esc((c.titulo||"(sin título)")+" · "+nomCliente(c.artistaId))}</option>`).join("")}
+      </select>
+      <span class="hint">Elige una canción de tu catálogo para distribuirla, o créala nueva. Así no se duplica en Mis Canciones.</span></div>`:""}
     ${DB.sinDistribucion?`<p class="hint" style="margin-bottom:12px;color:var(--alert)">Falta la columna «distribucion»: se puede rellenar, pero los datos de distribución no se guardan hasta ejecutar <code>supabase/distribucion.sql</code>.</p>`:""}
     ${portal?`<p class="hint" style="margin-bottom:14px">Rellena todo lo que puedas. Cuanta más info, más rápida la distribución. Los archivos van como <strong>enlaces</strong> (Drive, Dropbox, WeTransfer…).</p>`:""}
     <div class="section-title">La canción</div>
@@ -3984,268 +3980,6 @@ function abrirEmailDistribucion(cancionOId){
   });
 }
 
-function viewTemas(el,ta){
-  ta.innerHTML=`<button class="btn primary" data-act="new-tema">Nuevo tema</button>`;
-  const list0=(DB.temas||[]).slice();
-  let list=list0;
-  if(filtro.temaQ){const q=filtro.temaQ.toLowerCase();
-    list=list.filter(t=>[t.titulo,t.version,t.sello,t.isrc,nomCliente(t.clienteId),
-      (t.splits||[]).map(x=>x.nombre).join(" ")].join(" ").toLowerCase().includes(q))}
-  if(filtro.temaCliente)list=list.filter(t=>t.clienteId===filtro.temaCliente);
-  if(filtro.temaEstado)list=list.filter(t=>t.estado===filtro.temaEstado);
-  list=aplicarOrden(list,filtro.ordenTemas||"envio_desc",{
-    envio_desc:(a,b)=>(b.fechaEnvio||"").localeCompare(a.fechaEnvio||""),
-    envio_asc:(a,b)=>(a.fechaEnvio||"").localeCompare(b.fechaEnvio||""),
-    salida_asc:(a,b)=>(a.fechaSalida||"zzz").localeCompare(b.fechaSalida||"zzz"),
-    alpha:(a,b)=>(a.titulo||"").localeCompare(b.titulo||""),
-    artista:(a,b)=>nomCliente(a.clienteId).localeCompare(nomCliente(b.clienteId))
-  });
-  const porEstado=e=>list0.filter(t=>t.estado===e).length;
-  const descuadrados=list0.filter(t=>!splitsSinCerrar(t)&&!splitsCuadran(t));
-  const sinCerrar=list0.filter(t=>splitsSinCerrar(t));
-  document.getElementById("viewSub").textContent=list0.length
-    ? `${list0.length} tema${list0.length===1?"":"s"}${list.length!==list0.length?` · ${list.length} con filtros`:""}`
-    : "";
-
-  const aviso=DB.sinTemas
-    ? `<div class="card" style="border-color:rgba(237,85,100,.4)"><div class="body">
-        <strong style="color:var(--alert)">Falta ejecutar el SQL de temas.</strong>
-        <div class="tiny dim" style="margin-top:5px">Se puede usar el apartado, pero <strong>nada se guarda</strong>:
-        al recargar la página se pierde. Ejecuta <code>08-temas-y-whatsapp.sql</code> en Supabase.</div>
-      </div></div>`:"";
-
-  if(!list0.length){
-    el.innerHTML=aviso+`<div class="card"><div class="empty">
-      <p><strong>Archivo de temas.</strong><br>Los temas que te mandan tus artistas, con sus enlaces,
-      en qué estado está cada uno y cómo se reparte.<br>
-      <span class="dim tiny">El reparto de royalties no se calcula aquí: esto deja escrito quién lleva qué
-      para cuando lleguen las liquidaciones de las plataformas.</span></p>
-      <button class="btn primary" data-act="new-tema">Registrar el primero</button></div></div>`;
-    return;
-  }
-
-  el.innerHTML=aviso+`
-  <div class="filters">
-    <input type="search" id="tmq" placeholder="Buscar título, sello, ISRC, quién participa…" value="${esc(filtro.temaQ||"")}">
-    <select id="tmcli"><option value="">Todos los artistas</option>
-      ${DB.clientes.slice().sort((a,b)=>(a.nombre||a.nombreReal||"").localeCompare(b.nombre||b.nombreReal||""))
-        .map(c=>`<option value="${c.id}" ${filtro.temaCliente===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select>
-    <select id="tmest"><option value="">Todos los estados</option>
-      ${TEMA_ESTADOS.map(e=>`<option ${filtro.temaEstado===e?"selected":""}>${e}</option>`).join("")}</select>
-    ${selectOrden("ordTemas",[["envio_desc","Recibido · el último primero"],["envio_asc","Recibido · el primero"],
-      ["salida_asc","Salida más cercana"],["alpha","Título A-Z"],["artista","Artista A-Z"]],filtro.ordenTemas||"envio_desc")}
-    ${(filtro.temaQ||filtro.temaCliente||filtro.temaEstado)?`<button class="btn ghost sm" id="tmclr">Quitar filtros</button>`:""}
-  </div>
-
-  <div class="strip" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
-    <div class="cell"><div class="lab">En revisión</div><div class="val v-warn">${porEstado("en revisión")}</div>
-      <div class="note">Pendientes de decidir</div></div>
-    <div class="cell"><div class="lab">Aceptados</div><div class="val v-ok">${porEstado("aceptado")}</div>
-      <div class="note">Sin publicar todavía</div></div>
-    <div class="cell"><div class="lab">Publicados</div><div class="val v-artist">${porEstado("publicado")}</div></div>
-    <div class="cell ${descuadrados.length?"":""}"><div class="lab">Repartos que no cuadran</div>
-      <div class="val ${descuadrados.length?"v-alert":"v-mute"}">${descuadrados.length}</div>
-      <div class="note">${sinCerrar.length?`${sinCerrar.length} sin cerrar`:"No suman 100 %"}</div></div>
-  </div>
-
-  ${descuadrados.length?`<p class="aviso-ocultos">Hay <strong>${descuadrados.length}</strong>
-    ${descuadrados.length===1?"tema cuyo reparto no suma":"temas cuyos repartos no suman"} 100 %:
-    ${descuadrados.slice(0,3).map(t=>esc(t.titulo||"(sin título)")).join(", ")}${descuadrados.length>3?"…":""}</p>`:""}
-
-  <div class="card"><div class="body flush">
-  ${list.length?`<table><thead><tr>
-    <th>Título</th><th>Artista</th><th>Estado</th><th>Recibido</th><th>Salida</th>
-    <th class="num">Reparto</th><th>Enlaces</th></tr></thead>
-  <tbody>${list.map(t=>{
-    const ca=catDe(t.clienteId),col=TEMA_ESTADO_COLOR[t.estado]||"#8A94B0";
-    const suma=sumaSplits(t),vacio=splitsSinCerrar(t);
-    return `<tr class="click" data-tema="${t.id}" style="--c:${ca.color}">
-      <td class="strong">${esc(t.titulo||"(sin título)")}
-        ${t.version?`<div class="dim tiny">${esc(t.version)}</div>`:""}</td>
-      <td><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(t.clienteId))}</span></td>
-      <td style="white-space:nowrap"><span class="pill" style="border-color:${col};color:${col};padding:2.5px 7px;font-size:9px">${esc(t.estado||"")}</span></td>
-      <td class="tiny dim" style="white-space:nowrap;font-family:var(--mono)">${t.fechaEnvio?fecha(t.fechaEnvio):"—"}</td>
-      <td class="tiny dim" style="white-space:nowrap;font-family:var(--mono)">${t.fechaSalida?fecha(t.fechaSalida):"—"}</td>
-      <td class="num" style="white-space:nowrap">${vacio
-        ? `<span class="dim tiny">sin cerrar</span>`
-        : `<span class="${splitsCuadran(t)?"":"v-alert strong"}" style="font-family:var(--mono);font-size:12px">${pct(suma)}</span>
-           <div class="dim tiny">${(t.splits||[]).length} ${(t.splits||[]).length===1?"parte":"partes"}</div>`}</td>
-      <td>${(t.enlaces||[]).length
-        ? (t.enlaces||[]).slice(0,3).map(x=>`<a class="pill" href="${esc(x.url)}" target="_blank" rel="noopener"
-            onclick="event.stopPropagation()" style="padding:2.5px 7px;font-size:9px">${esc(x.tipo||"enlace")}</a>`).join(" ")
-        : `<span class="dim tiny">—</span>`}</td>
-    </tr>`}).join("")}</tbody></table>`
-  :`<div class="empty"><p>Ningún tema con estos filtros.</p></div>`}
-  </div></div>
-
-  <div class="card"><div class="body">
-    <p class="hint" style="margin:0">Los másteres no se alojan aquí a propósito: un WAV son 40-60 MB y esto
-    guardaría muy pocos. Se guardan <strong style="color:var(--bone)">enlaces</strong> a Drive, Dropbox o
-    WeTransfer, que es como se mueven de todas formas.</p>
-  </div></div>`;
-
-  const q=document.getElementById("tmq");
-  if(q)q.addEventListener("input",e=>{filtro.temaQ=e.target.value;
-    clearTimeout(window.__tmT);window.__tmT=setTimeout(render,220)});
-  const fc=document.getElementById("tmcli");
-  if(fc){fc.addEventListener("change",e=>{filtro.temaCliente=e.target.value;render()});buscable("tmcli")}
-  const fe=document.getElementById("tmest");
-  if(fe)fe.addEventListener("change",e=>{filtro.temaEstado=e.target.value;render()});
-  const or=document.getElementById("ordTemas");
-  if(or)or.addEventListener("change",e=>{filtro.ordenTemas=e.target.value;render()});
-  const cl=document.getElementById("tmclr");
-  if(cl)cl.addEventListener("click",()=>{filtro.temaQ="";filtro.temaCliente="";filtro.temaEstado="";render()});
-}
-
-function formTema(id){
-  const t=id?(DB.temas||[]).find(x=>x.id===id):null;
-  const o=t||{id:uid("tem"),clienteId:(cliente(filtro.temaCliente)||DB.clientes[0]||{}).id||"",titulo:"",version:"",
-    estado:TEMA_ESTADOS[0],fechaEnvio:hoy(),fechaSalida:"",sello:"",isrc:"",bpm:0,tonalidad:"",
-    generos:[],enlaces:[],splits:[],notas:"",origen:"interno",creadoEn:new Date().toISOString()};
-  openModal(`
-  <header><h3>${id?"Editar tema":"Nuevo tema"}</h3><div class="spacer"></div>
-    ${id?`<button class="btn danger sm" data-act="del-tema" data-id="${o.id}">Eliminar</button>`:""}
-    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
-  <div class="mbody">
-    ${DB.sinTemas?`<p class="hint" style="margin-bottom:14px;color:var(--alert)">Falta ejecutar el SQL: esto se puede rellenar pero <strong>no se guarda</strong>.</p>`:""}
-    <div class="section-title">El tema</div>
-    <div class="fgrid">
-      <div class="f s6"><label>Título</label><input id="t_tit" value="${esc(o.titulo||"")}" placeholder="Nombre del tema"></div>
-      <div class="f s3"><label>Versión</label><input id="t_ver" value="${esc(o.version||"")}" placeholder="Original, radio edit, remix de…"></div>
-      <div class="f s3"><label>Artista</label><select id="t_cli">
-        ${DB.clientes.slice().sort((a,b)=>(a.nombre||a.nombreReal||"").localeCompare(b.nombre||b.nombreReal||""))
-          .map(c=>`<option value="${c.id}" ${o.clienteId===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}
-      </select></div>
-      <div class="f s3"><label>Estado</label><select id="t_est">
-        ${TEMA_ESTADOS.map(e=>`<option ${o.estado===e?"selected":""}>${e}</option>`).join("")}</select></div>
-      <div class="f s3"><label>Recibido</label><input id="t_fenv" type="date" value="${esc(o.fechaEnvio||"")}"></div>
-      <div class="f s3"><label>Salida prevista</label><input id="t_fsal" type="date" value="${esc(o.fechaSalida||"")}"></div>
-      <div class="f s3"><label>Sello</label><input id="t_sello" value="${esc(o.sello||"")}" placeholder="Propio, ajeno…"></div>
-      <div class="f s4"><label>ISRC</label><input id="t_isrc" value="${esc(o.isrc||"")}" placeholder="ES-XXX-26-00001">
-        <span class="hint">Si ya lo tiene. Lo da la distribuidora o el sello.</span></div>
-      <div class="f s2"><label>BPM</label><input id="t_bpm" type="number" min="0" step="1" value="${n(o.bpm)||""}"></div>
-      <div class="f s3"><label>Tonalidad</label><input id="t_ton" value="${esc(o.tonalidad||"")}" placeholder="Am, 8A…"></div>
-      <div class="f s3"><label>Géneros</label><input id="t_gen" value="${esc((o.generos||[]).join(", "))}" placeholder="Techno, hard techno">
-        <span class="hint">Separados por comas</span></div>
-    </div>
-
-    <div class="section-title">Enlaces
-      <div class="spacer"></div>
-      <button class="btn ghost sm" id="t_addenl" type="button">+ Añadir enlace</button>
-    </div>
-    <div id="t_enlaces"></div>
-    <p class="hint" style="margin-top:8px">El máster va por enlace, no subido aquí. Comprueba que el permiso
-      sea «cualquiera con el enlace» o no se podrá abrir desde otro ordenador.</p>
-
-    <div class="section-title">Reparto
-      <div class="spacer"></div>
-      <span id="t_sumapill" class="pill"></span>
-      <button class="btn ghost sm" id="t_addspl" type="button">+ Añadir parte</button>
-    </div>
-    <div id="t_splits"></div>
-    <p class="hint" style="margin-top:8px">Quién participa y con qué porcentaje. Se puede guardar sin que
-      sume 100 % —hay temas cuyo reparto se cierra después— pero queda marcado en la lista.</p>
-
-    <div class="section-title">Notas</div>
-    <div class="fgrid"><div class="f s12">
-      <textarea id="t_notas" style="min-height:92px" placeholder="Qué falta, con quién hay que hablar, condiciones…">${esc(o.notas||"")}</textarea></div></div>
-  </div>
-  <footer><button class="btn ghost" data-act="close">Cancelar</button>
-    <button class="btn primary" data-act="save-tema" data-id="${o.id}" data-new="${id?0:1}">Guardar tema</button></footer>`);
-
-  let enlaces=JSON.parse(JSON.stringify(o.enlaces||[]));
-  let splits=JSON.parse(JSON.stringify(o.splits||[]));
-  function pintaEnlaces(){
-    const c=document.getElementById("t_enlaces");
-    c.innerHTML=enlaces.length?enlaces.map((x,i)=>`
-      <div class="enl-row">
-        <select data-el="${i}" data-k="tipo">${TEMA_ENLACE_TIPOS.map(v=>`<option ${x.tipo===v?"selected":""}>${v}</option>`).join("")}</select>
-        <input placeholder="https://drive.google.com/…" value="${esc(x.url||"")}" data-el="${i}" data-k="url">
-        <button class="x" data-del-el="${i}" type="button">×</button>
-      </div>`).join("")
-      :`<p class="dim tiny" style="padding:2px 0 4px">Sin enlaces todavía.</p>`;
-  }
-  function pintaSplits(){
-    const c=document.getElementById("t_splits");
-    c.innerHTML=splits.length?`
-      <div class="spl-cab"><span>Quién</span><span>Rol</span><span>%</span><span></span></div>
-      ${splits.map((x,i)=>`<div class="spl-row">
-        <input placeholder="Nombre" value="${esc(x.nombre||"")}" data-sp="${i}" data-k="nombre">
-        <input placeholder="Rol" list="t_roles" value="${esc(x.rol||"")}" data-sp="${i}" data-k="rol">
-        <input type="number" step="0.5" min="0" max="100" value="${n(x.pct)||""}" data-sp="${i}" data-k="pct">
-        <button class="x" data-del-sp="${i}" type="button">×</button>
-      </div>`).join("")}
-      <datalist id="t_roles">${TEMA_ROLES.map(r=>`<option value="${r}">`).join("")}</datalist>`
-      :`<p class="dim tiny" style="padding:2px 0 4px">Reparto sin cerrar.</p>`;
-    pintaSuma();
-  }
-  function pintaSuma(){
-    const p=document.getElementById("t_sumapill");
-    if(!p)return;
-    const s=splits.reduce((a,x)=>a+n(x.pct),0);
-    if(!splits.length){p.textContent="sin cerrar";p.style.borderColor="";p.style.color="";return}
-    const bien=Math.abs(s-100)<0.01;
-    p.textContent=pct(s)+(bien?" ✓":` · faltan ${pct(100-s)}`);
-    p.style.borderColor=bien?"var(--ok)":"var(--alert)";
-    p.style.color=bien?"var(--ok)":"var(--alert)";
-  }
-  pintaEnlaces();pintaSplits();
-  const root=document.querySelector(".modal");
-  root.addEventListener("input",e=>{
-    const i=e.target.dataset.el,j=e.target.dataset.sp;
-    if(i!==undefined&&enlaces[+i])enlaces[+i][e.target.dataset.k]=e.target.value;
-    if(j!==undefined&&splits[+j]){
-      splits[+j][e.target.dataset.k]=e.target.dataset.k==="pct"?n(e.target.value):e.target.value;
-      if(e.target.dataset.k==="pct")pintaSuma();
-    }
-  });
-  root.addEventListener("change",e=>{
-    const i=e.target.dataset.el;
-    if(i!==undefined&&enlaces[+i])enlaces[+i][e.target.dataset.k]=e.target.value;
-  });
-  root.addEventListener("click",e=>{
-    const be=e.target.closest("[data-del-el]");
-    if(be){enlaces.splice(+be.dataset.delEl,1);pintaEnlaces();return}
-    const bs=e.target.closest("[data-del-sp]");
-    if(bs){splits.splice(+bs.dataset.delSp,1);pintaSplits()}
-  });
-  document.getElementById("t_addenl").addEventListener("click",()=>{
-    enlaces.push({tipo:"Máster",url:""});pintaEnlaces();
-    const f=document.querySelector('#t_enlaces .enl-row:last-child input');if(f)f.focus();
-  });
-  document.getElementById("t_addspl").addEventListener("click",()=>{
-    /* Reparte lo que falte en la parte nueva: es lo que se quiere el 90% de las veces */
-    const falta=Math.max(0,100-splits.reduce((a,x)=>a+n(x.pct),0));
-    splits.push({nombre:"",rol:"",pct:falta});pintaSplits();
-    const f=document.querySelector('#t_splits .spl-row:last-child input');if(f)f.focus();
-  });
-  buscable("t_cli");
-  window.__leerTema=()=>({
-    id:o.id,clienteId:val("t_cli"),titulo:val("t_tit"),version:val("t_ver"),estado:val("t_est"),
-    fechaEnvio:val("t_fenv"),fechaSalida:val("t_fsal"),sello:val("t_sello"),isrc:val("t_isrc"),
-    bpm:num("t_bpm"),tonalidad:val("t_ton"),
-    generos:val("t_gen").split(",").map(x=>x.trim()).filter(Boolean),
-    enlaces:enlaces.filter(x=>String(x.url||"").trim()),
-    splits:splits.filter(x=>String(x.nombre||"").trim()||n(x.pct)),
-    notas:val("t_notas"),origen:o.origen||"interno",creadoEn:o.creadoEn||new Date().toISOString()
-  });
-}
-function saveTema(isNew){
-  const t=window.__leerTema();
-  if(!t.titulo){toast("El tema necesita un título");return}
-  if(!t.clienteId){toast("Elige de qué artista es");return}
-  if(isNew)DB.temas.push(t); else DB.temas=DB.temas.map(x=>x.id===t.id?t:x);
-  closeModal();
-  toast(splitsSinCerrar(t)||splitsCuadran(t)?"Tema guardado":`Tema guardado · el reparto suma ${pct(sumaSplits(t))}`);
-  touch();
-}
-
-/* ════════ MIS CANCIONES + BOLSILLO ════════
-   «canciones» guarda el deal (quién distribuye, qué % se lleva cada uno).
-   «cancion_participantes» es el reparto (debería sumar 100, como en Temas).
-   «cancion_ingresos» es el bruto mes a mes, importado de las liquidaciones
-   de la distribuidora o metido a mano. Con esos tres, "Bolsillo" calcula
-   cuánto le toca a cada uno sin que nadie haga la cuenta a mano. */
 const CANCION_ROLES=["artista","feat","productor","management"];
 function cancionesDe(artistaId){return (DB.canciones||[]).filter(c=>!artistaId||c.artistaId===artistaId)}
 function participantesDe(cancionId){return (DB.cancionParticipantes||[]).filter(p=>p.cancionId===cancionId)}
@@ -10348,13 +10082,6 @@ document.addEventListener("click",e=>{
       DB.producciones=DB.producciones.filter(x=>x.id!==idDel);closeModal();toast("Producción eliminada");
       sb.from("producciones").delete().eq("id",idDel).then(({error})=>{if(error)toast("Error al eliminar en el servidor")});
       return touch()}
-    if(act==="new-tema")return formTema(null);
-    if(act==="save-tema")return saveTema(el.dataset.new==="1");
-    if(act==="del-tema"){if(!confirm("¿Eliminar este tema del archivo?"))return;
-      const idDel=el.dataset.id;
-      DB.temas=(DB.temas||[]).filter(x=>x.id!==idDel);closeModal();toast("Tema eliminado");
-      if(!DB.sinTemas)sb.from("temas").delete().eq("id",idDel).then(({error})=>{if(error)toast("Error al eliminar en el servidor")});
-      return touch()}
     if(act==="new-cancion")return formCancion(null);
     if(act==="save-cancion")return saveCancion(el.dataset.new==="1");
     if(act==="new-distrib")return formDistribuir(null);
@@ -10448,7 +10175,6 @@ document.addEventListener("click",e=>{
   if(el.dataset.tarea)return formTarea(el.dataset.tarea);
   if(el.dataset.ctx)return formContexto(el.dataset.ctx);
   if(el.dataset.sub)return formSuscriptor(el.dataset.sub);
-  if(el.dataset.tema)return formTema(el.dataset.tema);
   if(el.dataset.distrib)return formDistribuir(el.dataset.distrib);
   if(el.dataset.cancion)return formCancion(el.dataset.cancion);
   if(el.dataset.prod)return formProduccion(el.dataset.prod);
