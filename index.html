@@ -1837,7 +1837,7 @@ const TABLE_MAP={
     distribuidora:"distribuidora",feeDistribucionPct:"fee_distribucion_pct",mgmtPct:"mgmt_pct",
     cuentaPortal:"cuenta_portal",notas:"notas",genero:"genero",creditos:"creditos",
     driveFolderId:"drive_folder_id",portadaDriveId:"portada_drive_id",portadaUrl:"portada_url",
-    audioDriveId:"audio_drive_id",audioUrl:"audio_url",distribucion:"distribucion"},
+    audioDriveId:"audio_drive_id",audioUrl:"audio_url",distribucion:"distribucion",mixtape:"mixtape"},
   cancionParticipantes:{id:"id",cancionId:"cancion_id",clienteId:"cliente_id",nombre:"nombre",rol:"rol",pct:"pct"},
   cancionIngresos:{id:"id",cancionId:"cancion_id",mes:"mes",bruto:"bruto",unidades:"unidades",canal:"canal"},
   redesSnapshots:{id:"id",clienteId:"cliente_id",red:"red",fecha:"fecha",seguidores:"seguidores",notas:"notas",extra:"extra"}
@@ -4139,15 +4139,29 @@ function viewMisCanciones(el,ta){
 
   <div class="card"><div class="body flush">
   <table><thead><tr><th>Título</th><th>Artista</th><th>Distribuidora</th><th class="num">Bruto histórico</th><th class="num">Reparto</th></tr></thead>
-  <tbody>${list.map(c=>{
-    const bruto=brutoTotalCancion(c.id),suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
-    return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
+  <tbody>${(()=>{
+    const fila=c=>{const bruto=brutoTotalCancion(c.id),suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
+      return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
       <td class="strong"><span style="display:flex;align-items:center;gap:8px">${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
       <td><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(c.artistaId))}</span></td>
       <td class="dim">${esc(c.distribuidora||"—")}${c.cuentaPortal?`<div class="tiny dim">cta. ${esc(c.cuentaPortal)}</div>`:""}</td>
       <td class="num">${eur0(bruto)}</td>
       <td class="num"><span class="${Math.abs(suma-100)<0.01?"":"v-alert strong"}" style="font-family:var(--mono)">${pct(suma)}</span></td>
-    </tr>`}).join("")}</tbody></table>
+    </tr>`};
+    const SINGLES=" ";
+    const grupos={};
+    list.forEach(c=>{const k=(c.mixtape||"").trim()||SINGLES;(grupos[k]=grupos[k]||[]).push(c)});
+    const claves=Object.keys(grupos).filter(k=>k!==SINGLES).sort((a,b)=>a.localeCompare(b));
+    if(grupos[SINGLES])claves.push(SINGLES);
+    return claves.map(k=>{
+      const arr=grupos[k],single=k===SINGLES,nombre=single?"Singles / sueltas":k;
+      const th=single?null:arr.find(c=>c.portadaUrl);
+      const thumb=th?`<img src="${esc(th.portadaUrl)}" style="width:22px;height:22px;object-fit:cover;border-radius:3px;flex:none">`:"";
+      return `<tr><td colspan="5" style="padding:9px 12px;background:var(--panel-2);border-top:1px solid var(--rule)">
+        <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px">${thumb}<span>${esc(nombre)}</span><span class="dim tiny" style="font-weight:400">· ${arr.length} ${arr.length===1?"tema":"temas"}</span></span></td></tr>`
+        +arr.map(fila).join("");
+    }).join("");
+  })()}</tbody></table>
   </div></div>`;
 
   const q=document.getElementById("cnq");
@@ -4179,6 +4193,9 @@ function formCancion(id){
           .map(x=>`<option value="${x.id}" ${o.artistaId===x.id?"selected":""}>${esc(x.nombre||x.nombreReal)}</option>`).join("")}
       </select></div>
       <div class="f s3"><label>ISRC</label><input id="cn_isrc" value="${esc(o.isrc||"")}" placeholder="BK4DA..."></div>
+      <div class="f s6"><label>Mixtape / release <span class="dim" style="text-transform:none">· a qué lanzamiento pertenece</span></label>
+        <input id="cn_mixtape" list="cn_mixtape_list" value="${esc(o.mixtape||"")}" placeholder="EP, mixtape o álbum (o vacío si es single)">
+        <datalist id="cn_mixtape_list">${[...new Set((DB.canciones||[]).map(x=>x.mixtape).filter(Boolean))].sort().map(m=>`<option value="${esc(m)}">`).join("")}</datalist></div>
       <div class="f s4"><label>Distribuidora</label><input id="cn_dist" value="${esc(o.distribuidora||"ADA")}" placeholder="ADA, Believe…"></div>
       <div class="f s4"><label>Cuenta del portal</label><input id="cn_cuenta" value="${esc(o.cuentaPortal||"")}" placeholder="Nº de cuenta ADA"></div>
       <div class="f s2"><label>Lanzamiento</label><input id="cn_flanz" type="date" value="${esc(o.fechaLanzamiento||"")}"></div>
@@ -4351,7 +4368,7 @@ function formCancion(id){
   window.__leerCancion=()=>{
     const vivo=(DB.canciones||[]).find(x=>x.id===o.id)||{};
     return {
-      id:o.id,titulo:val("cn_tit"),artistaId:val("cn_cli"),isrc:val("cn_isrc"),
+      id:o.id,titulo:val("cn_tit"),artistaId:val("cn_cli"),isrc:val("cn_isrc"),mixtape:val("cn_mixtape"),
       distribuidora:val("cn_dist")||"ADA",cuentaPortal:val("cn_cuenta"),fechaLanzamiento:val("cn_flanz"),
       feeDistribucionPct:num("cn_fee"),mgmtPct:num("cn_mgmt"),notas:val("cn_notas"),
       genero:val("cn_genero"),creditos:val("cn_creditos"),
