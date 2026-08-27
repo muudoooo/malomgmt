@@ -2522,8 +2522,7 @@ const VIEWS=[
   {id:"documentos",label:"Documentos",k:"7"},
   {id:"mailing",label:"Mailing",k:"8"},
   {id:"mapa",label:"Mapa",k:"9"},
-  {id:"distribuir",label:"Distribuir canción",k:"t"},
-  {id:"misCanciones",label:"Mis Canciones",k:"m"},
+  {id:"canciones",label:"Canciones",k:"m"},
   {id:"bolsillo",label:"Bolsillo",k:"b"},
   {id:"redes",label:"Redes",k:"r"},
   {id:"capturas",label:"Transcripción",k:"c"},
@@ -2544,8 +2543,7 @@ const ICONO_VIEW={
   mailing:"M3 6h18v12H3zM3 7l9 6 9-6",
   mapa:"M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
   temas:"M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3z",
-  distribuir:"M12 3v12M12 15l-4-4M12 15l4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2",
-  misCanciones:"M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM3 21h4",
+  canciones:"M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM3 21h4",
   bolsillo:"M4 8h16v12H4zM4 8l3-5h10l3 5M9 12a3 3 0 0 0 6 0",
   redes:"M4 20h16M4 16l5-6 4 4 7-8M16 6h4v4",
   capturas:"M4 8h3l2-3h6l2 3h3v12H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
@@ -2561,7 +2559,7 @@ const DOCK_PRIMERO=["panel","shows","contactos","redes","calendario"];
    Deben cubrir TODOS los ids de VIEWS: lo que falte no saldría en el menú. */
 const NAV_GRUPOS=[
   ["Día a día",["panel","calendario","shows","contactos","clientes"]],
-  ["Música",["distribuir","misCanciones","bolsillo","redes"]],
+  ["Música",["canciones","bolsillo","redes"]],
   ["Gestión",["producciones","documentos","mailing","mapa","capturas"]],
   ["Sistema",["equipo","generadores","datos"]]];
 const DOCK_VIEWS=[...DOCK_PRIMERO.map(id=>VIEWS.find(v=>v.id===id)),...VIEWS.filter(v=>!DOCK_PRIMERO.includes(v.id))];
@@ -2571,8 +2569,7 @@ const DOCK_VIEWS=[...DOCK_PRIMERO.map(id=>VIEWS.find(v=>v.id===id)),...VIEWS.fil
 const PORTAL_VIEWS=[
   {id:"inicio",label:"Inicio",k:""},
   {id:"calendario",label:"Agenda",k:""},
-  {id:"distribuir",label:"Distribuir canción",k:""},
-  {id:"misCanciones",label:"Mis Canciones",k:""},
+  {id:"canciones",label:"Canciones",k:""},
   {id:"bolsillo",label:"Bolsillo",k:""},
   {id:"redes",label:"Redes",k:""}];
 const PORTAL_IDS=PORTAL_VIEWS.map(v=>v.id);
@@ -2598,6 +2595,7 @@ function paginar(list,vista){
     boton:`<div style="text-align:center;padding:14px"><button class="btn" data-act="ver-mas" data-vista="${vista}">Mostrar ${Math.min(PAG_TAM,quedan)} más · quedan ${quedan}</button></div>`};
 }
 let VIEW="panel";
+let CANC_TAB="catalogo";
 /* Para animar la entrada solo cuando se cambia de apartado (paquete de
    animaciones ago-2026), no en cada re-render del buscador. */
 let VIEW_PREV_ANIM=null;
@@ -2782,8 +2780,8 @@ function render(){
   ta.innerHTML="";document.getElementById("viewSub").textContent="";
   ({panel:viewPanel,calendario:viewCalendario,shows:viewShows,producciones:viewEventos,
     clientes:viewClientes,contactos:viewContactos,documentos:viewDocumentos,
-    mailing:viewMailing,mapa:viewMapa,distribuir:viewDistribuir,
-    misCanciones:viewMisCanciones,bolsillo:viewBolsillo,redes:viewRedes,
+    mailing:viewMailing,mapa:viewMapa,canciones:viewCanciones,
+    bolsillo:viewBolsillo,redes:viewRedes,
     equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos,
     inicio:viewInicioPortal})[VIEW](el,ta);
   /* Cascada de entrada solo al cambiar de apartado: los nodos recién
@@ -3121,7 +3119,7 @@ function viewInicioPortal(el,ta){
       :`<p class="dim tiny">Todavía no hay datos de seguidores cargados.</p>`}
     </div></div></div>
     <div class="f s6"><div class="card" style="height:100%"><header><h3>Tu música</h3><div class="spacer"></div>
-      <button class="btn ghost sm" data-ir="misCanciones">Ver canciones</button></header><div class="body">
+      <button class="btn ghost sm" data-ir="canciones">Ver canciones</button></header><div class="body">
       ${(()=>{const nc=(DB.canciones||[]).filter(x=>x.artistaId===c.id||participacionesDe(c.id).some(p=>p.cancionId===x.id)).length;
         return `<p style="margin:0">${nc} ${nc===1?"canción":"canciones"} en tu catálogo.</p>`})()}
       <p class="dim tiny" style="margin-top:8px">En <strong>Bolsillo</strong> puedes ver cuánto genera cada una, mes a mes,
@@ -3742,6 +3740,15 @@ function distribEnviada(c){return !!distDe(c).enviado}
    distribuido vive en «Mis Canciones». */
 function enDistribucion(c){const d=c&&c.distribucion;return !!(d&&typeof d==="object"&&d.enviado)}
 
+function viewCanciones(el,ta){
+  const tab=CANC_TAB==="distribuir"?"distribuir":"catalogo";
+  if(tab==="distribuir")viewDistribuir(el,ta); else viewMisCanciones(el,ta);
+  const tabs=`<div style="display:flex;gap:6px;margin-bottom:14px">
+    <button class="btn ${tab==="catalogo"?"primary":"ghost"} sm portal-ok" data-act="canc-tab" data-tab="catalogo">Catálogo</button>
+    <button class="btn ${tab==="distribuir"?"primary":"ghost"} sm portal-ok" data-act="canc-tab" data-tab="distribuir">Distribuir</button>
+  </div>`;
+  el.insertAdjacentHTML("afterbegin",tabs);
+}
 function viewDistribuir(el,ta){
   const portal=esArtistaPortal();
   ta.innerHTML=`<button class="btn primary" data-act="new-distrib">Nueva distribución</button>`;
@@ -10084,6 +10091,7 @@ document.addEventListener("click",e=>{
       return touch()}
     if(act==="new-cancion")return formCancion(null);
     if(act==="save-cancion")return saveCancion(el.dataset.new==="1");
+    if(act==="canc-tab"){CANC_TAB=el.dataset.tab==="distribuir"?"distribuir":"catalogo";render();window.scrollTo(0,0);return}
     if(act==="new-distrib")return formDistribuir(null);
     if(act==="save-distrib")return saveDistribucion(el.dataset.id,el.dataset.new==="1");
     if(act==="email-distrib")return abrirEmailDistribucion(el.dataset.id);
