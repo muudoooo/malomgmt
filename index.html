@@ -1639,7 +1639,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.020";
+const APP_VERSION="0.021";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1648,6 +1648,8 @@ const APP_VERSION="0.020";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-27",v:"0.021",cambios:[
+    "Las 148 portadas ya están puestas y se ven. Se piden al tamaño que se va a ver (unos 30 KB cada una en vez de 124 KB): la galería completa pasa de ~18 MB a ~4 MB, que es la diferencia entre verse al instante y quedarse en blanco."]},
   {fecha:"2026-08-27",v:"0.020",cambios:[
     "Canciones se agrupa solo en sus mixtapes y albums de verdad, con el nombre del disco tal y como está publicado. Un «disco» de una sola canción ya no abre sección propia: va con las sueltas.",
     "Nuevo selector: agrupar por release, por artista o sin agrupar.",
@@ -2527,9 +2529,24 @@ function redUrl(k,v){
 }
 function catContacto(id){const p=DB.promotores.find(x=>x.id===id);return CONTACTO_CAT[p?p.categoria:"promotor"]||CONTACTO_CAT.promotor}
 function iniciales(nom){return String(nom||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase()}
-/* Portada de una cancion lista para un <img>: convierte los enlaces de Drive
-   (que devuelven una pagina, no una imagen) y deja pasar el resto tal cual. */
-function portadaImg(c){return normalizaFoto((c&&c.portadaUrl)||"")}
+/* Portada de una cancion lista para un <img>, al tamano que de verdad se va a
+   ver. Guardamos la URL grande (1000 px, que sirve para todo), pero pedir 148
+   imagenes de 1000x1000 para fichas de 196 px son ~30 MB y la cuadricula se
+   queda en blanco un buen rato: los servidores de portadas llevan el tamano en
+   la propia URL, asi que aqui se reescribe. `ancho` es en pixeles de CSS y se
+   pide el doble para que no se vea borrosa en pantallas retina. */
+function portadaImg(c,ancho){
+  let u=normalizaFoto((c&&c.portadaUrl)||"");
+  if(!u||!ancho)return u;
+  const px=Math.min(1000,Math.round(ancho*2));
+  /* Deezer: .../cover/<hash>/1000x1000-000000-80-0-0.jpg */
+  u=u.replace(/\/(\d{2,4})x\1(-\d+-\d+-\d+-\d+\.(?:jpg|png))/i,"/"+px+"x"+px+"$2");
+  /* Apple Music: .../1000x1000bb.jpg */
+  u=u.replace(/\/(\d{2,4})x\1bb\.(jpg|png)/i,"/"+px+"x"+px+"bb.$2");
+  /* Google Drive, via normalizaFoto: .../d/<id>=w400 */
+  u=u.replace(/=w\d+$/,"=w"+px);
+  return u;
+}
 function normalizaFoto(url){
   if(!url)return "";
   const u=String(url).trim();
@@ -4082,7 +4099,7 @@ function viewDistribuir(el,ta){
   </tr></thead><tbody>
     ${list.map(c=>{const d=distDe(c);return `<tr class="click" data-distrib="${c.id}">
       <td class="strong"><span style="display:flex;align-items:center;gap:8px">
-        ${portadaImg(c)?`<img src="${esc(portadaImg(c))}" alt="" loading="lazy" onerror="this.remove()" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}
+        ${portadaImg(c)?`<img src="${esc(portadaImg(c,28))}" alt="" loading="lazy" onerror="this.remove()" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}
         <span>${esc(c.titulo||"(sin título)")}${d.tipo&&d.tipo!=="Original"?` <span class="dim tiny">· ${esc(d.tipo)}</span>`:""}</span></span></td>
       <td>${esc(nomCliente(c.artistaId))}</td>
       <td class="tiny">${c.fechaLanzamiento?fecha(c.fechaLanzamiento):"—"}</td>
@@ -4469,7 +4486,7 @@ function viewMisCanciones(el,ta){
     if(g[SINGLES])claves.push(SINGLES);
     return claves.map(k=>({clave:k,single:k===SINGLES,
       nombre:k===SINGLES?"Singles y sueltas":k,temas:g[k],
-      portada:k===SINGLES?null:portadaImg(g[k].find(c=>portadaImg(c)))}));
+      portada:k===SINGLES?null:portadaImg(g[k].find(c=>portadaImg(c)),32)}));
   }
 
   /* Doce meses de bruto para la linea de tendencia de cada ficha. */
@@ -4500,7 +4517,7 @@ function viewMisCanciones(el,ta){
       aria-label="${esc(tit)} · ${bruto?eur0(bruto)+" generados":"sin liquidaciones"}">
       <div class="cn-art">
         ${portadaImg(c)
-          ? `<img src="${esc(portadaImg(c))}" alt="" loading="lazy" decoding="async"
+          ? `<img src="${esc(portadaImg(c,200))}" alt="" loading="lazy" decoding="async"
                onerror="this.closest('.cn-art').innerHTML='<div class=\'cn-ph\' aria-hidden=\'true\'>${esc(inicialesTit(c.titulo))}</div>'+this.closest('.cn-art').querySelector('.cn-tit').outerHTML">`
           : `<div class="cn-ph" aria-hidden="true">${esc(inicialesTit(c.titulo))}</div>`}
         <div class="cn-tit"><b>${esc(tit)}</b><span>${esc(nomCliente(c.artistaId))}</span></div>
@@ -4562,7 +4579,7 @@ function viewMisCanciones(el,ta){
   <tbody>${(()=>{
     const fila=c=>{const bruto=brutoTotalCancion(c.id),pool=cascadaCancion(c).pool,suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
       return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
-      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${portadaImg(c)?`<img src="${esc(portadaImg(c))}" alt="" loading="lazy" onerror="this.remove()" style="width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
+      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${portadaImg(c)?`<img src="${esc(portadaImg(c,32))}" alt="" loading="lazy" onerror="this.remove()" style="width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
       <td><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(c.artistaId))}</span></td>
       <td class="dim">${esc(c.distribuidora||"—")}${c.cuentaPortal?`<div class="tiny dim">cta. ${esc(c.cuentaPortal)}</div>`:""}</td>
       <td class="num ${bruto?"strong":"dim"}">${bruto?eur0(bruto):"—"}</td>
