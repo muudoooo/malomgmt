@@ -2098,8 +2098,13 @@ function fromRow(tabla,row){
 function normalizaEntidad(tabla,o){
   // asegura que los jsonb vengan como el tipo esperado aunque la fila los traiga vacíos/null
   if(tabla==="canciones"){
-    // distribucion es jsonb: fromRow convierte null en "", así que lo devolvemos a objeto
-    o.distribucion=o.distribucion&&typeof o.distribucion==="object"?o.distribucion:{};
+    /* distribucion es jsonb: fromRow convierte null en "", así que lo devolvemos
+       a objeto. Un array tampoco vale: si alguna vez la columna guardó "" y luego
+       se le sumó un objeto con ||, Postgres devuelve ["",{...}] en vez de fusionar,
+       y entonces los enlaces quedaban invisibles. Se recuperan sus claves. */
+    if(Array.isArray(o.distribucion))
+      o.distribucion=o.distribucion.reduce((a,x)=>(x&&typeof x==="object"&&!Array.isArray(x))?Object.assign(a,x):a,{});
+    else o.distribucion=o.distribucion&&typeof o.distribucion==="object"?o.distribucion:{};
   }
   if(tabla==="temas"){
     o.enlaces=Array.isArray(o.enlaces)?o.enlaces:[];
