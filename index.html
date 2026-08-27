@@ -1559,29 +1559,84 @@ const APP_VERSION="0.017";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
-   ARRIBA de esta lista (la primera es la actual). Escrito para leer, no para
-   programadores: qué cambia de cara al uso, no qué función se ha tocado. */
+   ARRIBA de esta lista (la primera es la actual), o suma los cambios a la
+   entrada de hoy si ya existe. Escrito para leer, no para programadores: qué
+   cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
+   se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
-  {v:"0.017",fecha:"2026-08-27",cambios:[
+  {fecha:"2026-08-27",v:"0.017",cambios:[
     "El logo de MALO se ve completo, sin recortar, y dentro de un círculo más grande (barra lateral y móvil).",
-    "Nueva pestaña «Novedades» aquí en Configuración con los cambios de cada versión publicada.",
-    "Al entrar con una versión nueva salta un aviso para que sepas que hay cambios."]},
-  {v:"0.016",fecha:"2026-08-27",cambios:[
+    "Nueva pestaña «Novedades» aquí en Configuración con el historial de cambios día a día.",
+    "Al entrar con una versión nueva salta un aviso para que sepas que hay cambios.",
     "«Mis Canciones» y «Distribuir canción» se unen en una sola sección, «Canciones», con pestañas Catálogo y Distribuir. Un solo sitio, también en el portal del artista.",
     "La cola de distribución solo lista las canciones realmente enviadas: editar el videoclip de una canción del catálogo ya no la mete en la cola.",
+    "«Distribuir canción» permite partir de una canción que ya está en el catálogo, para no duplicarla.",
     "En la tarea «Abrir plaza» el botón de WhatsApp ya no escribe a un único contacto: abre un selector con todos los promotores de esa provincia (con teléfono y email, sin los descartados).",
     "El apartado «Capturas» pasa a llamarse «Transcripción».",
-    "Cifras del panel coherentes entre secciones y arreglos de foco en los formularios."]},
-  {v:"0.015",fecha:"2026-08-26",cambios:[
-    "Producción: entradas y line-up ya son utilizables (aforo, tramos y horarios).",
-    "Login de cliente: recuperar contraseña por email, entrada con enlace mágico, ver u ocultar la contraseña, aviso de Bloq Mayús, medidor de fuerza y mensajes de error claros.",
-    "Copia de seguridad diaria automática a Google Drive (03:00), con 30 días de historial.",
-    "Arreglado el «Error al sincronizar» que les salía a los gestores al cerrar mes o tocar el selector de Drive."]},
-  {v:"0.014",fecha:"2026-08-26",cambios:[
-    "Seguridad: cada función del servidor comprueba el rol de quien llama (antes un artista podía llegar al Drive y a las redes de otro).",
-    "Cabeceras de seguridad y política de contenido activas en modo bloqueo."]}
+    "Cifras coherentes entre secciones y arreglos de foco en los formularios."]},
+  {fecha:"2026-08-26",v:"0.016",cambios:[
+    "Portal del cliente (rol artista): menú propio con Inicio, Agenda, Canciones, Bolsillo y Redes. El inicio muestra sus próximas fechas, lo generado en el año y sus seguidores. Solo lectura.",
+    "«Equipo y permisos» gestiona el rol de cada miembro y con qué cliente está vinculado, con la guía de invitación.",
+    "Producción: entradas y line-up ya son utilizables.",
+    "Login de cliente completo: recuperar contraseña por email, entrada con enlace mágico, ver u ocultar la contraseña, aviso de Bloq Mayús, medidor de fuerza (mínimo 8) y mensajes de error claros.",
+    "«Distribuir canción»: el artista o el equipo rellenan toda la información de la distribuidora (formato, tipo, feat, ISRC, parental, hook de TikTok, portada, WAV y videoclip, créditos, líneas C/P, tracklist, mood, pitch, plan de marketing) y al enviar se crea la entrada en el catálogo y se compila el email listo para copiar.",
+    "Copia de seguridad diaria automática y gratuita a Google Drive (03:00), con 30 días de historial.",
+    "Arreglado el «Error al sincronizar» que les salía a los gestores al cerrar mes o al tocar el selector de Drive.",
+    "Seguridad: las funciones del servidor comprueban el rol de quien llama (antes un artista podía llegar al Drive y a las redes de otro), cabeceras de seguridad en Netlify y política de contenido en modo bloqueo.",
+    "Permisos de base de datos revisados a fondo: se limpian las 22 políticas antiguas y se acotan mensajes y avisos push."]},
+  {fecha:"2026-08-25",v:"0.016",cambios:[
+    "Paleta «Medianoche», elegida entre cuatro propuestas: rótulos en caja normal, pills rellenas, bordes mínimos y un acento por pantalla.",
+    "Escritorio rediseñado: la ficha se abre como cajón lateral, la barra de menú va agrupada con iconos y el Panel pasa a dos columnas con el próximo show destacado.",
+    "Formulario de show: el DJ habitual se ve al cambiar de cliente, el cliente se hereda del filtro activo, la ciudad y el país los pone el contratante, la fecha de cobro se calcula sola y se limpian los DJs del colectivo.",
+    "Caché del DJ en el reparto (parejas artista-DJ, editable en la ficha y por show), la sala autorrellena ciudad y aforo, y la tarjeta económica se actualiza en vivo.",
+    "Redes: gráfica total a 12 meses y mes a mes por red con los colores de cada marca. Bolsillo: evolución mensual con la misma lectura, con diferencia y desglose.",
+    "Chip «ruta N%» en la ficha y en el Panel, y gráfica agregada de seguidores en Redes.",
+    "Instagram Plan B: cada artista conecta su cuenta desde Redes.",
+    "Política de privacidad y eliminación de datos (requisito de revisión de Meta)."]},
+  {fecha:"2026-08-21",v:"0.011",cambios:[
+    "Redes: métricas extra por red (engagement, oyentes, audiencia, contenido destacado) y comparativa entre artistas.",
+    "Móvil: dock de 5 destinos, Shows dentro de la agenda y el próximo show destacado en el Panel.",
+    "Móvil: ficha de show con resumen y botones grandes; Redes con el color de cada marca y la diferencia respecto al mes anterior.",
+    "Animaciones: entrada en cascada, deslizamiento al cambiar de sección en el móvil y la ficha abriéndose como hoja.",
+    "Repulido general: esquinas más suaves, foco rosa en los campos y barras de scroll finas.",
+    "Botón «mostrar más» en Contactos, Clientes y Shows: 60 por tanda en vez de cargar la lista entera."]},
+  {fecha:"2026-08-20",v:"0.006",cambios:[
+    "Nuevas secciones «Mis Canciones» y «Bolsillo».",
+    "Canciones con portada, audio, créditos y género, guardados en Drive.",
+    "Colaboradores y productor en el título (ft. / prod.), con previsualización en vivo al editar.",
+    "Nuevo panel «Redes»: seguidores de Instagram, TikTok y YouTube por artista, con el crecimiento mensual.",
+    "Redes se actualiza sola consultando YouTube e Instagram; Spotify se lleva por revisión mensual porque cerraron su API pública en febrero de 2026.",
+    "Arreglado el tope de 1.000 filas de la base de datos que dejaba cifras cortas en Canciones y Bolsillo.",
+    "Pasada de accesibilidad: contraste de rótulos, filas navegables con el teclado y transiciones del menú."]},
+  {fecha:"2026-08-19",v:"0.006",cambios:[
+    "Pasada de móvil: tablas dentro de la ficha, filtros plegados y todo a tamaño de dedo.",
+    "En listas largas la ficha se recorta y las cifras salen fuera de las barras.",
+    "Generador de contratos, y en la hoja de ruta los campos vacíos ya no se imprimen.",
+    "Comprobación automática antes de publicar: un index.html roto ya no puede llegar a producción."]},
+  {fecha:"2026-08-18",v:"0.004",cambios:[
+    "Drive funciona con una sola cuenta de MALO a través del servidor, en vez de pedirle permisos a cada uno.",
+    "Subir archivos a Drive desde el propio panel.",
+    "El panel dice siempre con qué cuenta de Google está leyendo.",
+    "Configuración pasa a cuatro pestañas y aparecen los roles de equipo.",
+    "Arreglos de CORS, de identificación de la aplicación y una llave sobrante que rompía toda la app."]},
+  {fecha:"2026-08-17",v:"0.003",cambios:[
+    "Integración con Google Drive: conectar una carpeta y ver sus archivos desde Documentos.",
+    "Solo un administrador puede elegir la carpeta madre.",
+    "Al conectar Google se pide también el permiso de Drive.",
+    "Ajustes de formato en el móvil."]},
+  {fecha:"2026-08-16",v:"0.002",cambios:[
+    "Géneros y servicios pasan a ser etiquetas.",
+    "SoundCloud añadido a la ficha de cliente.",
+    "Retirada la sección de WhatsApp."]},
+  {fecha:"2026-08-15",v:"—",cambios:[
+    "Primera subida de la app al repositorio, con service worker para avisos y uso sin conexión.",
+    "Nueva categoría de contratante: fiestas mayores."]}
 ];
-/* Antes de la 0.014 no se guardaba historial de cambios. */
+/* El historial de arriba se reconstruyó el 27-ago-2026 a partir de los 83
+   commits del repositorio, agrupado por día. Va por FECHA y no por versión
+   porque APP_VERSION no se subió en cada publicación (la 0.016 abarca del 25
+   al 27 de agosto, y la 0.017 es la primera que se sube junto a su entrada).
+   La «v» de cada bloque es la que estaba publicada ese día. */
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -6337,9 +6392,9 @@ function cfgTabNovedades(el){
   marcaVersionVista();
   const bloques=CHANGELOG.map((r,i)=>`
     <div style="padding:${i?"18px":"0"} 0 0;${i?"border-top:1px solid var(--rule);margin-top:18px":""}">
-      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:9px">
-        <span class="strong" style="font-size:14px">v ${esc(r.v)}</span>
-        <span class="dim tiny">${esc(fecha(r.fecha))}</span>
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:9px;flex-wrap:wrap">
+        <span class="strong" style="font-size:14px">${esc(fecha(r.fecha))}</span>
+        <span class="dim tiny">v ${esc(r.v)} · ${r.cambios.length} ${r.cambios.length===1?"cambio":"cambios"}</span>
         ${i?"":`<span class="badge">Actual</span>`}
       </div>
       <ul style="margin:0;padding-left:18px;color:var(--mute);font-size:12.5px;line-height:1.7">
@@ -6353,7 +6408,8 @@ function cfgTabNovedades(el){
       Estás usando la <strong style="color:var(--bone)">v ${esc(APP_VERSION)}</strong>.
       Si al entrar te sale un aviso de versión nueva, es esta pestaña lo que tienes que mirar.</p>
     ${bloques}
-    <p class="dim tiny" style="margin-top:20px">Antes de la 0.014 no se guardaba historial de cambios.</p>
+    <p class="dim tiny" style="margin-top:20px">Historial completo desde el 15 de agosto de 2026, el día de la primera subida.
+      Va por fecha porque hasta la 0.017 el número de versión no se subía en cada publicación.</p>
   </div></div>`;
 }
 
