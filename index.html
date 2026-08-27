@@ -689,6 +689,16 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
 .cn-flag{font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;
   padding:2px 6px;border-radius:4px;border:1px solid var(--rule-2);color:var(--mute)}
 .cn-flag.warn{border-color:rgba(240,86,143,.5);color:var(--malo)}
+/* Chapa de video: va encima de la portada porque es la accion secundaria de la
+   ficha (la principal, tocar la tarjeta, abre la canción). Es un <span> con
+   data-yt, no un <a>, porque la tarjeta entera ya es un <button> y anidar un
+   enlace dentro de un boton no es HTML valido. */
+.cn-yt{position:absolute;top:7px;right:7px;width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  background:rgba(9,10,13,.72);border:1px solid rgba(255,255,255,.22);
+  backdrop-filter:blur(3px);transition:background .15s ease,transform .15s ease}
+.cn-yt:hover{background:#FF0033;border-color:#FF0033;transform:scale(1.08)}
+.cn-yt svg{width:13px;height:13px;fill:#fff;margin-left:1px}
 /* Secciones plegables con <details>/<summary>: el navegador ya sabe abrir y
    cerrar, y funciona con teclado sin escribir nada. */
 .cn-det{border:0;margin:0}
@@ -1655,7 +1665,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.022";
+const APP_VERSION="0.023";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1664,6 +1674,12 @@ const APP_VERSION="0.022";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-27",v:"0.023",cambios:[
+    "Las canciones traen rellenada la fecha de lanzamiento y el género: 124 de 127 tienen fecha y 105 tienen género, sacados de Deezer y Apple Music buscando por el ISRC de cada tema.",
+    "125 canciones tienen ya el enlace a su vídeo de YouTube. En la galería sale un botón de play en la esquina de la portada: al tocarlo pregunta si abrirlo en la app de YouTube, en una pestaña o copiar el enlace.",
+    "Cada ficha muestra el año y el género debajo del dinero generado.",
+    "117 canciones tienen guardado su enlace de Deezer, y en la ficha se pueden añadir a mano los de Deezer y Apple Music.",
+    "Quedan 3 temas sin fecha, 22 sin género y 2 sin vídeo: son los que no aparecen en las plataformas o los subió otra distribuidora. Se pueden poner a mano en la ficha de cada canción."]},
   {fecha:"2026-08-27",v:"0.022",cambios:[
     "Canciones sale agrupado por artista de entrada, y dentro de cada artista primero sus discos y luego las sueltas.",
     "Las portadas ya no ocupan media pantalla en ordenador: las fichas son bastante más pequeñas, así entran el doble por fila.",
@@ -4608,6 +4624,9 @@ function viewMisCanciones(el,ta){
     </svg>`;
   }
   const inicialesTit=t=>String(t||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
+  /* El videoclip vive en distribucion.videoUrl, que es donde lo guarda la ficha
+     de la canción y el formulario de distribución. */
+  const videoDe=c=>((c.distribucion||{}).videoUrl||"").trim();
   function ficha(c){
     const b=dinero(c), suma=sumaParticipantesPct(c.id), ca=catDe(c.artistaId);
     const tit=tituloConCreditos(c)||"(sin título)";
@@ -4620,6 +4639,8 @@ function viewMisCanciones(el,ta){
                onerror="this.closest('.cn-art').innerHTML='<div class=\\'cn-ph\\' aria-hidden=\\'true\\'>${esc(inicialesTit(c.titulo))}</div>'+this.closest('.cn-art').querySelector('.cn-tit').outerHTML">`
           : `<div class="cn-ph" aria-hidden="true">${esc(inicialesTit(c.titulo))}</div>`}
         ${heredada(c)?`<span class="cn-alt" title="Este tema tiene su propia portada de single"></span>`:""}
+        ${videoDe(c)?`<span class="cn-yt" data-yt="${esc(videoDe(c))}" role="button" tabindex="0"
+          title="Ver el vídeo en YouTube" aria-label="Ver el vídeo de ${esc(tit)} en YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span>`:""}
         <div class="cn-tit"><b>${esc(tit)}</b><span>${esc(nomCliente(c.artistaId))}</span></div>
       </div>
       <div class="cn-body">
@@ -4629,6 +4650,8 @@ function viewMisCanciones(el,ta){
         ${conRango?"":sparkline(serie12(c.id))}
         <div class="cn-flags">
           ${Math.abs(suma-100)>0.01?`<span class="cn-flag warn">reparto ${pct(suma)}</span>`:""}
+          ${c.fechaLanzamiento?`<span class="cn-flag" title="Salió el ${esc(fecha(c.fechaLanzamiento))}">${esc(String(c.fechaLanzamiento).slice(0,4))}</span>`:""}
+          ${c.genero?`<span class="cn-flag">${esc(c.genero)}</span>`:""}
         </div>
       </div>
     </button>`;
@@ -4790,6 +4813,10 @@ function formCancion(id){
     <div class="fgrid">
       <div class="f s12"><label>Link al videoclip <span class="dim" style="text-transform:none">· YouTube o archivo del vídeo, si lo hay</span></label>
         <input id="cn_video" value="${esc((o.distribucion&&o.distribucion.videoUrl)||"")}" placeholder="https://youtube.com/…"></div>
+      <div class="f s6"><label>Enlace en Deezer</label>
+        <input id="cn_deezer" value="${esc((o.distribucion&&o.distribucion.deezerUrl)||"")}" placeholder="https://www.deezer.com/track/…"></div>
+      <div class="f s6"><label>Enlace en Apple Music</label>
+        <input id="cn_apple" value="${esc((o.distribucion&&o.distribucion.appleUrl)||"")}" placeholder="https://music.apple.com/…"></div>
       <div class="f s6">
         <label>Portada</label>
         <div id="cn_portada_zona" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0">
@@ -4956,7 +4983,7 @@ function formCancion(id){
       audioDriveId:vivo.audioDriveId||"",audioUrl:vivo.audioUrl||"",
       /* Conserva el cajón de distribución (formato, pitch, etc.) y solo cambia
          el enlace al videoclip, que se edita también desde aquí. */
-      distribucion:Object.assign({},vivo.distribucion||o.distribucion||{},{videoUrl:val("cn_video")}),
+      distribucion:Object.assign({},vivo.distribucion||o.distribucion||{},{videoUrl:val("cn_video"),deezerUrl:val("cn_deezer"),appleUrl:val("cn_apple")}),
       _participantes:participantes.filter(x=>(x.clienteId||"").trim()||String(x.nombre||"").trim()),
       _ingresos:ingresos.filter(x=>x.mes)
     };
@@ -10675,7 +10702,7 @@ function abrirGraficoKpi(tipo){
 }
 
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-distrib],[data-cancion],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
+  const el=e.target.closest("[data-yt],[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-distrib],[data-cancion],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
   if(!el)return;
   if(el.dataset.goto){e.preventDefault();VIEW=el.dataset.goto;render();window.scrollTo(0,0);return}
   const act=el.dataset.act;
@@ -10925,6 +10952,7 @@ document.addEventListener("click",e=>{
   if(el.dataset.ctx)return formContexto(el.dataset.ctx);
   if(el.dataset.sub)return formSuscriptor(el.dataset.sub);
   if(el.dataset.distrib)return formDistribuir(el.dataset.distrib);
+  if(el.dataset.yt)return abreExterno(el.dataset.yt);
   if(el.dataset.cancion)return formCancion(el.dataset.cancion);
   if(el.dataset.prod)return formProduccion(el.dataset.prod);
   if(el.dataset.show){
