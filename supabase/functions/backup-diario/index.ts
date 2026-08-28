@@ -34,7 +34,7 @@ const TABLAS = [
   "clientes", "promotores", "contactos", "shows", "eventos", "producciones",
   "canciones", "cancion_participantes", "cancion_ingresos", "redes_snapshots",
   "temas", "contexto", "tareas", "suscriptores", "mensajes", "mensajes_wa",
-  "subcategorias", "generos", "localidades", "empresa", "miembros",
+  "subcategorias", "generos", "localidades", "empresa", "miembros", "medios",
 ];
 const DIAS_A_CONSERVAR = 30;   // se borran los backups más viejos que esto
 
