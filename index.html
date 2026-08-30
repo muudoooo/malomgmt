@@ -1669,7 +1669,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.032";
+const APP_VERSION="0.033";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1678,6 +1678,11 @@ const APP_VERSION="0.032";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-30",v:"0.033",cambios:[
+    "Los artistas ya ven su Editorial desde el portal: sus obras registradas y lo que les han liquidado.",
+    "En el portal solo salen «Mis obras» e «Ingresos». Liquidación es una vista de gestión, y Alertas se queda fuera a propósito: el artista solo recibe sus propias filas de reparto, así que le diría «sin alertas» siempre aunque las haya — mejor no enseñarlo que enseñarlo mal.",
+    "Al artista se le dice lo que le han liquidado a él, sin el desglose de lo que recauda la editorial, igual que en Bolsillo.",
+    "Las obras quedan enlazadas con las canciones del catálogo: 90 de 157 casadas automáticamente. Al abrir una obra ves a qué canción corresponde."]},
   {fecha:"2026-08-30",v:"0.032",cambios:[
     "Arreglado: las pestañas de Editorial no funcionaban. Al pulsarlas no pasaba nada — un fallo de programación que se coló en la 0.030.",
     "Editorial se parece ya a Canciones: las pestañas van dentro de la página en vez de en la barra de arriba, y la de Alertas lleva el número de obras pendientes al lado.",
@@ -1878,7 +1883,7 @@ const DOW=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
 function blank(){return {version:6,miembros:{},localidades:{},creado:new Date().toISOString(),empresa:{nombre:"MALO",logo:""},
   clientes:[],promotores:[],shows:[],eventos:[],producciones:[],suscriptores:[],medios:[],contexto:[],mensajes:[],tareas:[],
   temas:[],canciones:[],cancionParticipantes:[],cancionIngresos:[],
-  obras:[],obraParticipantes:[],obraIngresos:[],
+  obras:[],obraParticipantes:[],obraIngresos:[],obraCanciones:[],
   subcategorias:JSON.parse(JSON.stringify(SUBCAT_DEFAULT)),generos:GENERO_DEFAULT.slice()}}
 let DB=blank();
 
@@ -2116,6 +2121,7 @@ const TABLE_MAP={
   obras:{id:"id",workCode:"work_code",titulo:"titulo",iswc:"iswc",editorial:"editorial",recordedBy:"recorded_by",notas:"notas",creadoEn:"creado_en"},
   obraParticipantes:{id:"id",obraId:"obra_id",clienteId:"cliente_id",nombre:"nombre",capacidad:"capacidad",sociedad:"sociedad",controlada:"controlada",contPct:"cont_pct",mecanicoPct:"mecanico_pct",ejecucionPct:"ejecucion_pct"},
   obraIngresos:{id:"id",obraId:"obra_id",clienteId:"cliente_id",fuente:"fuente",periodo:"periodo",devengoDesde:"devengo_desde",devengoHasta:"devengo_hasta",tipoUso:"tipo_uso",dsp:"dsp",territorio:"territorio",unidades:"unidades",importeBruto:"importe_bruto",importeNeto:"importe_neto"},
+  obraCanciones:{obraId:"obra_id",cancionId:"cancion_id",confianza:"confianza"},
   medios:{id:"id",nombre:"nombre",tipo:"tipo",medio:"medio",email:"email",telefono:"telefono",instagram:"instagram",ciudad:"ciudad",enlace:"enlace",notas:"notas",ultimoContacto:"ultimo_contacto",creadoEn:"creado_en"},
   temas:{id:"id",clienteId:"cliente_id",titulo:"titulo",version:"version",estado:"estado",
     fechaEnvio:"fecha_envio",fechaSalida:"fecha_salida",sello:"sello",isrc:"isrc",
@@ -2248,7 +2254,7 @@ async function fetchTodos(tabla){
   return {data:todo,error:err};
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp,etv,etp,eta,obrp,obpp,obip]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp,etv,etp,eta,obrp,obpp,obip,obcp]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -2296,7 +2302,8 @@ async function loadRemote(){
        SQL la app va exactamente igual y la sección lo dice. */
     sb.from("obras").select("*"),
     sb.from("obra_participantes").select("*"),
-    sb.from("obra_ingresos").select("*")
+    sb.from("obra_ingresos").select("*"),
+    sb.from("obra_canciones").select("*")
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -2337,6 +2344,7 @@ async function loadRemote(){
   DB.obras=DB.sinEditorial?[]:(obrp.data||[]).map(r=>fromRow("obras",r));
   DB.obraParticipantes=DB.sinEditorial?[]:(obpp.data||[]).map(r=>fromRow("obraParticipantes",r));
   DB.obraIngresos=(DB.sinEditorial||obip.error)?[]:(obip.data||[]).map(r=>fromRow("obraIngresos",r));
+  DB.obraCanciones=(DB.sinEditorial||obcp.error)?[]:(obcp.data||[]).map(r=>fromRow("obraCanciones",r));
   if(DB.sinEditorial)console.warn("Sección Editorial no disponible:",(obrp.error||obpp.error).message);
   DB.sinMedios=!!medp.error;
   DB.medios=DB.sinMedios?[]:(medp.data||[]).map(r=>fromRow("medios",r));
@@ -2989,6 +2997,7 @@ const PORTAL_VIEWS=[
   {id:"inicio",label:"Inicio",k:""},
   {id:"calendario",label:"Agenda",k:""},
   {id:"canciones",label:"Canciones",k:""},
+  {id:"editorial",label:"Editorial",k:""},
   {id:"bolsillo",label:"Bolsillo",k:""},
   {id:"redes",label:"Redes",k:""}];
 const PORTAL_IDS=PORTAL_VIEWS.map(v=>v.id);
@@ -6435,8 +6444,21 @@ function viewEditorial(el,ta){
   const sinIswc=obras.filter(o=>!o.iswc).length;
 
   ta.innerHTML="";
-  document.getElementById("viewSub").textContent=
-    `${obras.length} obras · ${obras.length-sinIswc} con ISWC · ${conProblema.length} con algo que reclamar`;
+  document.getElementById("viewSub").textContent=esArtistaPortal()
+    ? `${obras.length} obra${obras.length===1?"":"s"} tuya${obras.length===1?"":"s"} registrada${obras.length===1?"":"s"} en la editorial`
+    : `${obras.length} obras · ${obras.length-sinIswc} con ISWC · ${conProblema.length} con algo que reclamar`;
+
+  /* En el portal el artista ve SU catálogo y SUS ingresos, y nada más.
+     Alertas queda fuera a propósito: por RLS solo recibe sus propias filas de
+     reparto, así que las de «Unknown Publisher» —que son las que disparan la
+     alerta— no le llegan y la pestaña le diría «sin alertas» siempre. Enseñar
+     eso sería peor que no enseñar nada.
+     Liquidación tampoco: es la vista de gestión, con la comisión de MALO. */
+  const portal=esArtistaPortal();
+  const PESTANAS=portal
+    ? [["catalogo","Mis obras"],["ingresos","Ingresos"]]
+    : [["alertas","Alertas"],["catalogo","Catálogo"],["ingresos","Ingresos"],["liquidacion","Liquidación"]];
+  if(!PESTANAS.some(x=>x[0]===filtro.edVista))filtro.edVista=PESTANAS[0][0];
 
   const v=filtro.edVista;
   if(v==="catalogo") edCatalogo(el,obras,info);
@@ -6448,7 +6470,7 @@ function viewEditorial(el,ta){
      Canciones, se ven también desde el portal del artista y tienen el mismo
      aspecto que el resto de la app. */
   el.insertAdjacentHTML("afterbegin",`<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
-    ${[["alertas","Alertas"],["catalogo","Catálogo"],["ingresos","Ingresos"],["liquidacion","Liquidación"]].map(([id,lab])=>
+    ${PESTANAS.map(([id,lab])=>
       `<button class="btn ${v===id?"primary":"ghost"} sm portal-ok" data-act="ed-vista" data-v="${id}">${lab}${
         id==="alertas"&&conProblema.length?` <span class="dim">${conProblema.length}</span>`:""}</button>`).join("")}
   </div>`);
@@ -6589,8 +6611,10 @@ function edIngresos(el,obras){
     <span class="hint">Periodo de liquidación · la editorial paga por semestres</span>
   </div>
   <div class="card"><div class="body">
-    <p><strong>${eur(bruto)}</strong> recaudó la editorial · <strong>${eur(neto)}</strong> llegó a los clientes
-    <span class="dim">(${bruto?((neto/bruto)*100).toFixed(1):0} %)</span></p>
+    ${esArtistaPortal()
+      ? `<p>Te han liquidado <strong>${eur(neto)}</strong> en este periodo.</p>`
+      : `<p><strong>${eur(bruto)}</strong> recaudó la editorial · <strong>${eur(neto)}</strong> llegó a los clientes
+         <span class="dim">(${bruto?((neto/bruto)*100).toFixed(1):0} %)</span></p>`}
     <p class="hint">Devengo real: <strong>${devengos.map(esc).join(", ")}</strong> — o sea, lo que sonó entonces
     se cobra ahora. El desfase es normal en editorial y conviene tenerlo en cuenta al proyectar.</p>
   </div></div>

@@ -123,13 +123,24 @@ def main():
     if not os.path.exists(FILAS):
         print("Falta %s: corre antes umpg_lee.py" % FILAS)
         return
-    filas = json.load(io.open(FILAS, encoding="utf-8"))
+    filas = json.load(io.open(FILAS, encoding="utf-8")) if os.path.exists(FILAS) else []
     cat = carga_catalogo()
     if not cat:
         return
 
-    # obras UMPG (agregadas) con su dinero, para priorizar la revision
+    # El catalogo COMPLETO de obras (los CSV de Works-*), no solo las que
+    # generaron dinero: hay que mapear las 157, no las 31 que facturaron.
     obras = {}
+    for ruta in glob.glob(os.path.join(os.path.expanduser("~/MALO/UMPG PUBLISHING"), "*", "Works-A*.csv")):
+        if "Copyright-Splits" in ruta:
+            continue
+        fh = io.open(ruta, encoding="utf-8-sig"); fh.readline()
+        for r in csv.DictReader(fh):
+            cod = (r.get("Work Code") or "").strip()
+            if cod and cod not in obras:
+                obras[cod] = {"titulo": (r.get("Work Title") or "").strip(),
+                              "royalties": 0.0, "shares": set()}
+    # y encima el dinero, para poder priorizar la revision
     for x in filas:
         o = obras.setdefault(x["obra"], {"titulo": x["titulo"], "royalties": 0.0, "shares": set()})
         o["royalties"] += x["royalties"]
@@ -207,6 +218,36 @@ def main():
                 r["cod_obra"], r["titulo_umpg"][:32], r["royalties"],
                 r["confianza"], r["titulo_malo"] or "-"))
     print("\nguardado %s" % SALIDA)
+
+    # ── SQL del puente obra <-> cancion
+    #
+    # Solo EXACTO y FUERTE: lo DUDOSO no entra automatico, que un puente mal
+    # puesto ensucia el informe cruzado y cuesta mas de arreglar que de revisar.
+    import hashlib
+    def obr_id(cod):
+        return "obr_" + hashlib.sha1(cod.encode("utf-8")).hexdigest()[:12]
+
+    buenos = [r for r in res if r["confianza"] in ("EXACTO", "FUERTE") and r["cancion_id"]]
+    L = ["-- Puente obra <-> grabacion (public.obra_canciones).",
+         "-- Generado por herramientas/umpg/umpg_mapeo.py.",
+         "-- Solo entradas EXACTO y FUERTE; lo dudoso se revisa a mano en mapeo_umpg.tsv.",
+         "-- Idempotente: clave primaria (obra_id, cancion_id).",
+         "",
+         "begin;",
+         "",
+         "insert into public.obra_canciones (obra_id, cancion_id, confianza) values"]
+    filas_sql = ["  ('%s', '%s', '%s')" % (obr_id(r["cod_obra"]), r["cancion_id"], r["confianza"].lower())
+                 for r in buenos]
+    L.append(",\n".join(filas_sql))
+    L.append("on conflict (obra_id, cancion_id) do update set confianza = excluded.confianza;")
+    L.append("")
+    L.append("commit;")
+    L.append("")
+    L.append("-- comprobacion")
+    L.append("select confianza, count(*) from public.obra_canciones group by confianza order by confianza;")
+    ruta_sql = os.path.abspath(os.path.join(AQUI, "..", "..", "supabase", "editorial-puente.sql"))
+    io.open(ruta_sql, "w", encoding="utf-8").write("\n".join(L) + "\n")
+    print("guardado %s  (%d enlaces)" % (ruta_sql, len(buenos)))
 
 
 if __name__ == "__main__":
