@@ -3107,6 +3107,13 @@ function viewInicioPortal(el,ta){
       <div class="dim tiny">El detalle, en Bolsillo</div>
     </div></div></div>
   </div>
+  ${(()=>{let m="";participacionesDe(c.id).forEach(p=>ingresosDe(p.cancionId).forEach(i=>{const k=(i.mes||"").slice(0,7);if(k>m)m=k}));
+    if(!m)return "";
+    const nom=`${AG_MESES[+m.slice(5,7)-1].toLowerCase()} ${m.slice(0,4)}`;
+    return `<div class="card" style="margin-top:14px"><div class="body" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px"><strong>Tus royalties de ${esc(nom)} ya están listos</strong>
+        <div class="dim tiny">Bruto, descuentos aplicados y tu parte, canción a canción.</div></div>
+      <button class="btn primary sm portal-ok" id="irReporte" data-mes="${m}">Ver mi reporte</button></div></div>`})()}
   <div class="card" style="margin-top:14px"><header><h3>Próximas fechas</h3><div class="spacer"></div>
     <button class="btn ghost sm" data-ir="calendario">Ver agenda</button></header><div class="body">
     ${prox.length?`<table><tbody>
@@ -3137,6 +3144,10 @@ function viewInicioPortal(el,ta){
     </div></div></div>
   </div>`;
   el.querySelectorAll("[data-ir]").forEach(b=>b.addEventListener("click",()=>{VIEW=b.dataset.ir;render();window.scrollTo(0,0)}));
+  const ir=document.getElementById("irReporte");
+  if(ir)ir.addEventListener("click",()=>{const m=ir.dataset.mes;
+    filtro.bolsilloModo="mes";filtro.bolsilloAnio=m.slice(0,4);filtro.bolsilloMes=m.slice(5,7);
+    reporteRoyalties(c.id,{desde:m,hasta:m,label:""},`${AG_MESES[+m.slice(5,7)-1]} ${m.slice(0,4)}`)});
 }
 
 function viewCalendario(el,ta){
@@ -4529,6 +4540,9 @@ function viewBolsillo(el,ta){
     ${filtro.bolsilloModo==="mes"?`<select id="bsMes">${NOM.map((n_,i)=>`<option value="${pad(i+1)}" ${filtro.bolsilloMes===pad(i+1)?"selected":""}>${n_}</option>`).join("")}</select>`:""}
     ${filtro.bolsilloModo==="trimestre"?`<select id="bsTrim">${[1,2,3,4].map(t=>`<option value="${t}" ${+filtro.bolsilloTrim===t?"selected":""}>T${t}</option>`).join("")}</select>`:""}
   </div>
+  <div style="display:flex;justify-content:flex-end;margin:10px 0 2px">
+    <button class="btn primary sm portal-ok" id="bsReporte">Generar reporte (PDF)</button>
+  </div>
 
   <div class="strip">
     <div class="cell"><div class="lab">Total generado · ${esc(r.label)}</div><div class="val v-malo">${eur0(totalActual)}</div>
@@ -4588,6 +4602,94 @@ function viewBolsillo(el,ta){
   if(sme)sme.addEventListener("change",e=>{filtro.bolsilloMes=e.target.value;render()});
   const st=document.getElementById("bsTrim");
   if(st)st.addEventListener("change",e=>{filtro.bolsilloTrim=e.target.value;render()});
+  const br=document.getElementById("bsReporte");
+  if(br)br.addEventListener("click",()=>{const rr=rangoBolsillo();reporteRoyalties(cli,rr,etiquetaBolsillo(rr))});
+}
+
+/* ── Reporte de royalties del artista (documento imprimible, estilo .liq) ──
+   Regla acordada con Malo (30 ago 2026): la app NO supone ningún porcentaje.
+   Cada paso de la cascada se aplica solo si su dato está configurado en la
+   canción; si falta, la fila enseña el bruto en crudo, dice qué falta y esa
+   canción no entra en el total de «tu parte». */
+function etiquetaBolsillo(r){
+  if(filtro.bolsilloModo==="mes")return `${AG_MESES[+filtro.bolsilloMes-1]} ${filtro.bolsilloAnio}`;
+  return r.label;
+}
+function pctConfigurado(v){return v!==null&&v!==undefined&&v!==""&&isFinite(parseFloat(v))}
+function reporteRoyalties(cliId,r,etiqueta){
+  const c=cliente(cliId)||{};
+  const logo=(DB.empresa&&DB.empresa.logo)?`<img src="${esc(DB.empresa.logo)}" alt="MALO">`:`MA<br>LO`;
+  const filas=participacionesDe(cliId).map(p=>{
+    const cn=(DB.canciones||[]).find(x=>x.id===p.cancionId);if(!cn)return null;
+    const ing=ingresosDe(cn.id).filter(i=>{const k=(i.mes||"").slice(0,7);return k>=r.desde&&k<=r.hasta});
+    if(!ing.length)return null;
+    const bruto=ing.reduce((a,i)=>a+n(i.bruto),0);
+    const unidades=ing.reduce((a,i)=>a+n(i.unidades),0);
+    const feeOk=pctConfigurado(cn.feeDistribucionPct),mgmtOk=pctConfigurado(cn.mgmtPct);
+    const repOk=pctConfigurado(p.pct)&&Math.abs(sumaParticipantesPct(cn.id)-100)<=0.01;
+    const falta=[];if(!feeOk)falta.push("% distribución");if(!mgmtOk)falta.push("% management");if(!repOk)falta.push("reparto de participantes");
+    const trasDist=feeOk?bruto*(1-n(cn.feeDistribucionPct)/100):null;
+    const pool=(trasDist!==null&&mgmtOk)?trasDist*(1-n(cn.mgmtPct)/100):null;
+    const tuyo=(pool!==null&&repOk)?pool*n(p.pct)/100:null;
+    return {cn,p,bruto,unidades,feeOk,mgmtOk,repOk,falta,trasDist,pool,tuyo};
+  }).filter(Boolean).sort((a,b)=>b.bruto-a.bruto);
+  const totBruto=filas.reduce((a,x)=>a+x.bruto,0);
+  const completas=filas.filter(x=>x.tuyo!==null);
+  const incompletas=filas.filter(x=>x.tuyo===null);
+  const totTuyo=completas.reduce((a,x)=>a+x.tuyo,0);
+  const brutoCfg=completas.reduce((a,x)=>a+x.bruto,0);
+  const poolCfg=completas.reduce((a,x)=>a+x.pool,0);
+  openModal(`
+  <header><h3>Reporte de royalties</h3>
+    <span class="dim tiny">${esc(c.nombre||c.nombreReal||"—")} · ${esc(etiqueta)}</span>
+    <div class="spacer"></div>
+    <button class="btn primary sm portal-ok" id="rrPdf">Generar PDF</button>
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    <div class="liq" id="rrDoc">
+      <div class="lq-top">
+        <div class="lq-ttl">Royalties<span>${esc(String(etiqueta).toUpperCase())}</span></div>
+        <div class="lq-logo">${logo}</div>
+      </div>
+      <div class="lq-blk"><div class="lq-cab">
+        <div><span class="k">Artista</span><b>${esc(c.nombre||c.nombreReal||"—")}</b>${c.nombre&&c.nombreReal?` · ${esc(c.nombreReal)}`:""}</div>
+        <div><span class="k">Agencia</span><b>${esc((DB.empresa&&DB.empresa.nombre)||"MALO")}</b></div>
+        <div><span class="k">Periodo</span>${esc(etiqueta)}</div>
+        <div><span class="k">Emitido</span>${fecha(hoy())}</div>
+      </div></div>
+      <h4>Canciones con liquidación en el periodo · ${filas.length}</h4>
+      ${filas.length?`<div style="overflow-x:auto"><table>
+        <thead><tr><th>Canción</th><th class="n">Unidades</th><th class="n">Bruto</th><th class="n">Distribución</th>
+          <th class="n">Management</th><th class="n">Pool</th><th class="n">Tu %</th><th class="n">Tu parte</th></tr></thead>
+        <tbody>${filas.map(x=>`<tr>
+          <td><b>${esc(tituloConCreditos(x.cn))}</b>${x.cn.isrc?`<div class="mini">${esc(x.cn.isrc)}</div>`:""}</td>
+          <td class="n">${x.unidades?n(x.unidades).toLocaleString("es-ES"):"—"}</td>
+          <td class="n">${eur(x.bruto)}</td>
+          <td class="n">${x.feeOk?`−${eur(x.bruto-x.trasDist)}<div class="mini">${n(x.cn.feeDistribucionPct)}%</div>`:`<span class="lqb wait">sin configurar</span>`}</td>
+          <td class="n">${x.pool!==null?`−${eur(x.trasDist-x.pool)}<div class="mini">${n(x.cn.mgmtPct)}% s/neto</div>`:(x.feeOk?`<span class="lqb wait">sin configurar</span>`:"—")}</td>
+          <td class="n">${x.pool!==null?eur(x.pool):"—"}</td>
+          <td class="n">${x.repOk?`${n(x.p.pct)}%`:`<span class="lqb wait">sin cerrar</span>`}</td>
+          <td class="n"><b>${x.tuyo!==null?eur(x.tuyo):"—"}</b></td></tr>`).join("")}</tbody>
+        <tfoot><tr><td colspan="2">Totales</td><td class="n">${eur(totBruto)}</td><td colspan="4"></td>
+          <td class="n">${eur(totTuyo)}</td></tr></tfoot></table></div>`
+        :`<p class="lq-vacio">No hay liquidaciones cargadas en este periodo.</p>`}
+      ${incompletas.length?`<p class="lq-nota"><b>${incompletas.length} ${incompletas.length===1?"canción queda":"canciones quedan"} fuera del total</b> por datos sin configurar
+        (${[...new Set(incompletas.flatMap(x=>x.falta))].join(", ")}). Aquí no se asume ningún porcentaje: en cuanto el equipo complete la ficha, entran solas en el cálculo.</p>`:""}
+      ${filas.length?`<div class="lq-blk" style="margin-top:14px"><div class="lq-tot">
+        <div>Bruto del periodo (colaboraciones sumadas)</div><div class="v">${eur(totBruto)}</div>
+        ${incompletas.length?`<div>Bruto pendiente de configurar (fuera del cálculo)</div><div class="v">${eur(totBruto-brutoCfg)}</div>`:""}
+        <div>Descuento de distribución + management</div><div class="v">−${eur(brutoCfg-poolCfg)}</div>
+        <div>Pool a repartir entre participantes</div><div class="v">${eur(poolCfg)}</div>
+        <div class="rule"></div>
+        <div class="big">Tu parte del periodo</div><div class="v big">${eur(totTuyo)}</div>
+      </div></div>`:""}
+      <p class="lq-nota">Cifras según los estados de liquidación de la distribuidora cargados en MALO.
+        En colaboraciones, el bruto y las unidades son los del tema completo (suma de los extractos de todos los participantes).
+        Solo se aplican los porcentajes configurados canción a canción; ninguno se asume por defecto.
+        Documento informativo — no es una factura.</p>
+    </div>
+  </div>`);
+  document.getElementById("rrPdf").addEventListener("click",()=>setTimeout(()=>window.print(),60));
 }
 
 /* ════════ REDES ════════
@@ -10505,6 +10607,14 @@ async function startApp(){
   if(!sb._demo)registrarSW();
   await loadRemote();
   if(esArtistaPortal())VIEW="inicio";
+  /* Deep link de la notificación push: /?reporte=YYYY-MM abre el reporte del mes */
+  if(esArtistaPortal()&&DB.miClienteId){
+    const qm=new URLSearchParams(location.search).get("reporte");
+    if(qm&&/^\d{4}-\d{2}$/.test(qm)){
+      filtro.bolsilloModo="mes";filtro.bolsilloAnio=qm.slice(0,4);filtro.bolsilloMes=qm.slice(5,7);
+      setTimeout(()=>{try{reporteRoyalties(DB.miClienteId,{desde:qm,hasta:qm,label:""},`${AG_MESES[+qm.slice(5,7)-1]} ${qm.slice(0,4)}`)}catch(e){console.error("reporte",e)}},400);
+    }
+  }
   subscribeRealtime();
   try{ cierreDeMes(); }catch(e){ console.error("cierreDeMes",e); }
   try{ recordatoriosFrios(); }catch(e){ console.error("recordatoriosFrios",e); }
