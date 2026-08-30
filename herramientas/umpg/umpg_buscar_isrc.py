@@ -42,7 +42,7 @@ def deezer(url):
 def busca(titulo, artistas):
     """Devuelve el mejor candidato o None. Prioriza que el artista sea de los nuestros."""
     consultas = []
-    for a in artistas[:2]:
+    for a in artistas[:3]:
         consultas.append("%s %s" % (titulo, a))
     consultas.append(titulo)
 
@@ -71,7 +71,18 @@ def main():
     filas = list(csv.DictReader(io.open(MAPEO, encoding="utf-8"), delimiter="\t"))
     huer = [r for r in filas if r["confianza"] == "HUERFANA"]
 
-    # «Recorded By» de cada obra, que es la mejor pista del artista
+    # Pista del artista para buscar en Deezer.
+    #
+    # OJO: «Recorded By» NO sirve solo. UMPG pone ahi «DISOBEY» (el nombre del
+    # colectivo) en la mayoria, y DISOBEY no existe como artista en Deezer, asi que
+    # la busqueda no encontraba nada. La pista buena son los AUTORES de la obra:
+    # de ahi salen los nombres artisticos con los que si publican.
+    APELLIDO_A_ALIAS = {
+        "arenas castillo": "8belial", "perez de ynestrosa": "yyy891",
+        "roa barrasa": "roomtrash6", "garcia garcia": "cybernene",
+        "cabero gomez villaboa": "Aft3rlife", "sanchez vicent": "JOHNNYFUU",
+        "blanco escudero": "El WiWi", "beltran fernandez": "Virtual Flavor"}
+
     rec = {}
     for p in glob.glob(os.path.join(RAIZ, "*", "Works-A*.csv")):
         if "Copyright-Splits" in p:
@@ -79,9 +90,22 @@ def main():
         fh = io.open(p, encoding="utf-8-sig"); fh.readline()
         for r in csv.DictReader(fh):
             c = (r.get("Work Code") or "").strip()
-            v = (r.get("Recorded By") or "").strip()
-            if c and v and v != "-" and c not in rec:
-                rec[c] = [x.strip() for x in v.split(",") if x.strip()]
+            if not c:
+                continue
+            pistas = []
+            # 1º los autores, por orden de aparicion (el primero suele ser el principal)
+            for w in (r.get("Writers") or "").replace("&", ",").split(","):
+                w = norm(w)
+                for ape, alias in APELLIDO_A_ALIAS.items():
+                    if ape in w and alias not in pistas:
+                        pistas.append(alias)
+            # 2º «Recorded By», pero descartando «DISOBEY» que no es un artista de Deezer
+            for v in (r.get("Recorded By") or "").split(","):
+                v = v.strip()
+                if v and v != "-" and v.lower() != "disobey" and v not in pistas:
+                    pistas.append(v)
+            if pistas and c not in rec:
+                rec[c] = pistas
 
     print("Buscando %d obras en Deezer...\n" % len(huer))
     out, hallados = [], 0
