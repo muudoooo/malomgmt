@@ -2193,6 +2193,11 @@ const TABLE_MAP={
     quienPago:"quien_pago",unidadesProducidas:"unidades_producidas",ivaPct:"iva_pct",
     facturaDriveId:"factura_drive_id",facturaUrl:"factura_url",notas:"notas",
     editadoPor:"editado_por",editadoEn:"editado_en"},
+  soporteTickets:{id:"id",asunto:"asunto",cuerpo:"cuerpo",estado:"estado",prioridad:"prioridad",
+    area:"area",autor:"autor",autorNombre:"autor_nombre",autorRol:"autor_rol",clienteId:"cliente_id",
+    creadoEn:"creado_en",actualizadoEn:"actualizado_en",cerradoEn:"cerrado_en"},
+  soporteRespuestas:{id:"id",ticketId:"ticket_id",texto:"texto",autor:"autor",
+    autorNombre:"autor_nombre",creadoEn:"creado_en"},
   medios:{id:"id",nombre:"nombre",tipo:"tipo",medio:"medio",email:"email",telefono:"telefono",instagram:"instagram",ciudad:"ciudad",enlace:"enlace",notas:"notas",ultimoContacto:"ultimo_contacto",creadoEn:"creado_en"},
   temas:{id:"id",clienteId:"cliente_id",titulo:"titulo",version:"version",estado:"estado",
     fechaEnvio:"fecha_envio",fechaSalida:"fecha_salida",sello:"sello",isrc:"isrc",
@@ -2325,7 +2330,7 @@ async function fetchTodos(tabla){
   return {data:todo,error:err};
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp,etv,etp,eta,obrp,obpp,obip,obcp]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp,etv,etp,eta,obrp,obpp,obip,obcp,sopT,sopR]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -2379,7 +2384,11 @@ async function loadRemote(){
     fetchTodos("obras"),
     fetchTodos("obra_participantes"),
     fetchTodos("obra_ingresos"),
-    fetchTodos("obra_canciones")
+    fetchTodos("obra_canciones"),
+    /* Sondas de «Soporte» (buzón de incidencias). Sin el SQL la app va igual
+       y el apartado lo dice — ver supabase/soporte.sql. */
+    sb.from("soporte_tickets").select("*"),
+    sb.from("soporte_respuestas").select("*")
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -2425,6 +2434,12 @@ async function loadRemote(){
   DB.sinMedios=!!medp.error;
   DB.medios=DB.sinMedios?[]:(medp.data||[]).map(r=>fromRow("medios",r));
   if(DB.sinMedios)console.warn("Tabla «medios» no disponible:",medp.error.message);
+  /* Soporte: si falta el SQL, el apartado lo dice y no se puede escribir,
+     pero el resto de la app no se entera. */
+  DB.sinSoporte=!!sopT.error;
+  DB.soporteTickets=DB.sinSoporte?[]:(sopT.data||[]).map(r=>fromRow("soporteTickets",r));
+  DB.soporteRespuestas=(DB.sinSoporte||sopR.error)?[]:(sopR.data||[]).map(r=>fromRow("soporteRespuestas",r));
+  if(DB.sinSoporte)console.warn("Tabla «soporte_tickets» no disponible:",sopT.error.message);
   /* Enterticket: la tabla la rellena la sincronización (o el seed del SQL);
      la app solo la lee. Fechas más nuevas primero. */
   DB.sinEnterticket=!!etv.error;
@@ -3050,6 +3065,7 @@ const VIEWS=[
   {id:"capturas",label:"Transcripción",k:"c"},
   {id:"equipo",label:"Equipo",k:"0"},
   {id:"generadores",label:"Generadores",k:"g"},
+  {id:"soporte",label:"Soporte",k:"s"},
   {id:"datos",label:"Configuración",k:"-"}
 ];
 /* Un trazo por apartado para la pantalla de inicio del móvil. Line art simple
@@ -3074,6 +3090,7 @@ const ICONO_VIEW={
   capturas:"M4 8h3l2-3h6l2 3h3v12H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   equipo:"M4 5h16v11H9l-5 4z",
   generadores:"M5 19L15 9M14 3l1.4 3.6L19 8l-3.6 1.4L14 13l-1.4-3.6L9 8l3.6-1.4z",
+  soporte:"M4 5h16v11H9l-4 4v-4H4zM8 9h8M8 12h5",
   datos:"M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"
 };
 const HOME_POR_PAGINA=5;
@@ -3086,7 +3103,7 @@ const NAV_GRUPOS=[
   ["Día a día",["panel","calendario","shows","contactos","clientes"]],
   ["Música",["canciones","editorial","bolsillo","merch","redes"]],
   ["Gestión",["producciones","documentos","mailing","medios","mapa","capturas"]],
-  ["Sistema",["equipo","generadores","datos"]]];
+  ["Sistema",["equipo","generadores","soporte","datos"]]];
 const DOCK_VIEWS=[...DOCK_PRIMERO.map(id=>VIEWS.find(v=>v.id===id)),...VIEWS.filter(v=>!DOCK_PRIMERO.includes(v.id))];
 /* ── Portal del cliente (rol artista) ──
    Menú reducido: lo que el artista ve de sí mismo. La seguridad la pone RLS
@@ -3098,7 +3115,8 @@ const PORTAL_VIEWS=[
   {id:"editorial",label:"Editorial",k:""},
   {id:"merch",label:"Merch",k:""},
   {id:"bolsillo",label:"Bolsillo",k:""},
-  {id:"redes",label:"Redes",k:""}];
+  {id:"redes",label:"Redes",k:""},
+  {id:"soporte",label:"Soporte",k:""}];
 const PORTAL_IDS=PORTAL_VIEWS.map(v=>v.id);
 ICONO_VIEW.inicio="M4 11l8-7 8 7M6 10v10h12V10M10 20v-6h4v6";
 function vistaDef(id){return (esArtistaPortal()&&PORTAL_VIEWS.find(v=>v.id===id))||VIEWS.find(v=>v.id===id)||PORTAL_VIEWS.find(v=>v.id===id)}
@@ -3322,7 +3340,10 @@ function render(){
     `<div class="nav-grupo">${titulo}</div>`+ids.map(id=>{
       const v=vistaDef(id);
       if(!v)return "";
-      const badge=(v.id==="equipo"&&nl)?`<span class="badge">${nl>99?"99+":nl}</span>`:"";
+      /* El mismo globo del chat interno sirve para el buzón: si hay una
+         incidencia sin resolver tiene que verse sin entrar a mirar. */
+      const n=v.id==="equipo"?nl:(v.id==="soporte"?sopPendientes():0);
+      const badge=n?`<span class="badge">${n>99?"99+":n}</span>`:"";
       return `<button data-view="${v.id}" class="${VIEW===v.id?"on":""}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONO_VIEW[v.id]||""}"/></svg>
         <span class="lbl">${v.label}</span>${badge}<span class="k">${esc(v.k||"")}</span></button>`;
@@ -3335,7 +3356,7 @@ function render(){
     clientes:viewClientes,contactos:viewContactos,documentos:viewDocumentos,
     mailing:viewMailing,medios:viewMedios,mapa:viewMapa,canciones:viewCanciones,
     editorial:viewEditorial,bolsillo:viewBolsillo,merch:viewMerch,redes:viewRedes,
-    equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos,
+    equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,soporte:viewSoporte,datos:viewDatos,
     inicio:viewInicioPortal})[VIEW](el,ta);
   /* Cascada de entrada solo al cambiar de apartado: los nodos recién
      insertados arrancan su animación al entrar; si la vista es la misma
@@ -7637,6 +7658,196 @@ function saveMedios(isNew){
   if(existe)DB.medios=DB.medios.map(x=>x.id===id?Object.assign({},x,fila):x);
   else DB.medios.push(Object.assign({creadoEn:new Date().toISOString()},fila));
   closeModal();toast(isNew?"Contacto de medios añadido":"Contacto guardado");touch();
+}
+
+/* ════════ SOPORTE ════════
+   Buzón de incidencias. Dos conversaciones distintas sobre la misma tabla:
+   el artista escribe a la agencia desde su portal («no me cuadra la
+   liquidación») y el equipo escribe a quien mantiene el software. Quién ve qué
+   lo decide RLS en Postgres (supabase/soporte.sql), no este código: el equipo
+   ve todos los tickets y el artista solo los que ha abierto él.
+
+   Ojo, esto NO pasa por save(): el rol artista tiene cortado el upsert general
+   (ver save()), así que aquí se inserta directo contra Supabase y luego se
+   recarga la tabla. Es la primera pantalla en la que un artista escribe. */
+const SOP_ESTADOS={
+  abierto :{label:"Abierto", color:"var(--warn)"},
+  en_curso:{label:"En curso",color:"var(--artist)"},
+  resuelto:{label:"Resuelto",color:"var(--ok)"}};
+const SOP_PRIORIDADES={
+  alta  :{label:"Alta",  color:"var(--alert)"},
+  normal:{label:"Normal",color:"var(--mute)"},
+  baja  :{label:"Baja",  color:"var(--mute-2)"}};
+const SOP_AREAS=["Shows","Calendario","Canciones","Bolsillo","Redes","Producciones",
+  "Documentos","Mailing","Contactos","Acceso a la app","Otro"];
+
+/* Para el aviso del menú: lo que queda por atender. */
+function sopPendientes(){return (DB.soporteTickets||[]).filter(t=>t.estado!=="resuelto").length}
+function sopRespuestas(id){return (DB.soporteRespuestas||[]).filter(r=>r.ticketId===id)
+  .sort((a,b)=>(a.creadoEn||"").localeCompare(b.creadoEn||""))}
+/* Las fechas vienen como timestamptz ISO; fecha() espera AAAA-MM-DD. */
+function sopDia(ts){return ts?fecha(String(ts).slice(0,10)):"—"}
+
+async function recargaSoporte(){
+  if(DB.sinSoporte)return;
+  const [t,r]=await Promise.all([
+    sb.from("soporte_tickets").select("*"),
+    sb.from("soporte_respuestas").select("*")]);
+  if(!t.error)DB.soporteTickets=(t.data||[]).map(x=>fromRow("soporteTickets",x));
+  if(!r.error)DB.soporteRespuestas=(r.data||[]).map(x=>fromRow("soporteRespuestas",x));
+  render();
+}
+
+function viewSoporte(el,ta){
+  const portal=esArtistaPortal();
+  ta.innerHTML=`<button class="btn primary" data-act="new-ticket">Nueva incidencia</button>`;
+  if(DB.sinSoporte){
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Falta ejecutar el SQL de Soporte.</strong><br>
+      Pide al desarrollador que ejecute <code>supabase/soporte.sql</code> y recarga.</p></div></div>`;
+    return;
+  }
+  const todos=(DB.soporteTickets||[]).slice().sort((a,b)=>(b.creadoEn||"").localeCompare(a.creadoEn||""));
+  /* Por defecto se enseña lo vivo: un buzón que arranca con todo el histórico
+     deja de mirarse a la semana. Los resueltos están a un clic en el filtro. */
+  const list=filtro.sopEstado?todos.filter(t=>t.estado===filtro.sopEstado)
+                             :todos.filter(t=>t.estado!=="resuelto");
+  const pend=todos.filter(t=>t.estado!=="resuelto").length;
+  document.getElementById("viewSub").textContent=todos.length
+    ?`${pend} sin resolver${todos.length!==pend?` · ${todos.length} en total`:""}`:"";
+
+  if(!todos.length){
+    el.innerHTML=`<div class="card"><div class="empty">
+      <p><strong>${portal?"¿Algo no cuadra?":"Buzón de incidencias."}</strong><br>${portal
+        ?"Escríbenos por aquí en vez de por WhatsApp y no se pierde: la respuesta te llega a esta misma pantalla."
+        :"Lo que los artistas reportan desde su portal y lo que necesitáis del software, en un sitio, con estado y fecha."}</p>
+      <button class="btn primary" data-act="new-ticket">Abrir la primera</button></div></div>`;
+    return;
+  }
+  el.innerHTML=`
+  <div class="filters">
+    <select id="spest"><option value="">Sin resolver</option>
+      ${Object.keys(SOP_ESTADOS).map(k=>`<option value="${k}" ${filtro.sopEstado===k?"selected":""}>${SOP_ESTADOS[k].label}</option>`).join("")}</select>
+    ${filtro.sopEstado?`<button class="btn ghost sm" id="spclr">Quitar filtros</button>`:""}
+  </div>
+  <div class="card"><div class="body flush">
+  <table><thead><tr><th>Asunto</th>${portal?"":"<th>Quién</th>"}<th>Apartado</th><th>Estado</th><th>Abierta</th></tr></thead>
+  <tbody>${list.map(t=>{
+    const es=SOP_ESTADOS[t.estado]||SOP_ESTADOS.abierto;
+    const pr=SOP_PRIORIDADES[t.prioridad]||SOP_PRIORIDADES.normal;
+    const n=sopRespuestas(t.id).length;
+    return `<tr class="click" data-ticket="${t.id}">
+      <td class="strong"><span>${esc(t.asunto||"(sin asunto)")}</span>
+        ${n?`<span class="dim tiny"> · ${n} respuesta${n===1?"":"s"}</span>`:""}
+        ${t.prioridad==="alta"?`<span class="pill" style="margin-left:6px;border-color:${pr.color};color:${pr.color}">Alta</span>`:""}</td>
+      ${portal?"":`<td class="dim">${esc(t.autorNombre||"—")}</td>`}
+      <td class="dim">${esc(t.area||"—")}</td>
+      <td><span class="pill" style="border-color:${es.color};color:${es.color}">${es.label}</span></td>
+      <td class="tiny dim">${sopDia(t.creadoEn)}</td>
+    </tr>`}).join("")}</tbody></table>
+  </div></div>`;
+  const fe=document.getElementById("spest");
+  if(fe)fe.addEventListener("change",e=>{filtro.sopEstado=e.target.value;render()});
+  const cl=document.getElementById("spclr");
+  if(cl)cl.addEventListener("click",()=>{filtro.sopEstado="";render()});
+}
+
+function formTicket(){
+  const portal=esArtistaPortal();
+  openModal(`
+  <header><h3>Nueva incidencia</h3><div class="spacer"></div>
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    ${DB.sinSoporte?`<p class="hint" style="margin-bottom:12px;color:var(--alert)">Falta ejecutar <code>supabase/soporte.sql</code>: se puede rellenar pero no se envía.</p>`:""}
+    <p class="hint" style="margin-bottom:12px">${portal
+      ?"Cuéntanos qué pasa y te respondemos por aquí mismo."
+      :"Queda registrado con tu nombre, el apartado y la fecha."}</p>
+    <div class="fgrid">
+      <div class="f s12"><label>Asunto</label><input id="sp_asunto" placeholder="En una línea: qué pasa"></div>
+      <div class="f ${portal?"s12":"s6"}"><label>Apartado</label><select id="sp_area"><option value="">—</option>
+        ${SOP_AREAS.map(a=>`<option>${a}</option>`).join("")}</select></div>
+      ${portal?"":`<div class="f s6"><label>Prioridad</label><select id="sp_prio">
+        ${Object.keys(SOP_PRIORIDADES).map(k=>`<option value="${k}" ${k==="normal"?"selected":""}>${SOP_PRIORIDADES[k].label}</option>`).join("")}</select></div>`}
+      <div class="f s12"><label>Qué ocurre</label><textarea id="sp_cuerpo" style="min-height:120px"
+        placeholder="Qué esperabas que pasara y qué pasó. Si puedes, en qué pantalla y con qué dato."></textarea></div>
+    </div>
+  </div>
+  <footer class="fbar"><button class="btn ghost" data-act="close">Cancelar</button>
+    <button class="btn primary" data-act="save-ticket">Enviar</button></footer>`);
+}
+
+function fichaTicket(id){
+  const t=(DB.soporteTickets||[]).find(x=>x.id===id);
+  if(!t)return;
+  const equipo=!esArtistaPortal();
+  const es=SOP_ESTADOS[t.estado]||SOP_ESTADOS.abierto;
+  const hilo=sopRespuestas(id);
+  openModal(`
+  <header><h3>${esc(t.asunto||"(sin asunto)")}</h3><div class="spacer"></div>
+    ${esAdmin()?`<button class="btn danger sm" data-act="del-ticket" data-id="${t.id}">Eliminar</button>`:""}
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    <div class="tiny dim" style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <span class="pill" style="border-color:${es.color};color:${es.color}">${es.label}</span>
+      ${t.area?`<span class="pill">${esc(t.area)}</span>`:""}
+      <span>Abierta por ${esc(t.autorNombre||"—")} · ${sopDia(t.creadoEn)}</span>
+    </div>
+    <div class="card" style="margin:0 0 12px"><div class="body">
+      <div style="white-space:pre-wrap;font-size:12.5px">${esc(t.cuerpo||"(sin detalle)")}</div></div></div>
+    ${hilo.map(r=>`<div class="card" style="margin:0 0 10px"><div class="body">
+      <div class="tiny dim" style="margin-bottom:5px">${esc(r.autorNombre||"—")} · ${sopDia(r.creadoEn)}</div>
+      <div style="white-space:pre-wrap;font-size:12.5px">${esc(r.texto||"")}</div></div></div>`).join("")}
+    <div class="fgrid" style="margin-top:14px"><div class="f s12"><label>Responder</label>
+      <textarea id="sp_resp" style="min-height:80px" placeholder="Escribe aquí…"></textarea></div></div>
+  </div>
+  <footer class="fbar">
+    ${equipo?Object.keys(SOP_ESTADOS).filter(k=>k!==t.estado).map(k=>
+      `<button class="btn ghost sm" data-act="estado-ticket" data-id="${t.id}" data-estado="${k}">${SOP_ESTADOS[k].label}</button>`).join(""):""}
+    <div class="spacer"></div>
+    <button class="btn ghost" data-act="close">Cerrar</button>
+    <button class="btn primary" data-act="resp-ticket" data-id="${t.id}">Enviar respuesta</button></footer>`);
+}
+
+async function guardarTicket(){
+  const asunto=val("sp_asunto");
+  if(!asunto){toast("Ponle un asunto");return}
+  if(DB.sinSoporte){toast("Falta ejecutar supabase/soporte.sql");return}
+  if(!CURRENT_USER){toast("Sesión caducada: vuelve a entrar");return}
+  const t={id:uid("sop"),asunto,cuerpo:val("sp_cuerpo"),estado:"abierto",
+    prioridad:val("sp_prio")||"normal",area:val("sp_area")||null,
+    autor:CURRENT_USER.id,autorNombre:CURRENT_NAME||"",autorRol:DB.miRol||"",
+    clienteId:DB.miClienteId||null,creadoEn:new Date().toISOString(),
+    actualizadoEn:new Date().toISOString()};
+  const {error}=await sb.from("soporte_tickets").insert(toRow("soporteTickets",t));
+  if(error){toast("No se pudo enviar: "+error.message);return}
+  closeModal();toast("Incidencia enviada");recargaSoporte();
+}
+
+async function responderTicket(id){
+  const texto=val("sp_resp");
+  if(!texto){toast("Escribe una respuesta");return}
+  if(!CURRENT_USER){toast("Sesión caducada: vuelve a entrar");return}
+  const r={id:uid("spr"),ticketId:id,texto,autor:CURRENT_USER.id,
+    autorNombre:CURRENT_NAME||"",creadoEn:new Date().toISOString()};
+  const {error}=await sb.from("soporte_respuestas").insert(toRow("soporteRespuestas",r));
+  if(error){toast("No se pudo enviar: "+error.message);return}
+  /* Si contesta el equipo, el ticket deja de estar «abierto» solo: ya lo ha
+     visto alguien. El artista no cambia el estado (RLS no le deja actualizar). */
+  if(!esArtistaPortal()){
+    const t=(DB.soporteTickets||[]).find(x=>x.id===id);
+    if(t&&t.estado==="abierto")
+      await sb.from("soporte_tickets").update({estado:"en_curso",
+        actualizado_en:new Date().toISOString()}).eq("id",id);
+  }
+  closeModal();toast("Respuesta enviada");recargaSoporte();
+}
+
+async function estadoTicket(id,estado){
+  const parche={estado,actualizado_en:new Date().toISOString()};
+  parche.cerrado_en=estado==="resuelto"?new Date().toISOString():null;
+  const {error}=await sb.from("soporte_tickets").update(parche).eq("id",id);
+  if(error){toast("No se pudo cambiar: "+error.message);return}
+  closeModal();toast("Marcada como "+(SOP_ESTADOS[estado]||{label:estado}).label.toLowerCase());
+  recargaSoporte();
 }
 
 function viewMailing(el,ta){
@@ -12525,7 +12736,7 @@ function abrirGraficoKpi(tipo){
 }
 
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-yt],[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-distrib],[data-cancion],[data-obra],[data-marticulo],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
+  const el=e.target.closest("[data-yt],[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-distrib],[data-cancion],[data-obra],[data-marticulo],[data-medio],[data-ticket],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
   if(!el)return;
   if(el.dataset.goto){e.preventDefault();VIEW=el.dataset.goto;render();window.scrollTo(0,0);return}
   const act=el.dataset.act;
@@ -12654,6 +12865,15 @@ document.addEventListener("click",e=>{
     if(act==="save-marticulo")return saveMerchArticulo(el.dataset.titulo);
     if(act==="new-tarea")return formTarea(null);
     if(act==="new-medio")return formMedios(null);
+    if(act==="new-ticket")return formTicket();
+    if(act==="save-ticket")return guardarTicket();
+    if(act==="resp-ticket")return responderTicket(el.dataset.id);
+    if(act==="estado-ticket")return estadoTicket(el.dataset.id,el.dataset.estado);
+    if(act==="del-ticket"){if(!confirm("¿Eliminar esta incidencia y todas sus respuestas?"))return;
+      sb.from("soporte_tickets").delete().eq("id",el.dataset.id).then(({error})=>{
+        if(error)toast("Error al eliminar: "+error.message);
+        else{closeModal();toast("Incidencia eliminada");recargaSoporte()}});
+      return}
     if(act==="save-medio")return saveMedios(el.dataset.new==="1");
     if(act==="del-medio"){if(!confirm("¿Eliminar este contacto de medios?"))return;
       const idDel=el.dataset.id;
@@ -12791,6 +13011,7 @@ document.addEventListener("click",e=>{
   if(el.dataset.obra)return fichaObra(el.dataset.obra);
   if(el.dataset.marticulo)return formMerchArticulo(el.dataset.marticulo);
   if(el.dataset.medio)return formMedios(el.dataset.medio);
+  if(el.dataset.ticket)return fichaTicket(el.dataset.ticket);
   if(el.dataset.prod)return formProduccion(el.dataset.prod);
   if(el.dataset.show){
     const tr=el.closest("tr.click");

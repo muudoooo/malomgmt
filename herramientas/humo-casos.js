@@ -33,6 +33,11 @@
   DB.suscriptores=[{id:"su1",email:"s@t.u",nombre:"Sus",etiquetas:[],consent:true}];
   DB.medios=[{id:"me1",nombre:"Medio",tipo:"prensa"}];
   DB.contactos=DB.contactos||[];
+  DB.soporteTickets=[{id:"tk1",asunto:"No veo mi liquidacion",cuerpo:"Falta la de agosto",
+    estado:"abierto",prioridad:"normal",area:"bolsillo",autor:"u1",autorNombre:"Uno",
+    autorRol:"artista",clienteId:"cli1",creadoEn:FECHA+"T10:00:00Z",actualizadoEn:FECHA+"T10:00:00Z",cerradoEn:""}];
+  DB.soporteRespuestas=[{id:"sr1",ticketId:"tk1",texto:"Lo miramos",autor:"u2",
+    autorNombre:"Equipo",creadoEn:FECHA+"T11:00:00Z"}];
   DB.eventos=[];DB.producciones=[];DB.temas=[];DB.mensajes=[];DB.tareas=[];
 
   var vistas=[["panel",typeof viewPanel!=="undefined"&&viewPanel],
@@ -53,6 +58,7 @@
     ["equipo",typeof viewEquipo!=="undefined"&&viewEquipo],
     ["capturas",typeof viewCapturas!=="undefined"&&viewCapturas],
     ["generadores",typeof viewGeneradores!=="undefined"&&viewGeneradores],
+    ["soporte",typeof viewSoporte!=="undefined"&&viewSoporte],
     ["datos",typeof viewDatos!=="undefined"&&viewDatos]];
 
   var malas=0, hechas=0;
