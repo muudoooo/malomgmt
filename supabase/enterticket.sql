@@ -39,18 +39,18 @@ create policy et_eventos_borrar     on public.et_eventos for delete to authentic
 -- Enlace producción ↔ evento de Enterticket.
 alter table public.producciones add column if not exists enterticket_id text;
 
--- ── Seed: lectura del panel del 30 ago 2026 ──────────────────────────────────
+-- ── Seed: lectura del panel del 30 ago 2026 (Barcelona, releída a las 17:05) ──
 insert into public.et_eventos
   (id, nombre, fecha_ini, fecha_fin, recinto, ciudad, estado, url, vendidas, cupo, ingresos, entradas, canales, origen, sincronizado_en)
 values
 ('58450','VRITNI ESPAÑA TOUR : BARCELONA','2026-09-04','2026-09-05','City Hall','Barcelona','venta_activa',
- 'https://www.enterticket.es/eventos/vritni-espana-tour-barcelona-666456',101,495,846.00,
+ 'https://www.enterticket.es/eventos/vritni-espana-tour-barcelona-666456',102,495,857.00,
  '[{"concepto":"EARLY BIRD","precio":6.00,"cupo":25,"vendidas":25,"ingresos":150.00},
    {"concepto":"ANTICIPADA 1","precio":9.00,"cupo":70,"vendidas":70,"ingresos":630.00},
-   {"concepto":"ANTICIPADA 2","precio":11.00,"cupo":120,"vendidas":6,"ingresos":66.00},
+   {"concepto":"ANTICIPADA 2","precio":11.00,"cupo":120,"vendidas":7,"ingresos":77.00},
    {"concepto":"ANTICIPADA 3","precio":null,"cupo":200,"vendidas":0,"ingresos":0},
    {"concepto":"F&F","precio":null,"cupo":80,"vendidas":0,"ingresos":0}]'::jsonb,
- '{"Enterticket":{"n":48,"importe":397.00},"Instagram":{"n":44,"importe":389.00},"Google":{"n":5,"importe":33.00},"Tomatickets":{"n":1,"importe":6.00},"otros":{"n":2,"importe":12.00}}'::jsonb,
+ '{"Enterticket":{"n":49,"importe":408.00},"Instagram":{"n":44,"importe":389.00},"Google":{"n":5,"importe":33.00},"Tomatickets":{"n":1,"importe":6.00},"otros":{"n":2,"importe":12.00}}'::jsonb,
  'manual','2026-08-30'),
 ('58449','VRITNI ESPAÑA TOUR : MADRID','2026-09-02','2026-09-03','Café Berlín','Madrid','venta_activa',null,114,360,1808.00,
  '[{"concepto":"Entrada General","precio":16.00,"cupo":300,"vendidas":112,"ingresos":1792.00},
