@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0E0F12">
+<title>Entérate antes que nadie · MALO</title>
+<style>
+  /* Pensado para el peor escenario real: sala a oscuras, una mano, con copas.
+     De ahí los objetivos táctiles de 56px, el texto de 17px (iOS hace zoom
+     automático por debajo de 16px al enfocar un input) y un solo campo por
+     fila. Nada de columnas. */
+  :root{--ink:#0E0F12;--panel:#15171C;--rule:#2A2E36;--txt:#E8EAEE;--mute:#8F95A0;--malo:#E94F87;--ok:#3FBF7F}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--ink);color:var(--txt);font:17px/1.55 "Archivo",system-ui,-apple-system,sans-serif;
+       min-height:100dvh;display:flex;align-items:center;justify-content:center;
+       padding:24px 18px calc(24px + env(safe-area-inset-bottom))}
+  main{width:100%;max-width:420px}
+  .logo{display:block;width:96px;height:auto;margin:0 auto 22px;color:var(--txt);opacity:.95}
+  h1{font-size:26px;line-height:1.2;text-align:center;margin-bottom:8px;letter-spacing:-.2px}
+  .sub{color:var(--mute);text-align:center;font-size:15px;margin-bottom:26px}
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:18px;padding:22px}
+  label{display:block;font-size:13px;color:var(--mute);margin:0 0 6px;letter-spacing:.3px;text-transform:uppercase}
+  .campo{margin-bottom:16px}
+  input[type=text],input[type=email]{
+    width:100%;height:56px;padding:0 16px;font-size:17px;color:var(--txt);
+    background:#0E0F12;border:1px solid var(--rule);border-radius:12px;outline:none}
+  input:focus{border-color:var(--malo)}
+  input::placeholder{color:#5A606B}
+  .opt{color:#5A606B;text-transform:none;letter-spacing:0}
+  /* La casilla NO viene marcada. Es requisito legal, no una decisión de diseño. */
+  .consent{display:flex;gap:13px;align-items:flex-start;margin:20px 0 4px;cursor:pointer}
+  .consent input{width:26px;height:26px;flex:0 0 26px;margin-top:1px;accent-color:var(--malo)}
+  .consent span{font-size:14.5px;line-height:1.45;color:var(--txt);text-transform:none;letter-spacing:0}
+  .legal{font-size:12.5px;color:var(--mute);line-height:1.5;margin-top:14px}
+  .legal a{color:var(--mute);text-decoration:underline}
+  button{width:100%;height:58px;margin-top:20px;font:600 17px/1 "Archivo",system-ui,sans-serif;
+    color:#fff;background:var(--malo);border:0;border-radius:12px;cursor:pointer}
+  button[disabled]{opacity:.45;cursor:default}
+  .error{background:#2A1620;border:1px solid #6B2740;color:#FFB3C8;border-radius:10px;
+    padding:11px 14px;font-size:14px;margin-top:14px;display:none}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  #hecho{display:none;text-align:center}
+  #hecho .tic{width:66px;height:66px;border-radius:50%;background:rgba(63,191,127,.14);
+    border:2px solid var(--ok);color:var(--ok);font-size:32px;line-height:62px;margin:0 auto 18px}
+  #hecho h2{font-size:23px;margin-bottom:10px}
+  #hecho p{color:var(--mute);font-size:15px}
+</style>
+</head>
+<body>
+<main>
+  <svg class="logo" viewBox="0 0 412 449" xmlns="http://www.w3.org/2000/svg" aria-label="MALO"><g transform="translate(0.000000,449.000000) scale(0.100000,-0.100000)" fill="currentColor"><path d="M2631 4466 c-5 -12 -21 -30 -35 -39 -14 -10 -26 -24 -26 -31 0 -24
+-31 -29 -184 -30 -151 -1 -186 6 -186 39 0 39 -204 34 -227 -6 -21 -36 -16
+-35 -248 -33 -194 1 -235 6 -235 26 0 34 -27 38 -239 38 l-211 0 -30 -33 c-28
+-31 -34 -33 -90 -32 -33 1 -60 -3 -60 -7 0 -5 -4 -7 -9 -3 -5 3 -12 -4 -16
+-15 -3 -11 -11 -20 -16 -20 -6 0 -8 -4 -5 -9 3 -4 -12 -6 -33 -4 -33 4 -43 0
+-68 -27 -18 -19 -41 -32 -59 -34 -60 -4 -112 -72 -115 -149 -2 -63 -32 -120
+-53 -100 -8 8 -8 13 -10 -197 -1 -186 -14 -245 -48 -224 -4 3 -8 1 -8 -3 0
+-25 -87 -101 -120 -104 -23 -3 -45 -15 -65 -35 -17 -17 -37 -33 -45 -36 -11
+-3 -14 -25 -15 -97 -1 -122 3 -126 133 -126 71 0 97 -4 100 -14 4 -13 21 -30
+54 -57 18 -14 20 -566 2 -584 -8 -8 -64 -11 -165 -11 l-153 0 -56 -58 c-30
+-32 -63 -61 -72 -64 -15 -5 -18 -19 -18 -87 0 -69 2 -80 18 -81 47 -3 69 5 94
+34 46 54 63 32 64 -87 2 -120 7 -126 90 -126 58 0 64 2 83 29 20 28 22 28 120
+29 102 2 102 2 138 -42 7 -8 21 -19 30 -25 16 -9 18 -34 20 -292 l2 -282 -44
+-43 c-42 -43 -45 -44 -109 -44 -55 0 -69 -4 -84 -21 -9 -12 -27 -31 -39 -43
+-20 -19 -22 -33 -25 -138 l-2 -117 46 -46 46 -46 22 30 c35 50 84 44 145 -16
+l47 -47 -4 -217 -3 -217 -27 -22 c-21 -16 -28 -30 -28 -55 0 -25 -8 -42 -30
+-62 -21 -19 -31 -39 -33 -65 -2 -28 -13 -45 -48 -77 -169 -155 -172 -151 107
+-151 l213 0 21 30 21 30 308 0 308 0 26 -30 27 -30 124 0 c124 0 153 -8 155
+-45 1 -17 101 -19 101 -1 0 8 41 54 90 103 113 112 124 173 33 173 -24 0 -40
+8 -60 30 l-26 30 -415 0 -414 0 -34 -30 c-31 -27 -64 -32 -64 -9 0 5 -14 21
+-30 36 -46 41 -46 214 0 255 l29 26 -1 548 c-2 448 0 548 11 552 44 15 51 38
+51 161 0 122 4 151 22 151 6 0 36 27 67 60 l57 60 94 0 94 0 97 -99 c53 -55
+100 -97 104 -93 5 4 5 2 1 -5 -3 -6 -3 -14 2 -17 4 -2 9 -18 10 -34 6 -85 115
+-139 165 -82 20 22 36 30 62 30 26 0 42 8 62 30 23 26 33 30 67 28 59 -5 70
+-31 28 -67 -28 -22 -33 -33 -31 -59 3 -23 -3 -38 -24 -59 -21 -23 -28 -42 -33
+-93 -5 -50 -12 -71 -32 -92 l-25 -27 0 -298 1 -297 27 -24 c26 -21 28 -30 27
+-88 -1 -60 2 -67 29 -91 21 -19 29 -35 29 -60 0 -24 8 -40 30 -60 21 -19 30
+-35 30 -58 0 -26 12 -44 65 -97 53 -53 63 -70 60 -91 -7 -34 18 -57 59 -57 27
+0 42 -11 89 -60 31 -33 59 -60 62 -60 4 0 13 -7 21 -15 9 -8 13 -15 9 -15 -4
+0 0 -7 9 -15 8 -8 30 -15 48 -15 25 0 40 -8 60 -30 l26 -30 331 0 c349 0 371
+3 371 52 0 4 18 8 39 8 33 0 43 5 61 30 17 23 29 30 56 30 52 0 304 252 304
+304 0 27 7 39 30 56 24 17 30 28 30 60 0 32 6 43 30 60 24 17 30 29 30 58 0
+29 6 42 30 62 29 23 31 30 31 92 1 63 3 69 30 89 l29 20 0 274 0 274 -30 21
+c-28 20 -30 25 -30 90 0 65 -2 70 -30 90 -24 17 -30 28 -30 60 0 32 -6 43 -30
+60 -24 17 -30 29 -30 57 0 31 -8 44 -60 93 -49 46 -60 63 -60 89 0 49 -134
+181 -184 181 -27 0 -39 7 -56 30 -32 45 -138 45 -170 0 -17 -24 -28 -30 -60
+-30 -32 0 -43 -6 -60 -30 -17 -24 -28 -30 -60 -30 -32 0 -43 -6 -60 -30 -17
+-24 -28 -30 -60 -30 -32 0 -43 -6 -60 -30 -20 -28 -25 -30 -90 -30 -65 0 -70
+-2 -90 -30 -34 -48 -250 -43 -250 7 0 24 158 154 185 151 24 -2 34 3 53 30 19
+27 29 32 62 32 50 0 69 19 63 64 -4 29 0 37 27 56 l31 22 -43 43 c-41 40 -45
+42 -104 43 l-62 0 -76 78 -76 78 0 118 0 117 48 49 47 49 335 0 c365 1 360 2
+360 -58 0 -30 6 -42 30 -59 24 -17 30 -28 30 -60 0 -32 6 -43 30 -60 24 -17
+30 -29 30 -59 0 -29 7 -44 30 -64 27 -25 30 -33 30 -91 0 -60 2 -66 30 -86 23
+-17 30 -29 30 -56 0 -50 136 -188 186 -189 23 0 38 -8 54 -27 19 -25 28 -28
+81 -28 l60 0 74 74 c63 63 74 79 77 112 2 31 9 42 31 52 65 31 33 111 -45 112
+-18 0 -33 10 -48 30 -17 23 -29 30 -55 30 -49 0 -125 74 -125 122 0 25 -8 39
+-30 56 -23 19 -29 31 -28 59 1 29 -5 41 -30 62 -25 20 -32 34 -32 61 0 27 -7
+42 -30 62 -23 20 -30 35 -30 61 0 28 -6 40 -30 57 -28 20 -30 26 -30 86 0 58
+-3 66 -30 91 -23 20 -30 35 -30 64 0 31 -6 43 -31 61 -21 16 -30 30 -28 48 4
+77 -1 100 -31 127 -23 20 -30 35 -30 62 0 28 -7 41 -30 60 -29 22 -30 27 -29
+88 2 60 0 66 -30 93 -22 20 -31 38 -31 59 0 20 -10 41 -30 61 -21 21 -30 41
+-30 63 0 24 -8 38 -30 56 -24 18 -30 31 -30 61 0 31 -6 43 -30 60 -23 17 -30
+29 -30 55 0 29 -10 44 -65 98 -36 35 -65 69 -65 75 0 26 -330 15 -339 -12z
+m107 -285 l72 -74 0 -62 c0 -70 -6 -95 -24 -95 -6 0 -22 -14 -35 -30 -23 -30
+-24 -30 -121 -30 -128 0 -125 -4 -129 152 -3 143 4 160 65 156 18 -1 35 0 37
+2 2 3 11 17 20 32 23 36 32 32 115 -51z m-1498 -62 l76 -74 2 -272 c3 -272 3
+-272 -20 -293 -13 -12 -35 -32 -49 -47 -24 -23 -33 -25 -118 -25 -89 1 -93 0
+-118 -29 -24 -27 -32 -29 -93 -29 -96 0 -91 -16 -91 307 l1 278 27 22 c24 19
+27 29 29 89 2 65 3 68 47 109 l45 42 94 -2 93 -1 75 -75z m610 49 c28 -30 35
+-33 93 -33 60 -1 64 -2 105 -43 l42 -42 0 -281 c0 -236 -2 -283 -15 -295 -8
+-9 -15 -12 -15 -8 0 4 -9 -3 -20 -16 -11 -12 -18 -26 -15 -30 4 -6 -22 -8
+-160 -12 -213 -6 -200 -25 -199 273 2 396 4 450 12 445 5 -3 23 12 41 33 45
+51 90 55 131 9z m1128 -404 c6 -7 12 -27 12 -44 0 -23 9 -39 30 -58 28 -24 30
+-32 30 -94 0 -63 2 -68 30 -88 29 -21 30 -24 30 -100 0 -86 -3 -90 -65 -90
+-26 0 -39 -7 -55 -30 -30 -42 -89 -43 -126 -2 -15 16 -37 27 -52 28 -89 1
+-109 156 -27 202 10 5 16 31 18 80 3 63 7 74 30 93 19 14 27 30 27 50 0 61 75
+94 118 53z m-357 -65 c25 -40 10 -207 -20 -229 -24 -16 -31 -29 -33 -62 -4
+-49 -31 -74 -52 -46 -20 27 -22 320 -2 340 18 19 94 16 107 -3z m-1379 -481
+c10 -10 18 -23 18 -29 0 -5 5 -7 10 -4 6 3 10 1 10 -4 0 -6 6 -11 14 -11 20 0
+23 -26 24 -291 2 -281 0 -294 -36 -311 -26 -13 -27 -16 -28 -103 -1 -148 13
+-138 -185 -135 -86 1 -87 1 -117 -32 l-31 -32 -46 46 -45 46 0 309 -1 308 31
+25 c29 24 30 29 30 98 0 46 4 71 10 67 6 -3 10 -2 10 3 0 5 17 9 37 9 29 0 42
+6 59 29 29 37 202 46 236 12z m865 -24 l44 -45 0 -335 1 -335 -89 -88 c-87
+-86 -89 -89 -85 -130 2 -22 9 -41 16 -42 6 0 63 -1 126 -1 184 -1 185 -5 45
+-144 -109 -109 -113 -111 -148 -67 -13 16 -29 23 -52 23 -27 0 -40 7 -57 30
+-17 24 -29 30 -60 30 -30 0 -42 6 -60 30 -17 23 -29 30 -57 30 -60 0 -66 10
+-64 92 2 66 4 75 28 94 54 43 43 166 -16 186 -10 3 -13 66 -13 315 0 339 0
+343 55 338 29 -3 69 25 69 47 0 5 5 6 10 3 6 -3 10 -3 10 2 0 4 57 9 127 10
+l126 2 44 -45z m1114 -1170 c22 -26 -1 -49 -54 -52 -52 -3 -81 24 -56 54 16
+20 93 18 110 -2z m-598 -305 c9 -15 -66 -109 -86 -109 -34 0 -49 86 -21 115
+21 21 93 17 107 -6z m55 -171 c27 -27 11 -178 -18 -178 -9 0 -89 76 -92 88 -4
+13 73 102 88 102 5 0 15 -5 22 -12z m-296 -183 c33 -40 41 -45 70 -45 24 0 45
+-15 104 -74 87 -87 85 -76 30 -132 -61 -60 -93 -60 -159 1 -27 25 -45 45 -42
+45 10 0 -18 26 -42 38 -19 10 -21 20 -21 84 0 92 25 125 60 83z m924 -29 c55
+-55 57 -44 -31 -131 -112 -113 -169 -107 -174 16 -3 77 11 99 64 99 26 0 39 7
+55 30 28 39 33 38 86 -14z m272 -88 c9 -9 12 -81 12 -264 l0 -253 -30 -21
+c-24 -17 -30 -28 -30 -60 0 -32 -6 -43 -30 -60 -23 -17 -30 -29 -30 -56 0 -52
+-193 -244 -244 -244 -27 0 -39 -7 -56 -30 -20 -28 -25 -30 -90 -30 -65 0 -70
+-2 -90 -30 -33 -47 -214 -47 -248 0 -18 24 -30 30 -58 30 -27 0 -42 7 -62 30
+-19 21 -35 30 -58 30 -26 0 -124 75 -124 96 0 20 40 34 97 34 l66 0 59 -60 58
+-60 88 0 c85 0 89 1 117 30 19 20 39 30 58 30 45 0 237 195 237 241 0 26 11
+42 60 89 52 49 60 62 60 93 0 28 6 40 30 57 24 17 30 29 30 59 0 32 6 43 33
+63 30 24 32 28 30 86 -1 54 1 62 28 88 22 21 29 37 29 64 0 36 14 60 35 60 6
+0 16 -5 23 -12z m-1254 -550 c8 -14 7 -22 -7 -35 -23 -23 -53 3 -42 36 8 25
+33 24 49 -1z m660 0 c16 -26 -16 -57 -38 -38 -17 13 -21 42 -9 54 11 11 35 3
+47 -16z m-6 -110 c40 -40 7 -118 -49 -118 -65 0 -88 40 -39 68 16 9 30 20 30
+24 0 26 40 44 58 26z m-237 -64 c28 -34 -26 -65 -86 -50 -28 7 -40 33 -24 52
+16 20 93 18 110 -2z"/></g></svg>
+
+  <div id="form">
+    <h1>Entérate antes que nadie</h1>
+    <p class="sub">Fechas nuevas y preventas, antes de que salgan a la venta.</p>
+
+    <form class="card" id="f" novalidate>
+      <div class="campo">
+        <label for="email">Tu email</label>
+        <input id="email" name="email" type="email" inputmode="email" autocomplete="email"
+               autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="tu@email.com" required>
+      </div>
+      <div class="campo">
+        <label for="ciudad">Tu ciudad <span class="opt">— para avisarte solo de lo tuyo</span></label>
+        <input id="ciudad" name="ciudad" type="text" autocomplete="address-level2" placeholder="Málaga" required>
+      </div>
+      <div class="campo">
+        <label for="nombre">Nombre <span class="opt">— opcional</span></label>
+        <input id="nombre" name="nombre" type="text" autocomplete="given-name" placeholder="">
+      </div>
+
+      <!-- Trampa para bots: invisible para una persona, irresistible para un script. -->
+      <div class="hp" aria-hidden="true"><label>No rellenar<input id="web" name="web" type="text" tabindex="-1" autocomplete="off"></label></div>
+
+      <label class="consent">
+        <input id="consent" type="checkbox">
+        <span id="txtConsent">Quiero recibir por email avisos de próximos conciertos y novedades de MALO Management.</span>
+      </label>
+
+      <button id="enviar" type="submit">Apuntarme</button>
+      <div class="error" id="err"></div>
+
+      <p class="legal">
+        Responsable: MALO Management. Finalidad: enviarte información sobre conciertos y novedades.
+        Base jurídica: tu consentimiento. Puedes darte de baja en cualquier email o escribiendo a
+        <a href="mailto:malo@malomgmt.com">malo@malomgmt.com</a>.
+        Más información en la <a href="/privacidad.html">política de privacidad</a>.
+      </p>
+    </form>
+  </div>
+
+  <div id="hecho">
+    <div class="tic">&#10003;</div>
+    <h2>Ya estás dentro</h2>
+    <p id="hechoTxt">Te escribiremos cuando haya fecha nueva cerca de ti. Nada más.</p>
+  </div>
+</main>
+
+<script>
+(function(){
+  var API="https://adnuggmdrvhlovssdxuw.supabase.co/functions/v1/alta-publica";
+  var ev=new URLSearchParams(location.search).get("e")||"";
+  var f=document.getElementById("f"),err=document.getElementById("err"),btn=document.getElementById("enviar");
+
+  function falla(m){err.textContent=m;err.style.display="block";}
+
+  f.addEventListener("submit",function(e){
+    e.preventDefault();
+    err.style.display="none";
+    var email=document.getElementById("email").value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email))return falla("Revisa el email, parece que falta algo.");
+    if(!document.getElementById("ciudad").value.trim())return falla("Dinos tu ciudad para avisarte solo de lo tuyo.");
+    if(!document.getElementById("consent").checked)return falla("Marca la casilla para que podamos escribirte.");
+
+    btn.disabled=true;btn.textContent="Un momento…";
+    fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      email:email,
+      ciudad:document.getElementById("ciudad").value.trim(),
+      nombre:document.getElementById("nombre").value.trim(),
+      web:document.getElementById("web").value,
+      evento:ev,
+      consent:true,
+      consent_texto:document.getElementById("txtConsent").textContent.trim()
+    })}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})})
+    .then(function(res){
+      if(!res.ok||res.j.error){btn.disabled=false;btn.textContent="Apuntarme";return falla(res.j.error||"No se pudo completar. Prueba otra vez.");}
+      if(res.j.nuevo===false)document.getElementById("hechoTxt").textContent="Ya te teníamos apuntado. Seguimos avisándote de lo que salga cerca de ti.";
+      document.getElementById("form").style.display="none";
+      document.getElementById("hecho").style.display="block";
+    })
+    .catch(function(){btn.disabled=false;btn.textContent="Apuntarme";falla("Sin conexión. Prueba otra vez en un momento.");});
+  });
+})();
+</script>
+</body>
+</html>
