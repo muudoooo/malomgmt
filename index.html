@@ -1665,7 +1665,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.025";
+const APP_VERSION="0.026";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1674,6 +1674,11 @@ const APP_VERSION="0.025";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-30",v:"0.026",cambios:[
+    "Cada evento de la Ticketera dice ahora de quién son sus fans: una columna nueva con el artista o marca dueño del evento (se cambia con un desplegable y se guarda solo) y, debajo, el line-up que tocó esa noche.",
+    "Los cuatro shows DISOBEY quedan atribuidos a la marca DISOBEY, que es lo honesto: son multiartista y nadie puede saber a quién venía a ver cada uno. Los eventos de artistas de fuera (VRITNI, Christ Dillinger) se quedan sin dueño: son fans que trajo la producción de MALO.",
+    "Al importar compradores, cada contacto hereda el artista del evento y las etiquetas de todo el line-up. Así puedes filtrar «quién ha visto a cybernene en directo» sin inventarte nada.",
+    "Ojo: yyy891 toca en los cuatro DISOBEY pero no tiene ficha de cliente. Mientras no la tenga, entra solo como etiqueta."]},
   {fecha:"2026-08-30",v:"0.025",cambios:[
     "La Ticketera cuenta solo desde 2026. Los shows de 2024 y 2025 siguen guardados —sirven de referencia de aforo y precio para presupuestar— pero no aparecen ni suman salvo que elijas «Todo el histórico» en el selector del bloque.",
     "Cifras de los dos VRITNI de septiembre puestas al día con la venta real.",
@@ -2201,7 +2206,7 @@ async function fetchTodos(tabla){
   return {data:todo,error:err};
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp,etv,etp]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp,etv,etp,eta]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -2240,7 +2245,10 @@ async function loadRemote(){
        sonda de la columna que enlaza cada producción con su evento. Sin el
        SQL (supabase/enterticket.sql) la app va y el bloque lo avisa. */
     sb.from("et_eventos").select("*"),
-    sb.from("producciones").select("enterticket_id").limit(1)
+    sb.from("producciones").select("enterticket_id").limit(1),
+    /* Sonda: a quién pertenece cada evento y quién tocó
+       (supabase/enterticket-artistas.sql). Sin ellas la Ticketera va igual. */
+    sb.from("et_eventos").select("cliente_id,artistas").limit(1)
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -2287,11 +2295,14 @@ async function loadRemote(){
     estado:r.estado||"",url:r.url||"",vendidas:r.vendidas==null?null:+r.vendidas,
     cupo:r.cupo==null?null:+r.cupo,ingresos:r.ingresos==null?null:+r.ingresos,
     entradas:Array.isArray(r.entradas)?r.entradas:[],canales:r.canales||{},
+    clienteId:r.cliente_id||"",artistas:Array.isArray(r.artistas)?r.artistas:[],
     sincronizadoEn:r.sincronizado_en||""}))
     .sort((a,b)=>(b.fechaIni||"").localeCompare(a.fechaIni||""));
   if(DB.sinEnterticket)console.warn("Tabla «et_eventos» no disponible:",etv.error.message);
   DB.sinEnterticketProd=!!etp.error;
   if(DB.sinEnterticketProd)console.warn("Columna «producciones.enterticket_id» no disponible:",etp.error.message);
+  DB.sinEtArtistas=!!eta.error;
+  if(DB.sinEtArtistas)console.warn("Columnas «et_eventos.cliente_id/artistas» no disponibles:",eta.error.message);
   DB.cancionParticipantes=canp.error?[]:(canp.data||[]).map(r=>fromRow("cancionParticipantes",r));
   DB.cancionIngresos=cani.error?[]:(cani.data||[]).map(r=>fromRow("cancionIngresos",r));
   /* Panel "Redes": historial de seguidores por red. Igual de tolerante si
@@ -3763,7 +3774,7 @@ function etBloque(){
         <option value="" ${desde?"":"selected"}>Todo el histórico${ocultos?` (+${ocultos})`:""}</option>
       </select></div>
     <table data-movil="Evento,Vendidas,Ingresos">
-      <thead><tr><th>Fecha</th><th>Evento</th><th style="width:1%;white-space:nowrap">Estado</th><th>Vendidas</th><th class="num">Ingresos</th><th>Producción enlazada</th></tr></thead>
+      <thead><tr><th>Fecha</th><th>Evento</th><th style="width:1%;white-space:nowrap">Estado</th><th>Vendidas</th><th class="num">Ingresos</th><th>De quién son los fans</th><th>Producción enlazada</th></tr></thead>
       <tbody>${evs.map(e=>{
         const p=(DB.producciones||[]).find(x=>x.enterticketId===e.id);
         const pctOcu=n(e.cupo)?Math.min(100,n(e.vendidas)/n(e.cupo)*100):0;
@@ -3775,6 +3786,13 @@ function etBloque(){
           <td style="min-width:120px"><div class="tiny" style="font-family:var(--mono)">${n(e.vendidas)}${n(e.cupo)?` / ${n(e.cupo)}`:""}</div>
             ${n(e.cupo)?`<div style="height:4px;border-radius:2px;background:var(--rule-2);overflow:hidden;margin-top:3px"><div style="height:100%;width:${pctOcu}%;background:var(--artist)"></div></div>`:""}</td>
           <td class="num">${e.ingresos!=null?eur0(e.ingresos):"—"}</td>
+          <td style="min-width:150px">${DB.sinEtArtistas
+            ? `<span class="dim tiny">falta el SQL</span>`
+            : `<select data-et-cli="${esc(e.id)}" style="width:100%;font-size:11px;padding:3px 6px">
+                <option value="">— de MALO —</option>
+                ${DB.clientes.map(c=>`<option value="${c.id}" ${e.clienteId===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}
+              </select>`}
+            ${(e.artistas||[]).length?`<div class="tiny dim" style="margin-top:3px">${(e.artistas||[]).map(a=>esc(a)).join(" · ")}</div>`:""}</td>
           <td>${p?`<button class="btn ghost sm" data-prod="${p.id}" style="padding:2px 8px">${esc(p.nombre||"(sin nombre)")}</button>`:`<span class="dim tiny">—</span>`}</td>
         </tr>`}).join("")}</tbody></table></div></div>`;
 }
@@ -3825,6 +3843,17 @@ function viewEventos(el,ta){
 function etFiltroAnio(el){
   const s=el.querySelector("#etDesde");
   if(s)s.addEventListener("change",e=>{filtro.etDesde=e.target.value;render()});
+  /* El dueño de un evento se guarda al vuelo en et_eventos: es un dato de la
+     ticketera, no del modelo local, así que no pasa por save(). */
+  el.querySelectorAll("[data-et-cli]").forEach(sel=>sel.addEventListener("change",ev=>{
+    const id=ev.target.dataset.etCli,cli=ev.target.value;
+    const evento=(DB.etEventos||[]).find(x=>x.id===id);
+    if(evento)evento.clienteId=cli;
+    sb.from("et_eventos").update({cliente_id:cli||null}).eq("id",id).then(({error})=>{
+      if(error){toast("No se pudo guardar: "+error.message);return}
+      toast(cli?`Fans de «${(evento||{}).nombre||id}» asignados a ${nomCliente(cli)}`:"Evento sin artista asignado");
+    });
+  }));
 }
 
 /* Convierte el line-up de una producción en shows reales.
@@ -6534,7 +6563,8 @@ function importarSuscriptores(){
       y también <strong>el export de Enterticket</strong> tal cual
       (<code style="font-family:var(--mono);color:var(--bone)">E-mail, Nombre y apellidos, Provincia, Evento, Acepta recibir publicidad…</code>):
       cada contacto entra etiquetado con su evento, y quien ya estaba suma la etiqueta nueva
-      y se marca como <strong>repite</strong>.</p>
+      y se marca como <strong>repite</strong>. Si el evento está en la Ticketera, el contacto
+      hereda además <strong>su artista y su line-up</strong>, para saber de quién es cada fan.</p>
     <div class="fgrid">
       <div class="f s6"><label>Asignar todos a este cliente</label><select id="imp_cli"><option value="">— sin asignar —</option>
         ${DB.clientes.map(c=>`<option value="${c.id}">${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select></div>
@@ -6592,6 +6622,13 @@ function importarSuscriptores(){
     /* dd/mm/aaaa [hh:mm] -> aaaa-mm-dd. Cualquier otra cosa, la fecha de hoy. */
     const fechaCsv=v=>{const m=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(String(v||"").trim());
       return m?`${m[3]}-${m[2]}-${m[1]}`:""};
+    /* Los eventos de la Ticketera dicen de quién es cada fan: el dueño del
+       evento (cliente_id) y quién tocó esa noche (artistas). Se cruza por
+       nombre, tolerando espacios de más y mayúsculas del export. */
+    const clave=v=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/\s+/g," ").trim();
+    const porEvento=new Map();
+    (DB.etEventos||[]).forEach(x=>porEvento.set(clave(x.nombre),x));
     const porEmail=new Map();
     (DB.suscriptores||[]).forEach(x=>porEmail.set((x.email||"").toLowerCase(),x));
     let nuevos=0,repes=0,malos=0;
@@ -6602,8 +6639,12 @@ function importarSuscriptores(){
       const cel=i=>i>=0?(celdas[i]||"").trim():"";
       /* El evento es la etiqueta que de verdad sirve para segmentar: quién
          vino a qué. Los repetidos acumulan una etiqueta más en vez de perderse. */
-      const etqFila=[...(iEtq>=0?cel(iEtq).split("|"):[]),cel(iEvt)].map(t=>t.trim()).filter(Boolean);
+      const evt=porEvento.get(clave(cel(iEvt)));
+      const etqFila=[...(iEtq>=0?cel(iEtq).split("|"):[]),cel(iEvt),...((evt||{}).artistas||[])]
+        .map(t=>t.trim()).filter(Boolean);
       const etiquetas=[...new Set([...etqBase,...etqFila])];
+      /* El cliente elegido arriba manda; si no hay, el dueño del evento. */
+      const cli=cliBase||((evt||{}).clienteId||"");
       /* El consentimiento de cada fila manda sobre la casilla de arriba. */
       const okPub=iPub>=0?/^(si|sí|s|yes|y|1|true)$/i.test(cel(iPub)):consent;
       const ya=porEmail.get(email.toLowerCase());
@@ -6616,11 +6657,12 @@ function importarSuscriptores(){
         if(!ya.nombre&&cel(iNom))ya.nombre=cel(iNom);
         if(!ya.telefono&&cel(iTel))ya.telefono=cel(iTel);
         if(!ya.ciudad&&cel(iCiu))ya.ciudad=cel(iCiu);
+        if(!ya.clienteId&&cli)ya.clienteId=cli;
         if(okPub)ya.consentimiento=true;
         return;
       }
       const nuevo={id:uid("sus"),email,
-        nombre:cel(iNom),telefono:cel(iTel),ciudad:cel(iCiu),clienteId:cliBase,
+        nombre:cel(iNom),telefono:cel(iTel),ciudad:cel(iCiu),clienteId:cli,
         origen:cel(iOri)||(iEvt>=0?"enterticket":""),
         etiquetas,consentimiento:okPub,baja:false,
         fechaAlta:fechaCsv(cel(iFec))||hoy(),notas:""};
