@@ -563,15 +563,22 @@ html.dw-sin-scroll-x{overflow-x:hidden}
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--sans)}
 .demo-barra button{background:rgba(0,0,0,.18);border:0;color:#231704;padding:3px 10px;
   border-radius:4px;font-size:11.5px;cursor:pointer;font-family:var(--sans)}
-.lu-cab,.lu-row{display:grid;grid-template-columns:88px minmax(150px,1.4fr) 78px 108px 106px 66px 106px 66px 62px 30px;
-  gap:5px;align-items:center;margin-bottom:5px}
-.lu-cab.crew,.lu-row.crew{grid-template-columns:minmax(150px,1.4fr) 78px 108px 106px 66px 106px 66px 62px 30px}
-.lu-cab{font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--mute-2);margin-bottom:6px}
-.lu-row input,.lu-row select{padding:5px 7px;font-size:12px;min-width:0;width:100%}
-.lu-art{display:flex;flex-direction:column;gap:3px;min-width:0}
-@media(max-width:900px){.lu-cab{display:none}
-  .lu-row,.lu-row.crew{grid-template-columns:1fr 1fr;padding:9px;border:1px solid var(--rule);border-radius:6px}}
+.lu-cab{display:none}
+/* Una ficha por persona: el rotulo va pegado a cada campo (data-l). Antes eran
+   diez columnas de 60-100 px dentro de un modal estrecho, con el select de
+   artista pisando el input del nombre. */
+.lu-row,.lu-row.crew{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 8px;
+  padding:11px;margin-bottom:10px;border:1px solid var(--rule);border-radius:7px;background:var(--panel-2)}
+.lu-row input,.lu-row select{padding:6px 8px;font-size:12px;min-width:0;width:100%}
+.lu-c{display:flex;flex-direction:column;min-width:0}
+.lu-c::before{content:attr(data-l);font-family:var(--mono);font-size:8.5px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-bottom:3px;white-space:nowrap}
+.lu-c.wide{grid-column:1/-1}
+.lu-x{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:-4px}
+.lu-link{border-color:var(--artist)!important}
+.lu-tag{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--artist);margin-top:3px}
+@media(max-width:640px){.lu-row,.lu-row.crew{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .buscable-wrap{position:relative}
 .buscable-input{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;
@@ -631,9 +638,105 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
 .adj-row{display:grid;grid-template-columns:120px 1fr 110px 1.6fr 34px;gap:8px;margin-bottom:8px;align-items:center}
 @media(max-width:700px){.adj-row{grid-template-columns:1fr 1fr}}
 .adj-row input,.adj-row select{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:7px 9px;width:100%}
-.ent-row{display:grid;grid-template-columns:1fr 110px 110px 120px 34px;gap:8px;margin-bottom:8px;align-items:center}
-@media(max-width:700px){.ent-row{grid-template-columns:1fr 1fr}}
-.ent-row input,.ent-row select{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:7px 9px;width:100%}
+.ent-cab{display:none}
+.ent-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 30px;gap:10px 8px;
+  padding:11px;margin-bottom:10px;align-items:end;
+  border:1px solid var(--rule);border-radius:7px;background:var(--panel-2)}
+.ent-row input{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:6px 8px;width:100%;font-size:12px}
+.ent-c{display:flex;flex-direction:column;min-width:0}
+.ent-c::before{content:attr(data-l);font-family:var(--mono);font-size:8.5px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-bottom:3px;white-space:nowrap}
+.ent-c.wide{grid-column:1/-1}
+@media(max-width:640px){.ent-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* ── Galeria de canciones ───────────────────────────────────────────────
+   Ficha por cancion con la caratula grande, agrupada por mixtape/release igual
+   que la tabla. La caratula lleva aspect-ratio 1/1 y loading="lazy": el hueco
+   se reserva antes de que baje la imagen, asi la cuadricula no salta. */
+.cn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+@media(max-width:520px){.cn-grid{grid-template-columns:repeat(auto-fill,minmax(144px,1fr));gap:11px}}
+.cn-sec{display:flex;align-items:center;gap:9px;margin:22px 0 11px}
+.cn-sec:first-child{margin-top:0}
+.cn-sec img{width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none}
+.cn-sec h4{margin:0;font-size:13px;font-weight:600}
+.cn-sec .n{font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.cn-sec .ln{flex:1;height:1px;background:var(--rule)}
+.cn-sec .cdot{width:9px;height:9px;border-radius:50%;background:var(--c,var(--malo));flex:none}
+.cn-card{position:relative;display:flex;flex-direction:column;text-align:left;
+  background:var(--panel-2);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
+  cursor:pointer;color:inherit;font:inherit;padding:0;width:100%;
+  transition:border-color .16s ease,transform .16s ease}
+.cn-card:hover{border-color:var(--rule-2);transform:translateY(-2px)}
+.cn-card:focus-visible{outline:2px solid var(--malo);outline-offset:2px}
+.cn-art{position:relative;aspect-ratio:1/1;background:var(--ink);overflow:hidden}
+.cn-art img{width:100%;height:100%;object-fit:cover;display:block}
+/* Sin caratula: las iniciales del titulo sobre el color del artista. */
+.cn-art .cn-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--sans);font-weight:800;font-size:26px;letter-spacing:.02em;color:rgba(255,255,255,.9);
+  background:linear-gradient(150deg,var(--c,#8F79F2) 0%,rgba(14,15,18,.92) 100%)}
+.cn-art .cn-tit{position:absolute;left:0;right:0;bottom:0;padding:22px 8px 7px;
+  background:linear-gradient(to top,rgba(9,10,13,.93) 12%,rgba(9,10,13,.72) 55%,transparent 100%)}
+.cn-art .cn-tit b{display:block;font-size:11.5px;line-height:1.25;color:#fff;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cn-art .cn-tit span{display:block;font-size:10.5px;color:rgba(255,255,255,.72);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cn-body{padding:8px 9px 9px;display:flex;flex-direction:column;gap:1px}
+.cn-lab{font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+.cn-eur{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--malo);line-height:1.1}
+.cn-eur.cero{color:var(--mute-2);font-size:13px;font-weight:400}
+.cn-sub{font-size:10.5px;color:var(--mute)}
+.cn-spark{margin-top:7px;height:22px;display:block;width:100%}
+.cn-flags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.cn-flag{font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 6px;border-radius:4px;border:1px solid var(--rule-2);color:var(--mute)}
+.cn-flag.warn{border-color:rgba(240,86,143,.5);color:var(--malo)}
+/* Chapa de video: va encima de la portada porque es la accion secundaria de la
+   ficha (la principal, tocar la tarjeta, abre la canción). Es un <span> con
+   data-yt, no un <a>, porque la tarjeta entera ya es un <button> y anidar un
+   enlace dentro de un boton no es HTML valido. */
+.cn-yt{position:absolute;top:7px;right:7px;width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  background:rgba(9,10,13,.72);border:1px solid rgba(255,255,255,.22);
+  backdrop-filter:blur(3px);transition:background .15s ease,transform .15s ease}
+.cn-yt:hover{background:#FF0033;border-color:#FF0033;transform:scale(1.08)}
+.cn-yt svg{width:13px;height:13px;fill:#fff;margin-left:1px}
+/* Secciones plegables con <details>/<summary>: el navegador ya sabe abrir y
+   cerrar, y funciona con teclado sin escribir nada. */
+.cn-det{border:0;margin:0}
+.cn-det > summary{list-style:none;cursor:pointer}
+.cn-det > summary::-webkit-details-marker{display:none}
+.cn-det > summary .cn-sec{margin:20px 0 10px}
+.cn-det:first-of-type > summary .cn-sec{margin-top:0}
+.cn-sec .fle{font-family:var(--mono);font-size:10px;color:var(--mute);
+  transition:transform .15s ease;display:inline-block;width:11px;flex:none}
+.cn-det[open] > summary .cn-sec .fle{transform:rotate(90deg)}
+.cn-det > summary:focus-visible .cn-sec h4{outline:2px solid var(--malo);outline-offset:3px}
+.cn-det > summary:hover .cn-sec h4{color:var(--malo)}
+/* La portada mostrada es la del release, no la del single: se marca con un
+   punto para que se sepa que el tema tiene su propia caratula. */
+.cn-art .cn-alt{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;
+  background:rgba(255,255,255,.75);box-shadow:0 0 0 2px rgba(9,10,13,.5)}
+/* ── Salir de la app: hoja de enlace externo ─────────────────────────────
+   Un navegador NO permite elegir con que aplicacion se abre un enlace: eso lo
+   decide el sistema. Lo que si se puede es preguntar antes de salir y ofrecer
+   la app nativa del sitio (por su esquema propio) cuando existe. */
+.ex-bg{position:fixed;inset:0;background:rgba(4,5,7,.72);backdrop-filter:blur(3px);
+  z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;
+  animation:fondoIn .16s ease-out}
+.ex-card{background:var(--panel);border:1px solid var(--rule-2);border-radius:11px;
+  width:100%;max-width:380px;padding:18px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+.ex-card h4{margin:0 0 3px;font-size:15px}
+.ex-host{font-family:var(--mono);font-size:11px;color:var(--malo);word-break:break-all;margin-bottom:3px}
+.ex-url{font-size:11px;color:var(--mute);word-break:break-all;margin-bottom:14px;
+  max-height:44px;overflow:hidden}
+.ex-btns{display:flex;flex-direction:column;gap:7px}
+.ex-btns .btn{width:100%;justify-content:center}
+.ex-pie{display:flex;align-items:center;gap:7px;margin-top:13px;font-size:11px;color:var(--mute)}
+.ex-pie input{width:auto}
+@media(max-width:600px){
+  .ex-bg{align-items:flex-end;padding:0}
+  .ex-card{max-width:none;border-radius:13px 13px 0 0;border-bottom:0;
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+}
 .bar-be{position:relative;height:26px;border-radius:5px;background:var(--panel-2);border:1px solid var(--rule);overflow:hidden}
 .bar-be .fill{height:100%;background:rgba(143,121,242,.55)}
 .bar-be .be{position:absolute;top:0;bottom:0;width:2px;background:var(--malo)}
@@ -1321,6 +1424,7 @@ tr.fila-activa td{background:color-mix(in srgb,var(--malo) 7%,transparent)}
      aquí y pintaban un rectángulo detrás del apartado activo. -->
 <div class="dock" id="dock" role="navigation" aria-label="Apartados"></div>
 <div id="modalRoot"></div>
+<div id="exRoot"></div>
 <div id="drawerRoot"></div>
 <div id="toastRoot"></div>
 
@@ -1419,6 +1523,12 @@ function makeDemoClient(){
       signInWithPassword(){return Promise.resolve({data:{user:USUARIO},error:null})},
       updateUser(){return Promise.resolve({data:{user:USUARIO},error:null})},
       signOut(){return Promise.resolve({error:null})},
+      /* La pantalla de login llama a estos tres. Sin ellos, en modo demo
+         pulsar «Olvidé mi contraseña» lanzaba un TypeError y el mensaje se
+         quedaba congelado en «Enviando…» para siempre. */
+      resetPasswordForEmail(){return Promise.resolve({data:{},error:{message:"En la demo no se envían correos."}})},
+      signInWithOtp(){return Promise.resolve({data:{},error:{message:"En la demo no se envían correos."}})},
+      verifyOtp(){return Promise.resolve({data:{user:USUARIO},error:null})},
       onAuthStateChange(){return {data:{subscription:{unsubscribe(){}}}}}
     }
   };
@@ -1555,7 +1665,131 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.016";
+const APP_VERSION="0.024";
+/* ── Novedades de cada versión ──────────────────────────────────────────────
+   Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
+   que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
+   ARRIBA de esta lista (la primera es la actual), o suma los cambios a la
+   entrada de hoy si ya existe. Escrito para leer, no para programadores: qué
+   cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
+   se pinta como dd/mm/aaaa), v y cambios. */
+const CHANGELOG=[
+  {fecha:"2026-08-30",v:"0.024",cambios:[
+    "Recuperado todo lo que la publicación de Medios del 28 de agosto había borrado sin querer (las versiones 0.017 a 0.023): el formulario de producciones con cupo y previsión, la galería de Canciones con portadas y agrupación, y el resto de mejoras de esos días. Medios sigue ahí, no se pierde nada.",
+    "Nueva conexión con Enterticket: en Producciones aparece el bloque «Ticketera» con los eventos de la ticketera, sus ventas, su recaudación y su estado. Los datos vienen de nuestra base de datos; de momento se cargan a mano y cuando Enterticket dé acceso a su API se actualizarán solos.",
+    "Cada producción se puede enlazar con su evento de Enterticket, y con el botón «Traer ventas de Enterticket» las entradas vendidas de cada tipo se rellenan solas (respetando lo que hayas tecleado en precio y cupo).",
+    "El reporte de royalties del artista (botón en Bolsillo, aviso en Inicio del portal y enlace directo ?reporte=mes) se mantiene de la publicación anterior.",
+    "La librería de conexión con la base de datos se sirve desde nuestro propio dominio: si el CDN externo se cae (pasó el 30 de agosto), la app ya no se queda en «Conectando…»."]},
+  {fecha:"2026-08-27",v:"0.023",cambios:[
+    "Las canciones traen rellenada la fecha de lanzamiento y el género: 124 de 127 tienen fecha y 105 tienen género, sacados de Deezer y Apple Music buscando por el ISRC de cada tema.",
+    "125 canciones tienen ya el enlace a su vídeo de YouTube. En la galería sale un botón de play en la esquina de la portada: al tocarlo pregunta si abrirlo en la app de YouTube, en una pestaña o copiar el enlace.",
+    "Cada ficha muestra el año y el género debajo del dinero generado.",
+    "117 canciones tienen guardado su enlace de Deezer, y en la ficha se pueden añadir a mano los de Deezer y Apple Music.",
+    "Quedan 3 temas sin fecha, 22 sin género y 2 sin vídeo: son los que no aparecen en las plataformas o los subió otra distribuidora. Se pueden poner a mano en la ficha de cada canción."]},
+  {fecha:"2026-08-27",v:"0.022",cambios:[
+    "Canciones sale agrupado por artista de entrada, y dentro de cada artista primero sus discos y luego las sueltas.",
+    "Las portadas ya no ocupan media pantalla en ordenador: las fichas son bastante más pequeñas, así entran el doble por fila.",
+    "Manda la portada del disco: una canción que salió dentro de un mixtape se ve con la portada del proyecto. Hay un botón para volver a ver la portada con la que salió cada single.",
+    "Cada mixtape o album es un desplegable: se abre y se cierra, y la app recuerda cuáles dejaste abiertos.",
+    "Nuevo filtro para ver solo lo que salió en mixtape/album o solo los singles y las sueltas.",
+    "Se puede elegir un periodo (por ejemplo abril–agosto) y ver cuánto generó cada canción y el total en esos meses, no solo el histórico.",
+    "«Espera» pasa a Los del Volumen, que es de quien es según la distribuidora.",
+    "Catálogo limpio: fuera 3 canciones repetidas y los 11 casos en que el audio y el videoclip figuraban como dos canciones distintas se han unido en una sola (el dinero de las dos sigue contando). Quedan 127 canciones."]},
+  {fecha:"2026-08-27",v:"0.021",cambios:[
+    "Las 148 portadas ya están puestas y se ven. Se piden al tamaño que se va a ver (unos 30 KB cada una en vez de 124 KB): la galería completa pasa de ~18 MB a ~4 MB, que es la diferencia entre verse al instante y quedarse en blanco."]},
+  {fecha:"2026-08-27",v:"0.020",cambios:[
+    "Canciones se agrupa solo en sus mixtapes y albums de verdad, con el nombre del disco tal y como está publicado. Un «disco» de una sola canción ya no abre sección propia: va con las sueltas.",
+    "Nuevo selector: agrupar por release, por artista o sin agrupar.",
+    "Sin filtros, el catálogo sale ordenado por artista y alfabético dentro de cada uno. Antes salía por «lo más generado», que con casi todo a 0 € parecía un orden aleatorio.",
+    "El orden alfabético usa el título de verdad: los títulos importados de la distribuidora empiezan por el nombre del artista («ROOMTRASH6, YYY891 - EL PASTEL…») y eso descolocaba la lista entera.",
+    "La cabecera dice cuántas canciones tienen portada, para saber de un vistazo si falta cargarlas."]},
+  {fecha:"2026-08-27",v:"0.019",cambios:[
+    "Las portadas guardadas como enlace de Google Drive ya se ven. Antes se guardaban bien pero el navegador recibía una página en vez de una imagen, así que el hueco salía vacío.",
+    "Si una portada no carga (enlace roto o sin permiso), sale el recuadro con las iniciales del título en vez de una imagen rota.",
+    "Al tocar un enlace que lleva fuera de MALO se pregunta antes: abrir en la app del sitio (Spotify, Instagram, YouTube, Maps, WhatsApp), abrir en una pestaña nueva o copiar el enlace. Se puede desactivar desde el propio aviso.",
+    "Aviso: elegir con qué navegador se abre un enlace no lo puede hacer ninguna página web, eso lo decide el móvil o el ordenador. Lo que sí se puede es abrir la app del sitio, que es lo que hace el botón de arriba."]},
+  {fecha:"2026-08-27",v:"0.018",cambios:[
+    "Canciones · Catálogo se ve como galería: la carátula grande de cada tema, agrupada por mixtape o release, con lo que ha generado la canción y lo que queda a repartir. Botón para volver a la tabla de siempre.",
+    "Nueva producción: las entradas se definen con su precio y su cupo sin que eso cuente como vendido. «Vendidas» se rellena cuando hay venta real, y hasta entonces el resultado se muestra como previsión.",
+    "El line-up y el equipo pasan a una ficha por persona, con el nombre de cada campo a la vista. El artista es un solo campo: si coincide con un cliente de MALO se enlaza solo, y si no queda como externo.",
+    "Arreglado: al escribir en un formulario ya no se pierde el foco tras el primer carácter.",
+    "Los campos de fecha abren el calendario pulsando en cualquier parte, y Escape cierra la ventana aunque el cursor esté dentro de un campo.",
+    "El Panel ya no cuenta las ofertas sin cerrar como facturación: salen en su propia línea. Cuadra con el Informe de ganancias.",
+    "Bolsillo y portal del artista: un DJ del line-up de un colectivo ve su parte del reparto, y los totales van en neto (el IVA no es dinero suyo).",
+    "En el resultado de una producción, el desglose de costes ya suma el total: faltaban los viajes del line-up y el coste del equipo."]},
+  {fecha:"2026-08-27",v:"0.017",cambios:[
+    "El logo de MALO se ve completo, sin recortar, y dentro de un círculo más grande (barra lateral y móvil).",
+    "Nueva pestaña «Novedades» aquí en Configuración con el historial de cambios día a día.",
+    "Al entrar con una versión nueva salta un aviso para que sepas que hay cambios.",
+    "«Mis Canciones» y «Distribuir canción» se unen en una sola sección, «Canciones», con pestañas Catálogo y Distribuir. Un solo sitio, también en el portal del artista.",
+    "La cola de distribución solo lista las canciones realmente enviadas: editar el videoclip de una canción del catálogo ya no la mete en la cola.",
+    "«Distribuir canción» permite partir de una canción que ya está en el catálogo, para no duplicarla.",
+    "En la tarea «Abrir plaza» el botón de WhatsApp ya no escribe a un único contacto: abre un selector con todos los promotores de esa provincia (con teléfono y email, sin los descartados).",
+    "El apartado «Capturas» pasa a llamarse «Transcripción».",
+    "Cifras coherentes entre secciones y arreglos de foco en los formularios."]},
+  {fecha:"2026-08-26",v:"0.016",cambios:[
+    "Portal del cliente (rol artista): menú propio con Inicio, Agenda, Canciones, Bolsillo y Redes. El inicio muestra sus próximas fechas, lo generado en el año y sus seguidores. Solo lectura.",
+    "«Equipo y permisos» gestiona el rol de cada miembro y con qué cliente está vinculado, con la guía de invitación.",
+    "Producción: entradas y line-up ya son utilizables.",
+    "Login de cliente completo: recuperar contraseña por email, entrada con enlace mágico, ver u ocultar la contraseña, aviso de Bloq Mayús, medidor de fuerza (mínimo 8) y mensajes de error claros.",
+    "«Distribuir canción»: el artista o el equipo rellenan toda la información de la distribuidora (formato, tipo, feat, ISRC, parental, hook de TikTok, portada, WAV y videoclip, créditos, líneas C/P, tracklist, mood, pitch, plan de marketing) y al enviar se crea la entrada en el catálogo y se compila el email listo para copiar.",
+    "Copia de seguridad diaria automática y gratuita a Google Drive (03:00), con 30 días de historial.",
+    "Arreglado el «Error al sincronizar» que les salía a los gestores al cerrar mes o al tocar el selector de Drive.",
+    "Seguridad: las funciones del servidor comprueban el rol de quien llama (antes un artista podía llegar al Drive y a las redes de otro), cabeceras de seguridad en Netlify y política de contenido en modo bloqueo.",
+    "Permisos de base de datos revisados a fondo: se limpian las 22 políticas antiguas y se acotan mensajes y avisos push."]},
+  {fecha:"2026-08-25",v:"0.016",cambios:[
+    "Paleta «Medianoche», elegida entre cuatro propuestas: rótulos en caja normal, pills rellenas, bordes mínimos y un acento por pantalla.",
+    "Escritorio rediseñado: la ficha se abre como cajón lateral, la barra de menú va agrupada con iconos y el Panel pasa a dos columnas con el próximo show destacado.",
+    "Formulario de show: el DJ habitual se ve al cambiar de cliente, el cliente se hereda del filtro activo, la ciudad y el país los pone el contratante, la fecha de cobro se calcula sola y se limpian los DJs del colectivo.",
+    "Caché del DJ en el reparto (parejas artista-DJ, editable en la ficha y por show), la sala autorrellena ciudad y aforo, y la tarjeta económica se actualiza en vivo.",
+    "Redes: gráfica total a 12 meses y mes a mes por red con los colores de cada marca. Bolsillo: evolución mensual con la misma lectura, con diferencia y desglose.",
+    "Chip «ruta N%» en la ficha y en el Panel, y gráfica agregada de seguidores en Redes.",
+    "Instagram Plan B: cada artista conecta su cuenta desde Redes.",
+    "Política de privacidad y eliminación de datos (requisito de revisión de Meta)."]},
+  {fecha:"2026-08-21",v:"0.011",cambios:[
+    "Redes: métricas extra por red (engagement, oyentes, audiencia, contenido destacado) y comparativa entre artistas.",
+    "Móvil: dock de 5 destinos, Shows dentro de la agenda y el próximo show destacado en el Panel.",
+    "Móvil: ficha de show con resumen y botones grandes; Redes con el color de cada marca y la diferencia respecto al mes anterior.",
+    "Animaciones: entrada en cascada, deslizamiento al cambiar de sección en el móvil y la ficha abriéndose como hoja.",
+    "Repulido general: esquinas más suaves, foco rosa en los campos y barras de scroll finas.",
+    "Botón «mostrar más» en Contactos, Clientes y Shows: 60 por tanda en vez de cargar la lista entera."]},
+  {fecha:"2026-08-20",v:"0.006",cambios:[
+    "Nuevas secciones «Mis Canciones» y «Bolsillo».",
+    "Canciones con portada, audio, créditos y género, guardados en Drive.",
+    "Colaboradores y productor en el título (ft. / prod.), con previsualización en vivo al editar.",
+    "Nuevo panel «Redes»: seguidores de Instagram, TikTok y YouTube por artista, con el crecimiento mensual.",
+    "Redes se actualiza sola consultando YouTube e Instagram; Spotify se lleva por revisión mensual porque cerraron su API pública en febrero de 2026.",
+    "Arreglado el tope de 1.000 filas de la base de datos que dejaba cifras cortas en Canciones y Bolsillo.",
+    "Pasada de accesibilidad: contraste de rótulos, filas navegables con el teclado y transiciones del menú."]},
+  {fecha:"2026-08-19",v:"0.006",cambios:[
+    "Pasada de móvil: tablas dentro de la ficha, filtros plegados y todo a tamaño de dedo.",
+    "En listas largas la ficha se recorta y las cifras salen fuera de las barras.",
+    "Generador de contratos, y en la hoja de ruta los campos vacíos ya no se imprimen.",
+    "Comprobación automática antes de publicar: un index.html roto ya no puede llegar a producción."]},
+  {fecha:"2026-08-18",v:"0.004",cambios:[
+    "Drive funciona con una sola cuenta de MALO a través del servidor, en vez de pedirle permisos a cada uno.",
+    "Subir archivos a Drive desde el propio panel.",
+    "El panel dice siempre con qué cuenta de Google está leyendo.",
+    "Configuración pasa a cuatro pestañas y aparecen los roles de equipo.",
+    "Arreglos de CORS, de identificación de la aplicación y una llave sobrante que rompía toda la app."]},
+  {fecha:"2026-08-17",v:"0.003",cambios:[
+    "Integración con Google Drive: conectar una carpeta y ver sus archivos desde Documentos.",
+    "Solo un administrador puede elegir la carpeta madre.",
+    "Al conectar Google se pide también el permiso de Drive.",
+    "Ajustes de formato en el móvil."]},
+  {fecha:"2026-08-16",v:"0.002",cambios:[
+    "Géneros y servicios pasan a ser etiquetas.",
+    "SoundCloud añadido a la ficha de cliente.",
+    "Retirada la sección de WhatsApp."]},
+  {fecha:"2026-08-15",v:"—",cambios:[
+    "Primera subida de la app al repositorio, con service worker para avisos y uso sin conexión.",
+    "Nueva categoría de contratante: fiestas mayores."]}
+];
+/* El historial de arriba se reconstruyó el 27-ago-2026 a partir de los 83
+   commits del repositorio, agrupado por día. Va por FECHA y no por versión
+   porque APP_VERSION no se subió en cada publicación (la 0.016 abarca del 25
+   al 27 de agosto, y la 0.017 es la primera que se sube junto a su entrada).
+   La «v» de cada bloque es la que estaba publicada ese día. */
 const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
@@ -1665,6 +1899,11 @@ function calcProd(p){
   const ivaE=n(p.ivaEntrada!==undefined?p.ivaEntrada:IVA_ENTRADA);
   const ent=modoFee?[]:(p.entradas||[]);
   const vendidas=ent.reduce((t,e)=>t+n(e.vendidas),0);
+  /* Poner un tipo de entrada con su precio NO significa haberla vendido. Solo
+     hay ventas si alguna fila trae un numero en «vendidas»: mientras no lo
+     traiga, el P&L habla de prevision, no de resultado. */
+  const hayVentas=ent.some(e=>String(e.vendidas??"").trim()!==""&&n(e.vendidas)>0);
+  const cupo=ent.reduce((t,e)=>t+n(e.cupo),0);
   const taquillaPVP=ent.reduce((t,e)=>t+n(e.precio)*n(e.vendidas),0);   // precios con IVA incluido
   const taquillaNeta=taquillaPVP/(1+ivaE/100);
   const feeFijo=modoFee?n(p.feeFijo):0;
@@ -1692,7 +1931,13 @@ function calcProd(p){
   // toFixed(6) evita que 200.00000000000003 se redondee a 201 por coma flotante
   const beEntradas=(!modoFee&&precioMedio>0)?Math.ceil(+(aCubrir/precioMedio).toFixed(6)):null;
   const aforo=n(p.aforo);
-  return {modoFee,feeFijo,ivaE,vendidas,taquillaPVP,taquillaNeta,otros,sponsor,ingresos,cacheArtistas,
+  /* Prevision: taquilla si se llenara el cupo declarado (y si no hay cupo, el
+     aforo). Sirve para juzgar la produccion antes de vender una sola entrada. */
+  const objetivo=(!modoFee)?(cupo||aforo||0):0;
+  const previsionNeta=objetivo*precioMedio;
+  const previsionBeneficio=previsionNeta+otros+sponsor-costes;
+  return {modoFee,feeFijo,ivaE,vendidas,hayVentas,cupo,objetivo,previsionNeta,previsionBeneficio,
+    taquillaPVP,taquillaNeta,otros,sponsor,ingresos,cacheArtistas,
     viajesLineup,crewFees,viajesCrew,costeCrew,costesOtros,costes,beneficio,
     precioMedio,beEntradas,aforo,
     ocupacion:(!modoFee&&aforo)?vendidas/aforo*100:null,
@@ -1833,7 +2078,7 @@ const TABLE_MAP={
   producciones:{id:"id",nombre:"nombre",fecha:"fecha",ciudad:"ciudad",venueId:"venue_id",aforo:"aforo",
     ivaEntrada:"iva_entrada",modoFee:"modo_fee",feeFijo:"fee_fijo",entradas:"entradas",otrosIngresos:"otros_ingresos",lineup:"lineup",costes:"costes",notas:"notas",
     estado:"estado",horario:"horario",sponsor:"sponsor",sponsorAportacion:"sponsor_aportacion",
-    crew:"crew",showsCreados:"shows_creados"},
+    crew:"crew",showsCreados:"shows_creados",enterticketId:"enterticket_id"},
   canciones:{id:"id",titulo:"titulo",artistaId:"artista_id",fechaLanzamiento:"fecha_lanzamiento",isrc:"isrc",
     distribuidora:"distribuidora",feeDistribucionPct:"fee_distribucion_pct",mgmtPct:"mgmt_pct",
     cuentaPortal:"cuenta_portal",notas:"notas",genero:"genero",creditos:"creditos",
@@ -1843,7 +2088,7 @@ const TABLE_MAP={
   cancionIngresos:{id:"id",cancionId:"cancion_id",mes:"mes",bruto:"bruto",unidades:"unidades",canal:"canal"},
   redesSnapshots:{id:"id",clienteId:"cliente_id",red:"red",fecha:"fecha",seguidores:"seguidores",notas:"notas",extra:"extra"}
 };
-const NULEA_VACIO=new Set(["cliente_id","promotor_id","venue_id","fecha","fecha_alta","dj_id","dj_defecto_id","asignado_a","vence","autor","creado_por","hecha_en","promotor_id","ultimo_contacto","artista_id","cancion_id","fecha_lanzamiento"]);
+const NULEA_VACIO=new Set(["cliente_id","promotor_id","venue_id","fecha","fecha_alta","dj_id","dj_defecto_id","asignado_a","vence","autor","creado_por","hecha_en","promotor_id","ultimo_contacto","artista_id","cancion_id","fecha_lanzamiento","enterticket_id"]);
 const CON_AUTORIA=new Set(["clientes","promotores","shows","producciones","canciones"]);
 function toRow(tabla,obj){
   const map=TABLE_MAP[tabla],row={};
@@ -1860,8 +2105,13 @@ function fromRow(tabla,row){
 function normalizaEntidad(tabla,o){
   // asegura que los jsonb vengan como el tipo esperado aunque la fila los traiga vacíos/null
   if(tabla==="canciones"){
-    // distribucion es jsonb: fromRow convierte null en "", así que lo devolvemos a objeto
-    o.distribucion=o.distribucion&&typeof o.distribucion==="object"?o.distribucion:{};
+    /* distribucion es jsonb: fromRow convierte null en "", así que lo devolvemos
+       a objeto. Un array tampoco vale: si alguna vez la columna guardó "" y luego
+       se le sumó un objeto con ||, Postgres devuelve ["",{...}] en vez de fusionar,
+       y entonces los enlaces quedaban invisibles. Se recuperan sus claves. */
+    if(Array.isArray(o.distribucion))
+      o.distribucion=o.distribucion.reduce((a,x)=>(x&&typeof x==="object"&&!Array.isArray(x))?Object.assign(a,x):a,{});
+    else o.distribucion=o.distribucion&&typeof o.distribucion==="object"?o.distribucion:{};
   }
   if(tabla==="temas"){
     o.enlaces=Array.isArray(o.enlaces)?o.enlaces:[];
@@ -1946,7 +2196,7 @@ async function fetchTodos(tabla){
   return {data:todo,error:err};
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp,etv,etp]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -1980,7 +2230,12 @@ async function loadRemote(){
        Distribuir canción va, pero no se guarda ese cajón. */
     sb.from("canciones").select("distribucion").limit(1),
     /* Sonda: tabla «medios» (directorio de prensa, interna). Sin el SQL la app va. */
-    sb.from("medios").select("*")
+    sb.from("medios").select("*"),
+    /* Enterticket: eventos de la ticketera sincronizados a nuestra tabla, y
+       sonda de la columna que enlaza cada producción con su evento. Sin el
+       SQL (supabase/enterticket.sql) la app va y el bloque lo avisa. */
+    sb.from("et_eventos").select("*"),
+    sb.from("producciones").select("enterticket_id").limit(1)
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -2019,6 +2274,19 @@ async function loadRemote(){
   DB.sinMedios=!!medp.error;
   DB.medios=DB.sinMedios?[]:(medp.data||[]).map(r=>fromRow("medios",r));
   if(DB.sinMedios)console.warn("Tabla «medios» no disponible:",medp.error.message);
+  /* Enterticket: la tabla la rellena la sincronización (o el seed del SQL);
+     la app solo la lee. Fechas más nuevas primero. */
+  DB.sinEnterticket=!!etv.error;
+  DB.etEventos=DB.sinEnterticket?[]:(etv.data||[]).map(r=>({id:String(r.id),nombre:r.nombre||"",
+    fechaIni:r.fecha_ini||"",fechaFin:r.fecha_fin||"",recinto:r.recinto||"",ciudad:r.ciudad||"",
+    estado:r.estado||"",url:r.url||"",vendidas:r.vendidas==null?null:+r.vendidas,
+    cupo:r.cupo==null?null:+r.cupo,ingresos:r.ingresos==null?null:+r.ingresos,
+    entradas:Array.isArray(r.entradas)?r.entradas:[],canales:r.canales||{},
+    sincronizadoEn:r.sincronizado_en||""}))
+    .sort((a,b)=>(b.fechaIni||"").localeCompare(a.fechaIni||""));
+  if(DB.sinEnterticket)console.warn("Tabla «et_eventos» no disponible:",etv.error.message);
+  DB.sinEnterticketProd=!!etp.error;
+  if(DB.sinEnterticketProd)console.warn("Columna «producciones.enterticket_id» no disponible:",etp.error.message);
   DB.cancionParticipantes=canp.error?[]:(canp.data||[]).map(r=>fromRow("cancionParticipantes",r));
   DB.cancionIngresos=cani.error?[]:(cani.data||[]).map(r=>fromRow("cancionIngresos",r));
   /* Panel "Redes": historial de seguidores por red. Igual de tolerante si
@@ -2110,7 +2378,8 @@ async function save(){
       DB.shows.length&&sb.from("shows").upsert(DB.shows.map(s=>{
         const r=toRow("shows",s);if(DB.sinContrato)delete r.contrato;return r})),
       DB.eventos.length&&sb.from("eventos").upsert(DB.eventos.map(e=>toRow("eventos",e))),
-      DB.producciones.length&&sb.from("producciones").upsert(DB.producciones.map(p=>toRow("producciones",p))),
+      DB.producciones.length&&sb.from("producciones").upsert(DB.producciones.map(p=>{
+        const r=toRow("producciones",p);if(DB.sinEnterticketProd)delete r.enterticket_id;return r})),
       DB.suscriptores.length&&sb.from("suscriptores").upsert(DB.suscriptores.map(x=>toRow("suscriptores",x))),
       (!DB.sinMedios&&(DB.medios||[]).length)&&sb.from("medios").upsert(DB.medios.map(x=>toRow("medios",x))),
       DB.contexto.length&&sb.from("contexto").upsert(DB.contexto.map(x=>toRow("contexto",x))),
@@ -2303,6 +2572,33 @@ function showsPagaP(pid){return DB.shows.filter(s=>s.promotorId===pid)}
 function showsColaboraP(pid){return DB.shows.filter(s=>s.promotorId!==pid&&colabsDe(s).includes(pid))}
 function showsDe(id){return DB.shows.filter(s=>s.clienteId===id)}
 function vivos(){return DB.shows.filter(s=>s.estado!=="cancelado")}
+/* Todos los shows en los que participa un artista: como contratado o como DJ
+   del line-up de un colectivo. */
+function showsDeArtista(id){return DB.shows.filter(s=>s.clienteId===id||s.djId===id||(s.djs||[]).includes(id))}
+/* Lo que un show genera PARA el artista, en neto: si es el contratado, su neto
+   (el IVA es de Hacienda y el IRPF una retencion, no ingreso suyo); si va como
+   DJ de un colectivo, la parte que le asigna el reparto interno. Mismo criterio
+   que el bloque «como DJ» del Informe de ganancias. */
+function netoArtistaEnShow(s,id){
+  if(s.clienteId===id)return calc(s).neto;
+  if(djsDelShow(s).includes(id)||s.djId===id)return repartoDjs(s).porDj;
+  return 0;
+}
+/* Buscador con espera: al repintar la vista el input desaparece, asi que hay
+   que devolverle el foco y el cursor. Sin esto se escribe un caracter y se
+   pierde el foco (pasaba en Distribuir cancion y en Mis Canciones). */
+function buscadorEspera(id,set){
+  const q=document.getElementById(id);if(!q)return;
+  q.addEventListener("input",e=>{
+    set(e.target.value);
+    clearTimeout(window.__bqT);
+    window.__bqT=setTimeout(()=>{
+      render();
+      const i=document.getElementById(id);
+      if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}
+    },220);
+  });
+}
 function redUrl(k,v){
   if(!v)return "";v=String(v).trim();
   if(/^https?:\/\//i.test(v))return v;
@@ -2311,6 +2607,24 @@ function redUrl(k,v){
 }
 function catContacto(id){const p=DB.promotores.find(x=>x.id===id);return CONTACTO_CAT[p?p.categoria:"promotor"]||CONTACTO_CAT.promotor}
 function iniciales(nom){return String(nom||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase()}
+/* Portada de una cancion lista para un <img>, al tamano que de verdad se va a
+   ver. Guardamos la URL grande (1000 px, que sirve para todo), pero pedir 148
+   imagenes de 1000x1000 para fichas de 196 px son ~30 MB y la cuadricula se
+   queda en blanco un buen rato: los servidores de portadas llevan el tamano en
+   la propia URL, asi que aqui se reescribe. `ancho` es en pixeles de CSS y se
+   pide el doble para que no se vea borrosa en pantallas retina. */
+function portadaImg(c,ancho){
+  let u=normalizaFoto((c&&c.portadaUrl)||"");
+  if(!u||!ancho)return u;
+  const px=Math.min(1000,Math.round(ancho*2));
+  /* Deezer: .../cover/<hash>/1000x1000-000000-80-0-0.jpg */
+  u=u.replace(/\/(\d{2,4})x\1(-\d+-\d+-\d+-\d+\.(?:jpg|png))/i,"/"+px+"x"+px+"$2");
+  /* Apple Music: .../1000x1000bb.jpg */
+  u=u.replace(/\/(\d{2,4})x\1bb\.(jpg|png)/i,"/"+px+"x"+px+"bb.$2");
+  /* Google Drive, via normalizaFoto: .../d/<id>=w400 */
+  u=u.replace(/=w\d+$/,"=w"+px);
+  return u;
+}
 function normalizaFoto(url){
   if(!url)return "";
   const u=String(url).trim();
@@ -2351,15 +2665,19 @@ function comisionesPorMes(anio){
 }
 function kpis(anio){
   let ingresoMalo=0,margenMalo=0,facturacion=0,pdteCobro=0,pdteLiq=0,terceros=0,shows=0;
+  /* Pipeline = lo que hay ofertado y sin cerrar. Se cuenta aparte: sumarlo a la
+     facturacion daba un total distinto del que sale en el Informe de ganancias. */
+  let pipeline=0,ofertas=0;
   vivos().forEach(s=>{
     const c=calc(s),enAnio=!anio||(s.fecha||"").slice(0,4)===String(anio);
     const cobrado=s.cobro&&s.cobro.estado==="cobrado",liquidado=s.liq&&s.liq.estado==="liquidado";
-    if(enAnio){shows++;facturacion+=c.bruto;ingresoMalo+=c.comis;margenMalo+=c.margen}
+    if(enAnio&&s.estado==="oferta"){ofertas++;pipeline+=c.bruto}
+    if(enAnio&&s.estado!=="oferta"){shows++;facturacion+=c.bruto;ingresoMalo+=c.comis;margenMalo+=c.margen}
     if(!cobrado&&(s.estado==="contratado"||s.estado==="ejecutado"))pdteCobro+=c.bruto;
     if(!liquidado&&s.estado==="ejecutado")pdteLiq+=c.transfer;
     if(cobrado&&!liquidado)terceros+=c.transfer;
   });
-  return {ingresoMalo,margenMalo,facturacion,pdteCobro,pdteLiq,terceros,shows};
+  return {ingresoMalo,margenMalo,facturacion,pdteCobro,pdteLiq,terceros,shows,pipeline,ofertas};
 }
 /* Ítems unificados del calendario: shows (dinero) + eventos (iCal/manual) */
 function itemsCal(){
@@ -2612,7 +2930,8 @@ let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",doc
   ordenShows:"fecha_asc",ordenClientes:"cat",ordenContactos:"cat",relBD:"",ordenDocs:"fecha_desc",
   ordenMailing:"alpha",ordenMapa:"n_desc",anio:String(new Date().getFullYear()),
   temaQ:"",temaCliente:"",temaEstado:"",ordenTemas:"envio_desc",
-  cancionQ:"",cancionArtista:"",ordenCanciones:"alpha",
+  cancionQ:"",cancionArtista:"",ordenCanciones:"artista",cancionVista:"galeria",cancionGrupo:"artista",
+  cancionTipo:"",cancionPortada:"release",cancionDesde:"",cancionHasta:"",
   bolsilloArtista:"",bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
   redesArtista:""};
 const _n=new Date();
@@ -2682,6 +3001,26 @@ function tablasFicha(root){
 let FILTROS_ABIERTOS=false;
 /* Filas clicables accesibles por teclado: tabindex + Enter/Espacio abren la
    ficha igual que un toque. Corre tras cada render(), como tablasFicha(). */
+/* Un input[type=date] solo abre el calendario si aciertas en el iconito. Con
+   esto se abre pulsando en cualquier parte del campo (y con Enter), que es lo
+   que espera cualquiera. showPicker no existe en Safari < 16: si falla, el
+   campo sigue funcionando como siempre. */
+document.addEventListener("pointerup",e=>{
+  const t=e.target;
+  if(!t||t.tagName!=="INPUT")return;
+  if(t.type!=="date"&&t.type!=="month"&&t.type!=="time")return;
+  if(t.readOnly||t.disabled)return;
+  if(typeof t.showPicker!=="function")return;
+  try{t.showPicker()}catch(_){}
+},true);
+document.addEventListener("keydown",e=>{
+  const t=e.target;
+  if(e.key!=="Enter"||!t||t.tagName!=="INPUT")return;
+  if(t.type!=="date"&&t.type!=="month"&&t.type!=="time")return;
+  if(typeof t.showPicker!=="function")return;
+  e.preventDefault();try{t.showPicker()}catch(_){}
+});
+
 function filasTeclado(root){
   (root||document).querySelectorAll("tbody tr.click").forEach(tr=>{
     if(tr.hasAttribute("tabindex"))return;
@@ -2789,7 +3128,7 @@ function render(){
   ta.innerHTML="";document.getElementById("viewSub").textContent="";
   ({panel:viewPanel,calendario:viewCalendario,shows:viewShows,producciones:viewEventos,
     clientes:viewClientes,contactos:viewContactos,documentos:viewDocumentos,
-    mailing:viewMailing,mapa:viewMapa,canciones:viewCanciones,medios:viewMedios,
+    mailing:viewMailing,medios:viewMedios,mapa:viewMapa,canciones:viewCanciones,
     bolsillo:viewBolsillo,redes:viewRedes,
     equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos,
     inicio:viewInicioPortal})[VIEW](el,ta);
@@ -2924,11 +3263,14 @@ document.getElementById("logoutBtn").addEventListener("click",async()=>{
   if(sb&&sb._demo){salirDemo();return}
   await sb.auth.signOut();location.reload();});
 document.addEventListener("keydown",e=>{
+  /* Escape cierra la ventana SIEMPRE, tambien con el cursor dentro de un campo:
+     al abrir un formulario el foco cae en el primer input, asi que con el
+     return de abajo Escape no cerraba nada justo cuando mas se usa. */
+  if(e.key==="Escape"){closeModal();return}
   /* e.target puede no ser un elemento (el propio document, por ejemplo) */
   if(e.target&&e.target.matches&&e.target.matches("input,select,textarea"))return;
   const v=VIEWS.find(x=>x.k===e.key);
   if(v){VIEW=v.id;render()}
-  if(e.key==="Escape")closeModal();
 });
 
 /* ════════ PANEL ════════ */
@@ -2946,7 +3288,7 @@ function viewPanel(el,ta){
   }
 
   const porCliente=DB.clientes.map(c=>{
-    const ss=showsDe(c.id).filter(s=>s.estado!=="cancelado"&&(s.fecha||"").slice(0,4)===filtro.anio);
+    const ss=showsDe(c.id).filter(s=>s.estado!=="cancelado"&&s.estado!=="oferta"&&(s.fecha||"").slice(0,4)===filtro.anio);
     return {c,n:ss.length,ing:ss.reduce((t,s)=>t+calc(s).comis,0),fac:ss.reduce((t,s)=>t+calc(s).bruto,0)};
   }).filter(x=>x.n>0).sort((a,b)=>b.ing-a.ing);
 
@@ -2982,7 +3324,8 @@ function viewPanel(el,ta){
     <div class="cell"><div class="lab">Ingreso MALO ${filtro.anio}</div><div class="val v-malo">${eur0(K.ingresoMalo)}</div>
       <div class="note">Margen tras gastos propios: <span class="strong">${eur0(K.margenMalo)}</span></div></div>
     <div class="cell"><div class="lab">Facturación gestionada</div><div class="val">${eur0(K.facturacion)}</div>
-      <div class="note">${K.shows} shows · comisión media ${K.facturacion?pct(K.ingresoMalo/K.facturacion*100):"—"}</div></div>
+      <div class="note">${K.shows} shows en firme · comisión media ${K.facturacion?pct(K.ingresoMalo/K.facturacion*100):"—"}</div>
+      ${K.pipeline?`<div class="note">+ ${eur0(K.pipeline)} en ${K.ofertas} oferta${K.ofertas===1?"":"s"} sin cerrar (no cuenta aquí)</div>`:""}</div>
     <div class="cell"><div class="lab">Pendiente de cobro</div><div class="val ${K.pdteCobro>0?"v-alert":"v-mute"}">${eur0(K.pdteCobro)}</div>
       <div class="note">${impagados.length} fuera de plazo</div></div>
     <div class="cell"><div class="lab">Pendiente de liquidar</div><div class="val v-artist">${eur0(K.pdteLiq)}</div>
@@ -3075,7 +3418,7 @@ function viewInicioPortal(el,ta){
   const mios=DB.shows.filter(s=>s.clienteId===c.id||s.djId===c.id||(s.djs||[]).includes(c.id));
   const prox=mios.filter(s=>s.fecha&&s.fecha>=H&&s.estado!=="cancelado")
     .sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,6);
-  const anioShows=mios.filter(s=>s.fecha&&s.fecha.slice(0,4)===anio&&s.estado!=="cancelado").length;
+  const anioShows=mios.filter(s=>s.fecha&&s.fecha.slice(0,4)===anio&&s.estado!=="cancelado"&&s.estado!=="oferta").length;
   const rangoAnio={desde:anio+"-01",hasta:anio+"-12"};
   const genAnio=sumaEnRango(bolsilloCancionesPorMes(c.id),rangoAnio)+sumaEnRango(bolsilloShowsPorMes(c.id),rangoAnio);
   const redes=REDES_CRECIMIENTO.map(red=>{
@@ -3311,6 +3654,10 @@ function viewShows(el,ta){
   const tot=list.filter(s=>s.estado!=="cancelado").reduce((t,s)=>{const c=calc(s);
     t.bruto+=c.bruto;t.comis+=c.comis;t.neto+=c.neto;t.gastos+=c.gArt+c.gMalo+c.gProm;return t},
     {bruto:0,comis:0,neto:0,gastos:0});
+  /* Estos totales son de lo que estas viendo, ofertas incluidas. Se dice, para
+     que no choquen con la «facturacion en firme» del Panel. */
+  const totOferta=list.filter(s=>s.estado==="oferta").reduce((t,s)=>t+calc(s).bruto,0);
+  const notaOferta=totOferta?`<div class="note">incluye ${eur0(totOferta)} en ofertas</div>`:"";
   const pag=paginar(list,"shows");list=pag.list;
   document.getElementById("viewSub").textContent=filtro.verAntiguos
     ? `${list.length} registros · con antiguos`
@@ -3331,7 +3678,7 @@ function viewShows(el,ta){
   <div class="strip" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
     ${""/* Los totales cuadran siempre con lo que se ve en la tabla, así que hay que
           decir si son solo de las próximas o de todo el histórico filtrado. */}
-    <div class="cell" style="cursor:pointer" data-kpi="bruto"><div class="lab">Caché bruto${filtro.verAntiguos?"":" · próximos"}</div><div class="val">${eur0(tot.bruto)}</div></div>
+    <div class="cell" style="cursor:pointer" data-kpi="bruto"><div class="lab">Caché bruto${filtro.verAntiguos?"":" · próximos"}</div><div class="val">${eur0(tot.bruto)}</div>${notaOferta}</div>
     <div class="cell" style="cursor:pointer" data-kpi="neto"><div class="lab">Neto clientes${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-artist">${eur0(tot.neto)}</div></div>
     <div class="cell" style="cursor:pointer" data-kpi="comis"><div class="lab">Comisión MALO${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-malo">${eur0(tot.comis)}</div></div>
     <div class="cell" style="cursor:pointer" data-kpi="gastos"><div class="lab">Total gastos${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-alert">${eur0(tot.gastos)}</div></div>
@@ -3372,6 +3719,51 @@ function viewShows(el,ta){
 }
 
 /* ════════ PRODUCCIONES PROPIAS · rentabilidad ════════ */
+/* ── Ticketera (Enterticket) ──
+   Tabla et_eventos: la rellena la sincronización (hoy, el seed del SQL; cuando
+   Enterticket dé credenciales de API, la Edge Function enterticket-sync). La
+   app solo la lee: aquí se pinta y en la producción se enlaza y se traen las
+   ventas por tipo de entrada. */
+function etEstadoPill(e){
+  return e.estado==="venta_activa"
+    ? `<span class="pill ok" style="margin:0">Venta activa</span>`
+    : `<span class="pill" style="margin:0;opacity:.7">Finalizado</span>`;
+}
+function etFechas(e){
+  if(!e.fechaIni)return "—";
+  const f1=fecha(e.fechaIni);
+  return (e.fechaFin&&e.fechaFin!==e.fechaIni)?`${f1} – ${fecha(e.fechaFin)}`:f1;
+}
+function etBloque(){
+  if(DB.sinEnterticket)return `<div class="card"><div class="body">
+    <div class="section-title" style="margin-top:0">Ticketera · Enterticket</div>
+    <span class="pill alert">Falta ejecutar el SQL de Enterticket</span>
+    <p class="dim tiny" style="margin:8px 0 0">Pide al desarrollador que ejecute <code>supabase/enterticket.sql</code> y recarga: aparecerán los eventos de la ticketera con sus ventas.</p>
+  </div></div>`;
+  const evs=DB.etEventos||[];
+  if(!evs.length)return "";
+  const ultimo=evs.reduce((t,e)=>e.sincronizadoEn>t?e.sincronizadoEn:t,"");
+  const tot=evs.reduce((t,e)=>{t.v+=n(e.vendidas);t.i+=n(e.ingresos);return t},{v:0,i:0});
+  return `<div class="card"><div class="body flush">
+    <div class="section-title" style="margin:14px 16px 6px">Ticketera · Enterticket <div class="spacer"></div>
+      <span class="dim tiny" style="text-transform:none;letter-spacing:0">${evs.length} eventos · ${tot.v} entradas · ${eur0(tot.i)}${ultimo?` · datos del ${fecha(ultimo.slice(0,10))}`:""}</span></div>
+    <table data-movil="Evento,Vendidas,Ingresos">
+      <thead><tr><th>Fecha</th><th>Evento</th><th style="width:1%;white-space:nowrap">Estado</th><th>Vendidas</th><th class="num">Ingresos</th><th>Producción enlazada</th></tr></thead>
+      <tbody>${evs.map(e=>{
+        const p=(DB.producciones||[]).find(x=>x.enterticketId===e.id);
+        const pctOcu=n(e.cupo)?Math.min(100,n(e.vendidas)/n(e.cupo)*100):0;
+        return `<tr${e.estado==="venta_activa"?"":' style="opacity:.65"'}>
+          <td class="tiny dim" style="font-family:var(--mono);white-space:nowrap">${etFechas(e)}</td>
+          <td class="strong">${e.url?`<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.nombre)}</a>`:esc(e.nombre)}
+            <div class="tiny dim">${esc(e.recinto||"")}${e.ciudad?` · ${esc(e.ciudad)}`:""}</div></td>
+          <td style="white-space:nowrap">${etEstadoPill(e)}</td>
+          <td style="min-width:120px"><div class="tiny" style="font-family:var(--mono)">${n(e.vendidas)}${n(e.cupo)?` / ${n(e.cupo)}`:""}</div>
+            ${n(e.cupo)?`<div style="height:4px;border-radius:2px;background:var(--rule-2);overflow:hidden;margin-top:3px"><div style="height:100%;width:${pctOcu}%;background:var(--artist)"></div></div>`:""}</td>
+          <td class="num">${e.ingresos!=null?eur0(e.ingresos):"—"}</td>
+          <td>${p?`<button class="btn ghost sm" data-prod="${p.id}" style="padding:2px 8px">${esc(p.nombre||"(sin nombre)")}</button>`:`<span class="dim tiny">—</span>`}</td>
+        </tr>`}).join("")}</tbody></table></div></div>`;
+}
+
 function viewEventos(el,ta){
   ta.innerHTML=`<button class="btn primary" data-act="new-prod">Nueva producción</button>`;
   const list=DB.producciones.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
@@ -3382,7 +3774,7 @@ function viewEventos(el,ta){
   if(!list.length){
     el.innerHTML=`<div class="card"><div class="empty">
       <p><strong>Producciones propias de MALO.</strong><br>Aquí el dinero funciona al revés que en booking: tú asumes los costes y te quedas el resultado, en vez de cobrar una comisión.</p>
-      <button class="btn primary" data-act="new-prod">Crear el primero</button></div></div>`;return;
+      <button class="btn primary" data-act="new-prod">Crear el primero</button></div></div>`+etBloque();return;
   }
   const T=enFirme.reduce((t,p)=>{const c=calcProd(p);t.ing+=c.ingresos;t.cos+=c.costes;t.ben+=c.beneficio;return t},{ing:0,cos:0,ben:0});
   document.getElementById("viewSub").textContent=`${list.length} producciones${nBorrador?` · ${nBorrador} en borrador`:""}`;
@@ -3408,7 +3800,8 @@ function viewEventos(el,ta){
         <td class="num">${eur0(c.ingresos)}</td><td class="num v-alert">${eur0(c.costes)}</td>
         <td class="num strong ${c.beneficio>=0?"v-malo":"v-alert"}">${eur0(c.beneficio)}</td>
         <td>${c.modoFee?`<span class="dim tiny">no aplica</span>`:(c.beEntradas!==null?`<span class="pill ${c.vendidas>=c.beEntradas?"ok":"warn"}">${c.beEntradas} entradas</span>`:`<span class="dim tiny">sin precio</span>`)}</td>
-      </tr>`}).join("")}</tbody></table></div></div>`;
+      </tr>`}).join("")}</tbody></table></div></div>
+  ${etBloque()}`;
 }
 
 /* Convierte el line-up de una producción en shows reales.
@@ -3464,7 +3857,7 @@ function crearShowsDeProduccion(id){
 
 function formProduccion(id){
   const p=id?DB.producciones.find(x=>x.id===id):{id:uid("prd"),nombre:"",fecha:CAL.sel||hoy(),ciudad:"",venueId:"",
-    aforo:0,ivaEntrada:IVA_ENTRADA,modoFee:false,feeFijo:0,entradas:[{concepto:"Anticipada",precio:0,vendidas:0}],
+    aforo:0,ivaEntrada:IVA_ENTRADA,modoFee:false,feeFijo:0,entradas:[{concepto:"Anticipada",precio:0,cupo:0,vendidas:""}],
     otrosIngresos:[],lineup:[],costes:[],notas:""};
   openModal(`
   <header><h3>${id?"Editar producción":"Nueva producción"}</h3><div class="spacer"></div>
@@ -3489,6 +3882,9 @@ function formProduccion(id){
       <div class="f s3"><label>Sponsor</label><input id="p_sponsor" value="${esc(p.sponsor||"")}" placeholder="Red Bull, Jäger…"></div>
       <div class="f s3"><label>Aportación del sponsor</label><input id="p_sponsorimp" type="number" step="50" min="0" value="${n(p.sponsorAportacion)}">
         <span class="hint">Reduce el coste real de la producción</span></div>
+      <div class="f s6"><label>Evento en Enterticket</label><select id="p_ett"><option value="">— sin enlazar —</option>
+        ${(DB.etEventos||[]).map(e=>`<option value="${esc(e.id)}" ${p.enterticketId===e.id?"selected":""}>${esc(e.nombre)}${e.fechaIni?` · ${fecha(e.fechaIni)}`:""}</option>`).join("")}</select>
+        <span class="hint">${DB.sinEnterticket?`Falta ejecutar <code>supabase/enterticket.sql</code>`:"Enlaza el evento y podrás traer las ventas reales por tipo de entrada"}</span></div>
     </div>
 
     <div class="section-title">Cómo entra el dinero</div>
@@ -3503,8 +3899,12 @@ function formProduccion(id){
 
     <div id="bloqueEntradas">
       <div class="section-title">Entradas · precios con IVA incluido (PVP)</div>
+      <p class="dim tiny" style="margin:0 0 10px">Define aquí los tipos de entrada y su precio: esto <b>no</b> cuenta como vendido.
+        «Cupo» son las entradas puestas a la venta a ese precio (opcional, alimenta la previsión).
+        Deja <b>Vendidas</b> en blanco hasta que tengas la venta real.</p>
       <div id="entradas"></div>
       <button class="btn sm" id="addEnt" style="margin-top:4px">Añadir tipo de entrada</button>
+      <button class="btn sm" id="etTraer" style="margin-top:4px;border-color:var(--artist);color:var(--artist)">Traer ventas de Enterticket</button>
     </div>
 
     <div id="bloqueFee" style="display:none">
@@ -3557,13 +3957,15 @@ function formProduccion(id){
   let crew=JSON.parse(JSON.stringify(p.crew||[]));
 
   function pintaEntradas(){
+    const vac=v=>(v===undefined||v===null||String(v).trim()===""||n(v)===0)?"":n(v);
     document.getElementById("entradas").innerHTML=entradas.length?entradas.map((e,i)=>`
       <div class="ent-row">
-        <input placeholder="Concepto (anticipada, taquilla, VIP…)" value="${esc(e.concepto||"")}" data-e="${i}" data-k="concepto">
-        <input type="number" step="0.5" min="0" placeholder="PVP" value="${n(e.precio)}" data-e="${i}" data-k="precio">
-        <input type="number" step="1" min="0" placeholder="Vendidas" value="${n(e.vendidas)}" data-e="${i}" data-k="vendidas">
-        <div class="dim tiny" style="text-align:right;font-family:var(--mono)">${eur0(n(e.precio)*n(e.vendidas))}</div>
-        <button class="x" data-del-e="${i}">×</button></div>`).join("")
+        <label class="ent-c wide" data-l="Concepto"><input placeholder="Anticipada, taquilla, VIP…" value="${esc(e.concepto||"")}" data-e="${i}" data-k="concepto"></label>
+        <label class="ent-c" data-l="PVP €"><input type="number" step="0.5" min="0" placeholder="0" value="${vac(e.precio)}" data-e="${i}" data-k="precio"></label>
+        <label class="ent-c" data-l="Cupo"><input type="number" step="1" min="0" placeholder="—" value="${vac(e.cupo)}" data-e="${i}" data-k="cupo"></label>
+        <label class="ent-c" data-l="Vendidas (real)"><input type="number" step="1" min="0" placeholder="sin datos" value="${vac(e.vendidas)}" data-e="${i}" data-k="vendidas" style="border-color:var(--artist)"></label>
+        <div class="ent-c" data-l="Recaudado"><div class="dim tiny" data-sub-e="${i}" style="text-align:right;font-family:var(--mono);padding:7px 0">${n(e.vendidas)?eur0(n(e.precio)*n(e.vendidas)):"—"}</div></div>
+        <div style="display:flex;justify-content:flex-end"><button class="x" data-del-e="${i}" title="Quitar" aria-label="Quitar">×</button></div></div>`).join("")
       :`<p class="dim tiny" style="padding:4px 0">Sin entradas definidas. Sin precio no se puede calcular el punto de equilibrio.</p>`;
   }
   function pintaLista(campo,arr,cont,ph1,extra){
@@ -3585,41 +3987,47 @@ function formProduccion(id){
      el crew no tiene sentido. */
   function pintaPersonas(campo,arr,cont,esLineup){
     const salasUsadas=[...new Set(lineup.map(x=>String(x.sala||"").trim()).filter(Boolean))];
-    document.getElementById(cont).innerHTML=arr.length?`
-      <div class="lu-cab">
-        ${esLineup?`<div>Sala</div>`:""}
-        <div>${esLineup?"Artista":"Persona"}</div><div>Fee</div><div>Estado</div>
-        <div>Alojamiento</div><div>€</div><div>Transporte</div><div>€</div>${esLineup?`<div>Set</div>`:"<div></div>"}<div></div>
-      </div>`+arr.map((x,i)=>`
+    const nomCli=c=>String(c.nombre||c.nombreReal||"").trim();
+    const vac=v=>n(v)?n(v):"";
+    const selEstado=(x,k,i)=>`<select data-${campo}="${i}" data-k="${k}">
+          <option value="">—</option><option value="na" ${x[k]==="na"?"selected":""}>N/A</option>
+          <option value="pend" ${x[k]==="pend"?"selected":""}>Pendiente</option>
+          <option value="ok" ${x[k]==="ok"?"selected":""}>Confirmado</option></select>`;
+    document.getElementById(cont).innerHTML=arr.length?arr.map((x,i)=>{
+      /* Un solo campo para el artista: escribes y, si el nombre coincide con un
+         cliente de MALO, se enlaza solo (y se marca en violeta); si no, queda
+         como externo. Antes eran un select y un input pisandose. */
+      const cli=esLineup&&x.clienteId?DB.clientes.find(c=>c.id===x.clienteId):null;
+      const valArt=cli?nomCli(cli):(x.nombre||"");
+      return `
       <div class="lu-row${esLineup?"":" crew"}">
-        ${esLineup?`<input placeholder="—" list="salasLista" value="${esc(x.sala||"")}" data-${campo}="${i}" data-k="sala">`:""}
-        ${esLineup?`<div class="lu-art">
-          <select data-${campo}="${i}" data-k="clienteId"><option value="">— externo —</option>
-            ${DB.clientes.map(c=>`<option value="${c.id}" ${x.clienteId===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}
-          </select>
-          ${!x.clienteId?`<input placeholder="Nombre del artista externo" value="${esc(x.nombre||"")}" data-${campo}="${i}" data-k="nombre">`:""}
-        </div>`
-        :`<input placeholder="Nombre" value="${esc(x.nombre||"")}" data-${campo}="${i}" data-k="nombre">`}
-        <input type="number" step="10" placeholder="0" value="${n(x.cache)}" data-${campo}="${i}" data-k="cache">
-        <select data-${campo}="${i}" data-k="status">
+        <label class="lu-c wide" data-l="${esLineup?"Artista":"Persona"}">
+          <input placeholder="${esLineup?"Nombre del artista":"Nombre"}" ${esLineup?`list="clientesLista" class="${cli?"lu-link":""}" data-art="${i}"`:""}
+            value="${esc(valArt)}" data-${campo}="${i}" data-k="${esLineup?"artista":"nombre"}">
+          ${cli?`<span class="lu-tag">Cliente MALO</span>`:(esLineup&&valArt?`<span class="lu-tag" style="color:var(--mute)">Externo</span>`:"")}
+        </label>
+        ${esLineup?`<label class="lu-c" data-l="Sala"><input placeholder="—" list="salasLista" value="${esc(x.sala||"")}" data-${campo}="${i}" data-k="sala"></label>`:""}
+        <label class="lu-c" data-l="Fee €"><input type="number" step="10" placeholder="0" value="${vac(x.cache)}" data-${campo}="${i}" data-k="cache"></label>
+        <label class="lu-c" data-l="Estado"><select data-${campo}="${i}" data-k="status">
           ${Object.entries(ESTADO_LINEUP).map(([k,v])=>`<option value="${k}" ${(x.status||"pendiente")===k?"selected":""}>${v.label}</option>`).join("")}
-        </select>
-        <select data-${campo}="${i}" data-k="alojEstado">
-          <option value="">—</option><option value="na" ${x.alojEstado==="na"?"selected":""}>N/A</option>
-          <option value="pend" ${x.alojEstado==="pend"?"selected":""}>Pendiente</option>
-          <option value="ok" ${x.alojEstado==="ok"?"selected":""}>Confirmado</option>
-        </select>
-        <input type="number" step="1" placeholder="0" value="${n(x.alojImporte)}" data-${campo}="${i}" data-k="alojImporte">
-        <select data-${campo}="${i}" data-k="transEstado">
-          <option value="">—</option><option value="na" ${x.transEstado==="na"?"selected":""}>N/A</option>
-          <option value="pend" ${x.transEstado==="pend"?"selected":""}>Pendiente</option>
-          <option value="ok" ${x.transEstado==="ok"?"selected":""}>Confirmado</option>
-        </select>
-        <input type="number" step="1" placeholder="0" value="${n(x.transImporte)}" data-${campo}="${i}" data-k="transImporte">
-        ${esLineup?`<input placeholder="1:30" value="${esc(x.setDuracion||"")}" data-${campo}="${i}" data-k="setDuracion">`:`<div></div>`}
-        <button class="x" data-del-${campo}="${i}">×</button></div>`).join("")
+        </select></label>
+        <label class="lu-c" data-l="Alojamiento">${selEstado(x,"alojEstado",i)}</label>
+        <label class="lu-c" data-l="Alojamiento €"><input type="number" step="1" placeholder="0" value="${vac(x.alojImporte)}" data-${campo}="${i}" data-k="alojImporte"></label>
+        <label class="lu-c" data-l="Transporte">${selEstado(x,"transEstado",i)}</label>
+        <label class="lu-c" data-l="Transporte €"><input type="number" step="1" placeholder="0" value="${vac(x.transImporte)}" data-${campo}="${i}" data-k="transImporte"></label>
+        ${esLineup?`<label class="lu-c" data-l="Set"><input placeholder="1:30" value="${esc(x.setDuracion||"")}" data-${campo}="${i}" data-k="setDuracion"></label>`:""}
+        <div class="lu-x"><button class="x" data-del-${campo}="${i}" title="Quitar" aria-label="Quitar">×</button></div></div>`}).join("")
       +`<datalist id="salasLista">${salasUsadas.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>`
+      +(esLineup?`<datalist id="clientesLista">${DB.clientes.map(c=>`<option value="${esc(nomCli(c))}">`).join("")}</datalist>`:"")
       :`<p class="dim tiny" style="padding:4px 0">${esLineup?"Sin artistas todavía.":"Sin equipo asignado."}</p>`;
+  }
+  /* Resuelve el texto del campo Artista a clienteId (si coincide con un cliente)
+     o a nombre libre. Se llama al salir del campo, no en cada tecla. */
+  function resuelveArtista(i,txt){
+    const t=String(txt||"").trim();
+    const c=DB.clientes.find(x=>String(x.nombre||x.nombreReal||"").trim().toLowerCase()===t.toLowerCase());
+    if(c){lineup[i].clienteId=c.id;lineup[i].nombre=""}
+    else {lineup[i].clienteId="";lineup[i].nombre=t}
   }
   const pintaLineup=()=>pintaPersonas("l",lineup,"lineup",true);
   const pintaCrew  =()=>pintaPersonas("cw",crew,"crewLista",false);
@@ -3629,26 +4037,37 @@ function formProduccion(id){
     return {id:p.id,nombre:val("p_nombre"),fecha:val("p_fecha"),ciudad:val("p_ciudad"),venueId:val("p_venue"),
       aforo:num("p_aforo"),ivaEntrada:num("p_iva"),
       modoFee:document.getElementById("p_modo_fee").checked,feeFijo:num("p_fee"),
-      entradas:entradas.filter(e=>e.concepto||n(e.precio)||n(e.vendidas)),
+      entradas:entradas.filter(e=>e.concepto||n(e.precio)||n(e.cupo)||n(e.vendidas)),
       otrosIngresos:otros.filter(x=>x.concepto||n(x.importe)),
       estado:val("p_estado"),horario:val("p_horario"),
       sponsor:val("p_sponsor"),sponsorAportacion:num("p_sponsorimp"),
       lineup:lineup.filter(x=>x.clienteId||x.nombre||n(x.cache)),
       crew:crew.filter(x=>x.nombre||n(x.cache)||n(x.alojImporte)||n(x.transImporte)),
       showsCreados:p.showsCreados||[],
-      costes:costes.filter(x=>x.concepto||n(x.importe)),notas:val("p_notas")};
+      costes:costes.filter(x=>x.concepto||n(x.importe)),notas:val("p_notas"),
+      enterticketId:val("p_ett")};
   }
   function pintaPL(){
     const d=leer(),c=calcProd(d);
-    const ancho=c.aforo?Math.min(100,c.vendidas/c.aforo*100):0;
-    const bePos=(c.aforo&&c.beEntradas!==null)?Math.min(100,c.beEntradas/c.aforo*100):null;
-    document.getElementById("pl").innerHTML=`
-      ${(!c.modoFee&&c.aforo)?`<div class="bar-be">
+    const base=c.aforo||c.cupo||0;
+    const ancho=base?Math.min(100,c.vendidas/base*100):0;
+    const bePos=(base&&c.beEntradas!==null)?Math.min(100,c.beEntradas/base*100):null;
+    const avisoPrev=(!c.modoFee&&!c.hayVentas)?`
+      <div class="pill" style="font-size:11px;border-color:var(--artist);color:var(--artist)">
+        Sin ventas registradas — lo de abajo es previsión, no resultado</div>
+      ${c.objetivo&&c.precioMedio?`<table class="cascade" style="margin:12px 0 0">
+        <tr><td class="lbl">Previsión a cupo lleno <span class="dim">${c.objetivo} entradas · ${eur(c.precioMedio)} netos c/u</span></td><td>${eur(c.previsionNeta)}</td></tr>
+        <tr class="sub"><td class="lbl">Resultado en ese escenario</td>
+          <td style="color:${c.previsionBeneficio>=0?"var(--malo)":"var(--alert)"}">${eur(c.previsionBeneficio)}</td></tr>
+        ${c.beEntradas!==null?`<tr class="sub"><td class="lbl">Hace falta vender</td><td>${c.beEntradas} entradas</td></tr>`:""}
+      </table>`:`<p class="dim tiny" style="margin:8px 0 0">Pon precio (y cupo o aforo) para ver la previsión y el punto de equilibrio.</p>`}`:"";
+    document.getElementById("pl").innerHTML=avisoPrev+`
+      ${(!c.modoFee&&base&&c.hayVentas)?`<div class="bar-be">
         <div class="fill" style="width:${ancho}%"></div>
         ${bePos!==null?`<div class="be" style="left:${bePos}%" title="Punto de equilibrio"></div>`:""}
-        <div class="lbl">${c.vendidas} / ${c.aforo} · ${Math.round(ancho)} % de aforo</div></div>
+        <div class="lbl">${c.vendidas} / ${base} · ${Math.round(ancho)} % ${c.aforo?"de aforo":"del cupo"}</div></div>
       <div class="strip-legend"><div><span class="sw" style="background:rgba(143,121,242,.55)"></span>Vendidas</div>
-        ${bePos!==null?`<div><span class="sw" style="background:var(--malo)"></span>Punto de equilibrio: ${c.beEntradas} entradas (${Math.round(c.beOcupacion)} % del aforo)</div>`:""}</div>`
+        ${bePos!==null?`<div><span class="sw" style="background:var(--malo)"></span>Punto de equilibrio: ${c.beEntradas} entradas (${Math.round(c.beEntradas/base*100)} % ${c.aforo?"del aforo":"del cupo"})</div>`:""}</div>`
       :c.modoFee?`<div class="pill malo" style="font-size:11px">Fee fijo pactado — el resultado no depende de la asistencia</div>`:""}
       <div class="fgrid" style="margin-top:18px">
         <div class="f s6"><table class="cascade">
@@ -3657,7 +4076,7 @@ function formProduccion(id){
           ${c.otros?`<tr><td class="lbl">+ Otros ingresos</td><td>${eur(c.otros)}</td></tr>`:""}
           <tr class="total"><td class="lbl">Ingresos</td><td>${eur(c.ingresos)}</td></tr>`
           :`
-          <tr><td class="lbl">Taquilla PVP <span class="dim">${c.vendidas} entradas</span></td><td>${eur(c.taquillaPVP)}</td></tr>
+          <tr><td class="lbl">Taquilla PVP <span class="dim">${c.hayVentas?c.vendidas+" entradas vendidas":"sin ventas registradas"}</span></td><td>${eur(c.taquillaPVP)}</td></tr>
           <tr class="sub"><td class="lbl">− IVA ${pct(c.ivaE)}</td><td>−${eur(c.taquillaPVP-c.taquillaNeta)}</td></tr>
           <tr><td class="lbl">Taquilla sin IVA</td><td>${eur(c.taquillaNeta)}</td></tr>
           ${c.otros?`<tr><td class="lbl">+ Otros ingresos</td><td>${eur(c.otros)}</td></tr>`:""}
@@ -3665,6 +4084,8 @@ function formProduccion(id){
         </table></div>
         <div class="f s6"><table class="cascade">
           <tr><td class="lbl">Cachés del line-up</td><td>${eur(c.cacheArtistas)}</td></tr>
+          ${c.viajesLineup?`<tr><td class="lbl">Alojamiento y transporte del line-up</td><td>${eur(c.viajesLineup)}</td></tr>`:""}
+          ${c.costeCrew?`<tr><td class="lbl">Equipo · crew <span class="dim">${c.crewFees?eur(c.crewFees)+" fees":""}${c.crewFees&&c.viajesCrew?" + ":""}${c.viajesCrew?eur(c.viajesCrew)+" viajes":""}</span></td><td>${eur(c.costeCrew)}</td></tr>`:""}
           <tr><td class="lbl">Producción y otros costes</td><td>${eur(c.costesOtros)}</td></tr>
           <tr class="total"><td class="lbl" style="color:var(--alert)">Costes</td><td style="color:var(--alert)">${eur(c.costes)}</td></tr>
         </table>
@@ -3677,22 +4098,40 @@ function formProduccion(id){
       </div>`;
   }
   const root=document.querySelector(".modal");
+  /* CLAVE: mientras escribes NO se repinta ningun bloque que contenga el campo
+     que tienes enfocado. Antes `pintaEntradas()` reescribia el innerHTML en
+     cada tecla, el input desaparecia y perdias el foco: solo dejaba teclear un
+     caracter. Ahora en `input` se actualiza el modelo, el subtotal de la fila y
+     el P&L (que no contiene campos), y el repintado se reserva para anadir,
+     borrar o resolver el artista, que si cambian la estructura. */
   function aplica(e){
     const t=e.target,v=t.value;
-    const num_=k=>["precio","vendidas","importe","cache","alojImporte","transImporte"].includes(k);
-    if(t.dataset.e!==undefined)entradas[+t.dataset.e][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.o!==undefined)otros[+t.dataset.o][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.l!==undefined)lineup[+t.dataset.l][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.cw!==undefined)crew[+t.dataset.cw][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.c!==undefined&&t.dataset.cw===undefined)costes[+t.dataset.c][t.dataset.k]=num_(t.dataset.k)?n(v):v;
-    if(t.dataset.e!==undefined)pintaEntradas();
-    /* Al enlazar (o desenlazar) un cliente hay que repintar la fila: si es
-       externo aparece el campo de nombre libre, y si es cliente sobra. */
-    if(t.dataset.l!==undefined&&t.dataset.k==="clienteId")pintaLineup();
+    const num_=k=>["precio","cupo","vendidas","importe","cache","alojImporte","transImporte"].includes(k);
+    const k=t.dataset.k;
+    if(t.dataset.e!==undefined){
+      const i=+t.dataset.e;
+      /* «vendidas» y «cupo» vacios se guardan como "" para distinguir
+         «no lo se todavia» de «cero vendidas». */
+      entradas[i][k]=num_(k)?((k==="vendidas"||k==="cupo")&&String(v).trim()===""?"":n(v)):v;
+      const sub=root.querySelector(`[data-sub-e="${i}"]`);
+      if(sub)sub.textContent=n(entradas[i].vendidas)?eur0(n(entradas[i].precio)*n(entradas[i].vendidas)):"—";
+    }
+    if(t.dataset.o!==undefined)otros[+t.dataset.o][k]=num_(k)?n(v):v;
+    if(t.dataset.l!==undefined){
+      if(k==="artista")resuelveArtista(+t.dataset.l,v);
+      else lineup[+t.dataset.l][k]=num_(k)?n(v):v;
+    }
+    if(t.dataset.cw!==undefined)crew[+t.dataset.cw][k]=num_(k)?n(v):v;
+    if(t.dataset.c!==undefined&&t.dataset.cw===undefined)costes[+t.dataset.c][k]=num_(k)?n(v):v;
     pintaPL();
   }
   root.addEventListener("input",aplica);
   root.addEventListener("change",aplica);
+  /* Al salir del campo de artista se repinta la fila para mostrar la etiqueta
+     «Cliente MALO» / «Externo». Nunca mientras se escribe. */
+  root.addEventListener("focusout",e=>{
+    if(e.target.dataset&&e.target.dataset.art!==undefined){pintaLineup();pintaPL()}
+  });
   root.addEventListener("click",e=>{
     const map=[["delE",entradas,pintaEntradas],["delO",otros,pintaOtros],["delL",lineup,pintaLineup],
       ["delCw",crew,pintaCrew],["delC",costes,pintaCostes]];
@@ -3713,11 +4152,32 @@ function formProduccion(id){
     pintaPL();
   });
   buscable("p_venue");
-  document.getElementById("addEnt").addEventListener("click",()=>{entradas.push({concepto:"",precio:0,vendidas:0});pintaEntradas();pintaPL()});
+  document.getElementById("addEnt").addEventListener("click",()=>{entradas.push({concepto:"",precio:0,cupo:"",vendidas:""});pintaEntradas();pintaPL()});
+  /* Traer ventas de Enterticket: casa cada tipo de entrada del evento con la
+     fila del mismo concepto (sin tildes ni mayúsculas) y actualiza vendidas.
+     El cupo y el precio solo se rellenan si estaban vacíos: lo tecleado manda.
+     Repintar aquí es seguro: es un click, no un input (regla de oro). */
+  document.getElementById("etTraer").addEventListener("click",()=>{
+    const ev=(DB.etEventos||[]).find(x=>x.id===val("p_ett"));
+    if(!ev){toast(DB.sinEnterticket?"Falta ejecutar supabase/enterticket.sql":"Enlaza primero un evento de Enterticket en «La producción»");return}
+    if(!(ev.entradas||[]).length){toast("Ese evento no tiene desglose de entradas");return}
+    const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
+    let nuevas=0;
+    ev.entradas.forEach(te=>{
+      let fila=entradas.find(e=>norm(e.concepto)===norm(te.concepto));
+      if(!fila){fila={concepto:te.concepto||"",precio:n(te.precio),cupo:n(te.cupo)||"",vendidas:""};entradas.push(fila);nuevas++}
+      fila.vendidas=n(te.vendidas);
+      if(!n(fila.cupo)&&n(te.cupo))fila.cupo=n(te.cupo);
+      if(!n(fila.precio)&&n(te.precio))fila.precio=n(te.precio);
+    });
+    pintaEntradas();pintaPL();
+    toast(`Ventas de «${ev.nombre}» aplicadas${nuevas?` · ${nuevas} tipo${nuevas===1?"":"s"} añadido${nuevas===1?"":"s"}`:""}`);
+  });
   document.getElementById("addOtro").addEventListener("click",()=>{otros.push({concepto:"",importe:0});pintaOtros();pintaPL()});
   document.getElementById("addLine").addEventListener("click",()=>{
     lineup.push({clienteId:"",nombre:"",cache:0,sala:"",status:"pendiente",alojEstado:"",alojImporte:0,transEstado:"",transImporte:0,setDuracion:""});
-    pintaLineup();pintaPL()});
+    pintaLineup();pintaPL();
+    const f=document.querySelector('#lineup .lu-row:last-of-type [data-art]');if(f)f.focus();});
   document.getElementById("addCrew").addEventListener("click",()=>{
     crew.push({nombre:"",cache:0,status:"confirmado",alojEstado:"",alojImporte:0,transEstado:"",transImporte:0});
     pintaCrew();pintaPL()});
@@ -3802,7 +4262,7 @@ function viewDistribuir(el,ta){
   </tr></thead><tbody>
     ${list.map(c=>{const d=distDe(c);return `<tr class="click" data-distrib="${c.id}">
       <td class="strong"><span style="display:flex;align-items:center;gap:8px">
-        ${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}
+        ${portadaImg(c)?`<img src="${esc(portadaImg(c,28))}" alt="" loading="lazy" onerror="this.remove()" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}
         <span>${esc(c.titulo||"(sin título)")}${d.tipo&&d.tipo!=="Original"?` <span class="dim tiny">· ${esc(d.tipo)}</span>`:""}</span></span></td>
       <td>${esc(nomCliente(c.artistaId))}</td>
       <td class="tiny">${c.fechaLanzamiento?fecha(c.fechaLanzamiento):"—"}</td>
@@ -4013,6 +4473,23 @@ function participantesDe(cancionId){return (DB.cancionParticipantes||[]).filter(
 function ingresosDe(cancionId){return (DB.cancionIngresos||[]).filter(i=>i.cancionId===cancionId).sort((a,b)=>(a.mes||"").localeCompare(b.mes||""))}
 function sumaParticipantesPct(cancionId){return participantesDe(cancionId).reduce((a,p)=>a+n(p.pct),0)}
 function brutoTotalCancion(cancionId){return ingresosDe(cancionId).reduce((a,i)=>a+n(i.bruto),0)}
+/* Igual que el anterior pero solo entre dos meses («2026-04», «2026-08»). Los
+   extremos entran. Si no se pasa rango, es el historico completo. */
+function brutoCancionRango(cancionId,desde,hasta){
+  if(!desde&&!hasta)return brutoTotalCancion(cancionId);
+  return ingresosDe(cancionId).reduce((a,i)=>{
+    const m=(i.mes||"").slice(0,7);
+    if(!m)return a;
+    if(desde&&m<desde)return a;
+    if(hasta&&m>hasta)return a;
+    return a+n(i.bruto);
+  },0);
+}
+/* Los meses que de verdad tienen liquidaciones cargadas, para el selector de
+   rango: no tiene sentido ofrecer meses vacios. */
+function mesesConDatos(){
+  return [...new Set((DB.cancionIngresos||[]).map(i=>(i.mes||"").slice(0,7)).filter(Boolean))].sort();
+}
 /* Cascada: bruto → −% distribución → −% management (sobre el neto de distribución) → pool a repartir */
 function poolDeMes(cancion,bruto){
   const trasDist=n(bruto)*(1-n(cancion.feeDistribucionPct)/100);
@@ -4041,6 +4518,18 @@ function construyeTitulo(base,partes){
   prods.forEach(p=>{ t+=` prod. "${p}"`; });
   return t;
 }
+/* Los titulos importados del CSV de la distribuidora traen el formato
+   «ARTISTA - TITULO (PROD. X) [OFFICIAL MUSIC VIDEO]», y algunos vienen
+   cortados a 40 caracteres. Para ORDENAR alfabeticamente hay que mirar el
+   titulo de verdad, no el nombre del artista que va delante. No se toca el dato
+   guardado: esto es solo para ordenar y comparar. */
+function tituloLimpio(c){
+  let t=String((c&&c.titulo)||"");
+  t=t.replace(/\[[^\]]*\]?/g," ").replace(/\((?:PROD|prod)[^)]*\)?/g," ");
+  const m=t.match(/^\s*[^-]{2,40}\s+-\s+(.+)$/);
+  if(m)t=m[1];
+  return t.replace(/\s{2,}/g," ").trim().replace(/^[-|,\s]+/,"");
+}
 function tituloConCreditos(cancion){
   if(!cancion)return "";
   return construyeTitulo(cancion.titulo,participantesDe(cancion.id));
@@ -4063,9 +4552,11 @@ function bolsilloCancionesPorMes(clienteId){
 /* Ingresos de shows de un cliente: mapa "YYYY-MM" → neto (lo que se le transfiere) */
 function bolsilloShowsPorMes(clienteId){
   const out={};
-  showsDe(clienteId).filter(s=>s.estado!=="cancelado"&&s.fecha).forEach(s=>{
+  showsDeArtista(clienteId).filter(s=>s.estado!=="cancelado"&&s.estado!=="oferta"&&s.fecha).forEach(s=>{
+    const imp=netoArtistaEnShow(s,clienteId);
+    if(!imp)return;
     const key=s.fecha.slice(0,7);
-    out[key]=(out[key]||0)+calc(s).transfer;
+    out[key]=(out[key]||0)+imp;
   });
   return out;
 }
@@ -4097,7 +4588,9 @@ function crecimientoMensualRed(clienteId,red){
 }
 function rangoBolsillo(){
   const a=filtro.bolsilloAnio;
-  if(filtro.bolsilloModo==="mes"){const m=`${a}-${filtro.bolsilloMes}`;return {desde:m,hasta:m,label:"este mes"}}
+  if(filtro.bolsilloModo==="mes"){const m=`${a}-${filtro.bolsilloMes}`;
+    /* Antes decia siempre «este mes», tambien mirando marzo de 2024. */
+    return {desde:m,hasta:m,label:`${AG_MESES[+filtro.bolsilloMes-1].toLowerCase()} ${a}`}}
   if(filtro.bolsilloModo==="trimestre"){const t=+filtro.bolsilloTrim,m0=(t-1)*3+1,m1=m0+2;
     return {desde:`${a}-${pad(m0)}`,hasta:`${a}-${pad(m1)}`,label:`T${t} ${a}`}}
   if(filtro.bolsilloModo==="anio")return {desde:`${a}-01`,hasta:`${a}-12`,label:a};
@@ -4116,17 +4609,60 @@ function sumaEnRango(mapa,rango){return Object.entries(mapa).filter(([k])=>k>=ra
 
 function viewMisCanciones(el,ta){
   ta.innerHTML=`<button class="btn primary" data-act="new-cancion">Nueva canción</button>`;
+  /* Preferencias guardadas (agrupacion, filtro, periodo...). Solo la primera vez
+     que se entra en la vista: despues manda lo que toque el usuario. */
+  if(!window.__cancionPrefLeida){
+    window.__cancionPrefLeida=true;
+    try{
+      const g=JSON.parse(localStorage.getItem("malo.canciones.pref")||"{}")||{};
+      if(g.grupo)filtro.cancionGrupo=g.grupo;
+      if(g.tipo!==undefined)filtro.cancionTipo=g.tipo;
+      if(g.portada)filtro.cancionPortada=g.portada;
+      if(g.vista)filtro.cancionVista=g.vista;
+      if(g.orden)filtro.ordenCanciones=g.orden;
+      if(g.desde!==undefined)filtro.cancionDesde=g.desde;
+      if(g.hasta!==undefined)filtro.cancionHasta=g.hasta;
+    }catch(_){}
+  }
   const list0=(DB.canciones||[]).slice();
+  const SINGLES=" ";
+  const releaseDe=c=>(c.mixtape||"").trim();
+  /* Cuantas canciones hay en cada release: sirve para saber si algo es un disco
+     de verdad o una suelta (un «release» de un solo tema no es un release). */
+  const porRelease={};
+  list0.forEach(c=>{const k=releaseDe(c);if(k)porRelease[k]=(porRelease[k]||0)+1});
+  const esRelease=c=>{const k=releaseDe(c);return !!k&&porRelease[k]>1};
+
+  /* ── rango de meses ──────────────────────────────────────────────────────
+     Con rango puesto, TODAS las cifras de la vista son de ese periodo: las de
+     la cabecera, las de cada ficha y las de cada release. Sin rango, historico. */
+  const meses=mesesConDatos();
+  let desde=filtro.cancionDesde||"", hasta=filtro.cancionHasta||"";
+  if(desde&&hasta&&desde>hasta){const t=desde;desde=hasta;hasta=t}
+  const conRango=!!(desde||hasta);
+  const dinero=c=>brutoCancionRango(c.id,desde,hasta);
+  const poolDe=c=>{const b=dinero(c);
+    return b*(1-n(c.feeDistribucionPct)/100)*(1-n(c.mgmtPct)/100)};
+  const mesBonito=m=>{ if(!m)return "";
+    const AB=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    return AB[+m.slice(5,7)-1]+" "+m.slice(0,4); };
+
   let list=list0;
   if(filtro.cancionQ){const q=filtro.cancionQ.toLowerCase();
     list=list.filter(c=>[c.titulo,c.isrc,c.distribuidora,nomCliente(c.artistaId)].join(" ").toLowerCase().includes(q))}
   if(filtro.cancionArtista)list=list.filter(c=>c.artistaId===filtro.cancionArtista);
+  if(filtro.cancionTipo==="release")list=list.filter(esRelease);
+  if(filtro.cancionTipo==="single")list=list.filter(c=>!esRelease(c));
+
+  const porTitulo=(a,b)=>(tituloLimpio(a)||"").localeCompare(tituloLimpio(b)||"","es",{sensitivity:"base"});
   list=aplicarOrden(list,filtro.ordenCanciones,{
-    alpha:(a,b)=>(a.titulo||"").localeCompare(b.titulo||""),
-    artista:(a,b)=>nomCliente(a.artistaId).localeCompare(nomCliente(b.artistaId)),
-    bruto_desc:(a,b)=>brutoTotalCancion(b.id)-brutoTotalCancion(a.id),
+    alpha:porTitulo,
+    artista:(a,b)=>nomCliente(a.artistaId).localeCompare(nomCliente(b.artistaId),"es",{sensitivity:"base"})||porTitulo(a,b),
+    bruto_desc:(a,b)=>dinero(b)-dinero(a)||porTitulo(a,b),
   });
-  document.getElementById("viewSub").textContent=list0.length?`${list0.length} canción${list0.length===1?"":"es"}${list.length!==list0.length?` · ${list.length} con filtros`:""}`:"";
+  document.getElementById("viewSub").textContent=list0.length
+    ? `${list0.length} ${list0.length===1?"canción":"canciones"}${list.length!==list0.length?` · ${list.length} con filtros`:""}${conRango?` · ${mesBonito(desde||meses[0])} a ${mesBonito(hasta||meses[meses.length-1])}`:""}`
+    : "";
 
   if(!list0.length){
     el.innerHTML=`<div class="card"><div class="empty"><p><strong>Todavía no hay canciones.</strong><br>
@@ -4137,7 +4673,120 @@ function viewMisCanciones(el,ta){
   }
 
   const sinCerrar=list0.filter(c=>Math.abs(sumaParticipantesPct(c.id)-100)>0.01);
-  const brutoTotal=list0.reduce((a,c)=>a+brutoTotalCancion(c.id),0);
+  const brutoTotal=list.reduce((a,c)=>a+dinero(c),0);
+  const poolTotal=list.reduce((a,c)=>a+poolDe(c),0);
+  const conIngresos=list.filter(c=>dinero(c)>0).length;
+  const conPortada=list0.filter(c=>portadaImg(c)).length;
+  const galeria=filtro.cancionVista!=="tabla";
+  const nRel=Object.values(porRelease).filter(x=>x>1).length;
+  const nSingles=list0.filter(c=>!esRelease(c)).length;
+
+  /* ── agrupacion ─────────────────────────────────────────────────────────── */
+  function gruposDe(arr){
+    if(filtro.cancionGrupo==="nada")
+      return [{clave:"",nombre:"",temas:arr,suelto:true}];
+    if(filtro.cancionGrupo==="artista"){
+      const g={};
+      arr.forEach(c=>{const k=nomCliente(c.artistaId)||"(sin artista)";(g[k]=g[k]||[]).push(c)});
+      return Object.keys(g).sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}))
+        .map(k=>({clave:"art:"+k,nombre:k,temas:g[k],color:catDe((g[k][0]||{}).artistaId).color}));
+    }
+    const g={};
+    arr.forEach(c=>{const k=esRelease(c)?releaseDe(c):SINGLES;(g[k]=g[k]||[]).push(c)});
+    const claves=Object.keys(g).filter(k=>k!==SINGLES)
+      .sort((a,b)=>g[b].length-g[a].length||a.localeCompare(b,"es",{sensitivity:"base"}));
+    if(g[SINGLES])claves.push(SINGLES);
+    return claves.map(k=>({clave:"rel:"+k,single:k===SINGLES,
+      nombre:k===SINGLES?"Singles y sueltas":k,temas:g[k]}));
+  }
+
+  /* ── portada del release ─────────────────────────────────────────────────
+     La portada que manda es la del proyecto que engloba el tema: se toma la mas
+     repetida entre sus canciones (la del disco), no la del single con el que
+     salio cada uno. Con «Ver portada del single» se ve la propia de cada tema,
+     y mientras manda la del release los temas que tienen otra llevan un punto. */
+  const portadaRelease={};
+  Object.keys(porRelease).forEach(rel=>{
+    if(porRelease[rel]<2)return;
+    const cuenta={};
+    list0.filter(c=>releaseDe(c)===rel).forEach(c=>{const u=c.portadaUrl;if(u)cuenta[u]=(cuenta[u]||0)+1});
+    const top=Object.entries(cuenta).sort((a,b)=>b[1]-a[1])[0];
+    if(top)portadaRelease[rel]=top[0];
+  });
+  const verSingle=filtro.cancionPortada==="single";
+  const portadaDe=(c,ancho)=>{
+    const rel=releaseDe(c);
+    const delRel=(!verSingle&&esRelease(c)&&portadaRelease[rel])?portadaRelease[rel]:null;
+    return portadaImg(delRel?{portadaUrl:delRel}:c,ancho);
+  };
+  const heredada=c=>{
+    if(verSingle||!esRelease(c))return false;
+    const r=portadaRelease[releaseDe(c)];
+    return !!(r&&c.portadaUrl&&c.portadaUrl!==r);
+  };
+
+  /* ── series y ficha ─────────────────────────────────────────────────────── */
+  function serie12(cancionId){
+    const hoyD=new Date(),ms=[];
+    for(let i=11;i>=0;i--){const d=new Date(hoyD.getFullYear(),hoyD.getMonth()-i,1);
+      ms.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`)}
+    const porMes={};
+    ingresosDe(cancionId).forEach(i=>{const k=(i.mes||"").slice(0,7);if(k)porMes[k]=(porMes[k]||0)+n(i.bruto)});
+    return ms.map(k=>porMes[k]||0);
+  }
+  function sparkline(vals){
+    if(vals.filter(v=>v>0).length<2)return "";
+    const W=100,H=18,vmax=Math.max(...vals);
+    const pts=vals.map((v,i)=>[(i/(vals.length-1))*W,H-2-(v/vmax)*(H-5)]);
+    const linea=pts.map((pt,i)=>(i?"L":"M")+pt[0].toFixed(1)+","+pt[1].toFixed(1)).join(" ");
+    return `<svg class="cn-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <path d="${linea} L${W},${H} L0,${H} Z" fill="rgba(240,86,143,.14)"/>
+      <path d="${linea}" fill="none" stroke="var(--malo)" stroke-width="1.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+    </svg>`;
+  }
+  const inicialesTit=t=>String(t||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
+  /* El videoclip vive en distribucion.videoUrl, que es donde lo guarda la ficha
+     de la canción y el formulario de distribución. */
+  const videoDe=c=>((c.distribucion||{}).videoUrl||"").trim();
+  function ficha(c){
+    const b=dinero(c), suma=sumaParticipantesPct(c.id), ca=catDe(c.artistaId);
+    const tit=tituloConCreditos(c)||"(sin título)";
+    const img=portadaDe(c,150);
+    return `<button type="button" class="cn-card" data-cancion="${c.id}" style="--c:${ca.color}"
+      aria-label="${esc(tit)} · ${b?eur0(b)+" generados":"sin ingresos en este periodo"}">
+      <div class="cn-art">
+        ${img
+          ? `<img src="${esc(img)}" alt="" loading="lazy" decoding="async"
+               onerror="this.closest('.cn-art').innerHTML='<div class=\\'cn-ph\\' aria-hidden=\\'true\\'>${esc(inicialesTit(c.titulo))}</div>'+this.closest('.cn-art').querySelector('.cn-tit').outerHTML">`
+          : `<div class="cn-ph" aria-hidden="true">${esc(inicialesTit(c.titulo))}</div>`}
+        ${heredada(c)?`<span class="cn-alt" title="Este tema tiene su propia portada de single"></span>`:""}
+        ${videoDe(c)?`<span class="cn-yt" data-yt="${esc(videoDe(c))}" role="button" tabindex="0"
+          title="Ver el vídeo en YouTube" aria-label="Ver el vídeo de ${esc(tit)} en YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span>`:""}
+        <div class="cn-tit"><b>${esc(tit)}</b><span>${esc(nomCliente(c.artistaId))}</span></div>
+      </div>
+      <div class="cn-body">
+        <div class="cn-lab">${conRango?"En el periodo":"Ha generado"}</div>
+        <div class="cn-eur ${b?"":"cero"}">${b?eur0(b):(conRango?"Sin ingresos":"Sin liquidaciones")}</div>
+        ${b?`<div class="cn-sub">${eur0(poolDe(c))} a repartir</div>`:""}
+        ${conRango?"":sparkline(serie12(c.id))}
+        <div class="cn-flags">
+          ${Math.abs(suma-100)>0.01?`<span class="cn-flag warn">reparto ${pct(suma)}</span>`:""}
+          ${c.fechaLanzamiento?`<span class="cn-flag" title="Salió el ${esc(fecha(c.fechaLanzamiento))}">${esc(String(c.fechaLanzamiento).slice(0,4))}</span>`:""}
+          ${c.genero?`<span class="cn-flag">${esc(c.genero)}</span>`:""}
+        </div>
+      </div>
+    </button>`;
+  }
+
+  /* Como quiere ver el catalogo cada uno se recuerda en su dispositivo: si no,
+     al recargar se perdia la agrupacion, el filtro y el periodo elegidos. */
+  try{localStorage.setItem("malo.canciones.pref",JSON.stringify({
+    grupo:filtro.cancionGrupo,tipo:filtro.cancionTipo,portada:filtro.cancionPortada,
+    vista:filtro.cancionVista,orden:filtro.ordenCanciones,desde:filtro.cancionDesde,hasta:filtro.cancionHasta}))}catch(_){}
+  /* Que secciones estan plegadas, recordado en este dispositivo. */
+  const PLEG="malo.canciones.plegados";
+  let plegados={};
+  try{plegados=JSON.parse(localStorage.getItem(PLEG)||"{}")||{}}catch(_){}
 
   el.innerHTML=`
   <div class="filters">
@@ -4145,53 +4794,105 @@ function viewMisCanciones(el,ta){
     <select id="cncli"><option value="">Todos los artistas</option>
       ${DB.clientes.slice().sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""))
         .map(c=>`<option value="${c.id}" ${filtro.cancionArtista===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select>
-    ${selectOrden("ordCanciones",[["alpha","Título A-Z"],["artista","Artista A-Z"],["bruto_desc","Más generado primero"]],filtro.ordenCanciones)}
-    ${(filtro.cancionQ||filtro.cancionArtista)?`<button class="btn ghost sm" id="cnclr">Quitar filtros</button>`:""}
+    <select id="cntipo" aria-label="Tipo">
+      <option value="" ${!filtro.cancionTipo?"selected":""}>Discos y singles</option>
+      <option value="release" ${filtro.cancionTipo==="release"?"selected":""}>Solo mixtapes / álbumes (${nRel})</option>
+      <option value="single" ${filtro.cancionTipo==="single"?"selected":""}>Solo singles y sueltas (${nSingles})</option>
+    </select>
+    <select id="cngrupo" aria-label="Agrupar">
+      <option value="artista" ${filtro.cancionGrupo==="artista"?"selected":""}>Agrupar por artista</option>
+      <option value="release" ${filtro.cancionGrupo==="release"?"selected":""}>Agrupar por release</option>
+      <option value="nada" ${filtro.cancionGrupo==="nada"?"selected":""}>Sin agrupar</option>
+    </select>
+    ${selectOrden("ordCanciones",[["artista","Artista A-Z"],["alpha","Título A-Z"],["bruto_desc","Más generado primero"]],filtro.ordenCanciones)}
+    <span class="dim tiny" style="display:flex;align-items:center;gap:5px">
+      <label for="cnDesde" style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase">Periodo</label>
+      <input type="month" id="cnDesde" value="${esc(desde)}" min="${esc(meses[0]||"")}" max="${esc(meses[meses.length-1]||"")}" style="width:132px">
+      <span>a</span>
+      <input type="month" id="cnHasta" value="${esc(hasta)}" min="${esc(meses[0]||"")}" max="${esc(meses[meses.length-1]||"")}" style="width:132px">
+    </span>
+    <button class="btn sm" id="cnportada" aria-pressed="${verSingle?"true":"false"}">${verSingle?"Ver portada del release":"Ver portada del single"}</button>
+    <button class="btn sm" id="cnvista" aria-pressed="${galeria?"false":"true"}">${galeria?"Ver como tabla":"Ver como galería"}</button>
+    ${(filtro.cancionQ||filtro.cancionArtista||filtro.cancionTipo||conRango)?`<button class="btn ghost sm" id="cnclr">Quitar filtros</button>`:""}
   </div>
 
   <div class="strip">
-    <div class="cell"><div class="lab">Canciones</div><div class="val">${list0.length}</div></div>
-    <div class="cell"><div class="lab">Bruto acumulado (histórico)</div><div class="val v-malo">${eur0(brutoTotal)}</div></div>
+    <div class="cell"><div class="lab">Canciones</div><div class="val">${list.length}${list.length!==list0.length?`<span class="dim" style="font-size:14px"> de ${list0.length}</span>`:""}</div>
+      <div class="note">${nRel} discos · ${nSingles} sueltas</div>
+      <div class="note ${conPortada===list0.length?"":"v-alert"}">${conPortada} con portada</div></div>
+    <div class="cell"><div class="lab">${conRango?"Generado en el periodo":"Han generado (bruto histórico)"}</div>
+      <div class="val v-malo">${eur0(brutoTotal)}</div>
+      <div class="note">${conIngresos} con ingresos${conRango?" en el periodo":""}</div></div>
+    <div class="cell"><div class="lab">A repartir entre los participantes</div><div class="val v-artist">${eur0(poolTotal)}</div>
+      <div class="note">lo que queda tras los dos fees</div></div>
     <div class="cell"><div class="lab">Repartos que no cuadran</div>
       <div class="val ${sinCerrar.length?"v-alert":"v-mute"}">${sinCerrar.length}</div>
       <div class="note">No suman 100 %</div></div>
   </div>
-
+  `+(galeria?(list.length?gruposDe(list).map(g=>{
+      if(g.suelto)return `<div class="cn-grid">${g.temas.map(ficha).join("")}</div>`;
+      const bru=g.temas.reduce((a,c)=>a+dinero(c),0);
+      const port=g.single?null:(portadaRelease[g.nombre]?portadaImg({portadaUrl:portadaRelease[g.nombre]},32):portadaDe(g.temas[0],32));
+      return `<details class="cn-det" ${plegados[g.clave]?"":"open"} data-grupo="${esc(g.clave)}"><summary>
+      <div class="cn-sec" style="--c:${g.color||"var(--malo)"}">
+        <span class="fle" aria-hidden="true">▶</span>
+        ${port?`<img src="${esc(port)}" alt="" loading="lazy" onerror="this.remove()">`:""}
+        ${(!port&&g.color)?`<span class="cdot"></span>`:""}
+        <h4>${esc(g.nombre)}</h4>
+        <span class="n">${g.temas.length} ${g.temas.length===1?"tema":"temas"}</span>
+        <span class="ln"></span>
+        <span class="n">${eur0(bru)}</span></div></summary>
+      <div class="cn-grid">${g.temas.map(ficha).join("")}</div></details>`}).join("")
+    :`<div class="card"><div class="empty"><p>No hay canciones con estos filtros.</p></div></div>`)
+  :`
   <div class="card"><div class="body flush">
-  <table><thead><tr><th>Título</th><th>Artista</th><th>Distribuidora</th><th class="num">Bruto histórico</th><th class="num">Reparto</th></tr></thead>
+  <table><thead><tr><th>Título</th><th>Artista</th><th>Release</th><th class="num">${conRango?"En el periodo":"Ha generado"}</th><th class="num">A repartir</th><th class="num">Reparto</th></tr></thead>
   <tbody>${(()=>{
-    const fila=c=>{const bruto=brutoTotalCancion(c.id),suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId);
+    const fila=c=>{const b=dinero(c),suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId),img=portadaDe(c,32);
       return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
-      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
+      <td class="strong"><span style="display:flex;align-items:center;gap:8px">${img?`<img src="${esc(img)}" alt="" loading="lazy" onerror="this.remove()" style="width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
       <td><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(c.artistaId))}</span></td>
-      <td class="dim">${esc(c.distribuidora||"—")}${c.cuentaPortal?`<div class="tiny dim">cta. ${esc(c.cuentaPortal)}</div>`:""}</td>
-      <td class="num">${eur0(bruto)}</td>
+      <td class="dim">${esRelease(c)?esc(releaseDe(c)):`<span class="tiny">suelta</span>`}</td>
+      <td class="num ${b?"strong":"dim"}">${b?eur0(b):"—"}</td>
+      <td class="num v-artist">${b?eur0(poolDe(c)):"—"}</td>
       <td class="num"><span class="${Math.abs(suma-100)<0.01?"":"v-alert strong"}" style="font-family:var(--mono)">${pct(suma)}</span></td>
     </tr>`};
-    const SINGLES=" ";
-    const grupos={};
-    list.forEach(c=>{const k=(c.mixtape||"").trim()||SINGLES;(grupos[k]=grupos[k]||[]).push(c)});
-    const claves=Object.keys(grupos).filter(k=>k!==SINGLES).sort((a,b)=>a.localeCompare(b));
-    if(grupos[SINGLES])claves.push(SINGLES);
-    return claves.map(k=>{
-      const arr=grupos[k],single=k===SINGLES,nombre=single?"Singles / sueltas":k;
-      const th=single?null:arr.find(c=>c.portadaUrl);
-      const thumb=th?`<img src="${esc(th.portadaUrl)}" style="width:22px;height:22px;object-fit:cover;border-radius:3px;flex:none">`:"";
-      return `<tr><td colspan="5" style="padding:9px 12px;background:var(--panel-2);border-top:1px solid var(--rule)">
-        <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px">${thumb}<span>${esc(nombre)}</span><span class="dim tiny" style="font-weight:400">· ${arr.length} ${arr.length===1?"tema":"temas"}</span></span></td></tr>`
-        +arr.map(fila).join("");
+    return gruposDe(list).map(g=>{
+      if(g.suelto)return g.temas.map(fila).join("");
+      const bru=g.temas.reduce((a,c)=>a+dinero(c),0);
+      return `<tr><td colspan="6" style="padding:9px 12px;background:var(--panel-2);border-top:1px solid var(--rule)">
+        <span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px"><span>${esc(g.nombre)}</span><span class="dim tiny" style="font-weight:400">· ${g.temas.length} ${g.temas.length===1?"tema":"temas"} · ${eur0(bru)}</span></span></td></tr>`
+        +g.temas.map(fila).join("");
     }).join("");
   })()}</tbody></table>
-  </div></div>`;
+  </div></div>`);
 
-  const q=document.getElementById("cnq");
-  if(q)q.addEventListener("input",e=>{filtro.cancionQ=e.target.value;clearTimeout(window.__cnT);window.__cnT=setTimeout(render,220)});
+  /* plegar y desplegar: se recuerda por grupo en este dispositivo */
+  el.querySelectorAll("details.cn-det").forEach(d=>{
+    d.addEventListener("toggle",()=>{
+      plegados[d.dataset.grupo]=!d.open;
+      try{localStorage.setItem(PLEG,JSON.stringify(plegados))}catch(_){}
+    });
+  });
+  const vb=document.getElementById("cnvista");
+  if(vb)vb.addEventListener("click",()=>{filtro.cancionVista=galeria?"tabla":"galeria";render()});
+  const pb=document.getElementById("cnportada");
+  if(pb)pb.addEventListener("click",()=>{filtro.cancionPortada=verSingle?"release":"single";render()});
+  const gt=document.getElementById("cntipo");
+  if(gt)gt.addEventListener("change",e=>{filtro.cancionTipo=e.target.value;render()});
+  const gr=document.getElementById("cngrupo");
+  if(gr)gr.addEventListener("change",e=>{filtro.cancionGrupo=e.target.value;render()});
+  const d1=document.getElementById("cnDesde"),d2=document.getElementById("cnHasta");
+  if(d1)d1.addEventListener("change",e=>{filtro.cancionDesde=e.target.value;render()});
+  if(d2)d2.addEventListener("change",e=>{filtro.cancionHasta=e.target.value;render()});
+  buscadorEspera("cnq",v=>{filtro.cancionQ=v});
   const fc=document.getElementById("cncli");
   if(fc){fc.addEventListener("change",e=>{filtro.cancionArtista=e.target.value;render()});buscable("cncli")}
   const or=document.getElementById("ordCanciones");
   if(or)or.addEventListener("change",e=>{filtro.ordenCanciones=e.target.value;render()});
   const cl=document.getElementById("cnclr");
-  if(cl)cl.addEventListener("click",()=>{filtro.cancionQ="";filtro.cancionArtista="";render()});
+  if(cl)cl.addEventListener("click",()=>{filtro.cancionQ="";filtro.cancionArtista="";
+    filtro.cancionTipo="";filtro.cancionDesde="";filtro.cancionHasta="";render()});
 }
 
 function formCancion(id){
@@ -4233,6 +4934,10 @@ function formCancion(id){
     <div class="fgrid">
       <div class="f s12"><label>Link al videoclip <span class="dim" style="text-transform:none">· YouTube o archivo del vídeo, si lo hay</span></label>
         <input id="cn_video" value="${esc((o.distribucion&&o.distribucion.videoUrl)||"")}" placeholder="https://youtube.com/…"></div>
+      <div class="f s6"><label>Enlace en Deezer</label>
+        <input id="cn_deezer" value="${esc((o.distribucion&&o.distribucion.deezerUrl)||"")}" placeholder="https://www.deezer.com/track/…"></div>
+      <div class="f s6"><label>Enlace en Apple Music</label>
+        <input id="cn_apple" value="${esc((o.distribucion&&o.distribucion.appleUrl)||"")}" placeholder="https://music.apple.com/…"></div>
       <div class="f s6">
         <label>Portada</label>
         <div id="cn_portada_zona" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0">
@@ -4348,7 +5053,10 @@ function formCancion(id){
     }
     if(j!==undefined&&ingresos[+j]){
       const k=e.target.dataset.k;
-      ingresos[+j][k]=(k==="bruto"||k==="unidades")?n(e.target.value):(k==="mes"?e.target.value+"-01":e.target.value);
+      /* Si se vacia el campo de mes hay que guardar "" y no "-01", que se
+         guardaba y dejaba el ingreso fuera de todos los rangos sin avisar. */
+      ingresos[+j][k]=(k==="bruto"||k==="unidades")?n(e.target.value)
+        :(k==="mes"?(e.target.value?e.target.value+"-01":""):e.target.value);
       if(k==="bruto")pintaCascadaCancion();
     }
   });
@@ -4396,7 +5104,7 @@ function formCancion(id){
       audioDriveId:vivo.audioDriveId||"",audioUrl:vivo.audioUrl||"",
       /* Conserva el cajón de distribución (formato, pitch, etc.) y solo cambia
          el enlace al videoclip, que se edita también desde aquí. */
-      distribucion:Object.assign({},vivo.distribucion||o.distribucion||{},{videoUrl:val("cn_video")}),
+      distribucion:Object.assign({},vivo.distribucion||o.distribucion||{},{videoUrl:val("cn_video"),deezerUrl:val("cn_deezer"),appleUrl:val("cn_apple")}),
       _participantes:participantes.filter(x=>(x.clienteId||"").trim()||String(x.nombre||"").trim()),
       _ingresos:ingresos.filter(x=>x.mes)
     };
@@ -4483,7 +5191,7 @@ function saveCancion(isNew){
 }
 
 function viewBolsillo(el,ta){
-  const artistas=DB.clientes.slice().filter(c=>cancionesDe(c.id).length||showsDe(c.id).length)
+  const artistas=DB.clientes.slice().filter(c=>cancionesDe(c.id).length||showsDeArtista(c.id).length)
     .sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
   if(!filtro.bolsilloArtista&&artistas.length)filtro.bolsilloArtista=artistas[0].id;
   ta.innerHTML=`<select id="bsArt" style="background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;padding:6px 10px">
@@ -4519,8 +5227,10 @@ function viewBolsillo(el,ta){
   }).filter(Boolean).filter(x=>x.total>0).sort((a,b)=>b.total-a.total);
 
   const combinado=[];
-  showsDe(cli).filter(s=>s.estado!=="cancelado"&&s.fecha&&s.fecha.slice(0,7)>=r.desde&&s.fecha.slice(0,7)<=r.hasta)
-    .forEach(s=>combinado.push({fecha:s.fecha,tipo:"show",titulo:nomPromotor(s.promotorId)!=="—"?nomPromotor(s.promotorId):(s.ciudad||"Show"),importe:calc(s).transfer}));
+  showsDeArtista(cli).filter(s=>s.estado!=="cancelado"&&s.estado!=="oferta"&&s.fecha&&s.fecha.slice(0,7)>=r.desde&&s.fecha.slice(0,7)<=r.hasta)
+    .forEach(s=>{const imp=netoArtistaEnShow(s,cli);if(!imp)return;
+      combinado.push({fecha:s.fecha,tipo:s.clienteId===cli?"show":"show · como DJ",
+        titulo:nomPromotor(s.promotorId)!=="—"?nomPromotor(s.promotorId):(s.ciudad||"Show"),importe:imp})});
   participacionesDe(cli).forEach(p=>{
     const c=(DB.canciones||[]).find(x=>x.id===p.cancionId);if(!c)return;
     ingresosDe(c.id).filter(i=>(i.mes||"").slice(0,7)>=r.desde&&(i.mes||"").slice(0,7)<=r.hasta)
@@ -5526,7 +6236,6 @@ function susFiltrados(){
   };
   return aplicarOrden(l,filtro.ordenMailing,ORD_MAIL);
 }
-/* ════════ MEDIOS · directorio de prensa (interno del sello) ════════ */
 const TIPOS_MEDIO=["Periodista","Radio","Playlist","Medio digital","Revista","Blog","TV","Podcast","Sello / distribuidora","Otro"];
 function igUrlMedio(h){h=String(h||"").trim();if(!h)return"";if(/^https?:/i.test(h))return h;return "https://instagram.com/"+h.replace(/^@/,"");}
 function viewMedios(el,ta){
@@ -6426,7 +7135,7 @@ function viewCapturas(el,ta){
 
 let CFG_TAB="datos";
 const CFG_TABS=[["datos","Datos"],["integraciones","Integraciones"],
-  ["empresa","Datos Empresa"],["equipo","Equipo y permisos"]];
+  ["empresa","Datos Empresa"],["equipo","Equipo y permisos"],["novedades","Novedades"]];
 
 /* ── Ajustes compartidos del equipo ── */
 function cfgAjustes(){return (DB.empresa&&DB.empresa.ajustes)||{}}
@@ -6495,7 +7204,7 @@ function viewDatos(el,ta){
   const sub=document.getElementById("viewSub");
   if(sub)sub.textContent=t[1];
   ({datos:cfgTabDatos,integraciones:cfgTabIntegraciones,
-    empresa:cfgTabEmpresa,equipo:cfgTabEquipo})[t[0]](el);
+    empresa:cfgTabEmpresa,equipo:cfgTabEquipo,novedades:cfgTabNovedades})[t[0]](el);
 
   const tabs=`<div class="cfg-tabs">`+CFG_TABS.map(([id,lab])=>
     `<button class="btn ${CFG_TAB===id?"primary":"ghost"} sm" data-cfg-tab="${id}">${lab}</button>`
@@ -6510,6 +7219,46 @@ function viewDatos(el,ta){
   (movil?el:ta).querySelectorAll("[data-cfg-tab]").forEach(b=>b.addEventListener("click",()=>{
     CFG_TAB=b.dataset.cfgTab;render();window.scrollTo(0,0);
   }));
+}
+
+/* ── Pestaña 5 · Novedades ──────────────────────────────────────────────────
+   Lee CHANGELOG (arriba del archivo). Abrir esta pestaña marca la versión como
+   vista, así que el aviso de "versión nueva" no vuelve a salir hasta la
+   siguiente publicación. La marca es por navegador (localStorage), no por
+   usuario: si entras desde otro móvil, el aviso sale otra vez. */
+const VER_VISTA_KEY="malo_version_vista";
+function versionVista(){ try{return localStorage.getItem(VER_VISTA_KEY)||""}catch(e){return ""} }
+function marcaVersionVista(){ try{localStorage.setItem(VER_VISTA_KEY,APP_VERSION)}catch(e){} }
+function avisoNovedades(){
+  const antes=versionVista();
+  if(antes===APP_VERSION)return;
+  /* Primera vez en este navegador: no hay nada que anunciar, solo se apunta. */
+  if(!antes){ marcaVersionVista(); return; }
+  toast("Versión "+APP_VERSION+" publicada · mira Configuración › Novedades");
+}
+function cfgTabNovedades(el){
+  marcaVersionVista();
+  const bloques=CHANGELOG.map((r,i)=>`
+    <div style="padding:${i?"18px":"0"} 0 0;${i?"border-top:1px solid var(--rule);margin-top:18px":""}">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:9px;flex-wrap:wrap">
+        <span class="strong" style="font-size:14px">${esc(fecha(r.fecha))}</span>
+        <span class="dim tiny">v ${esc(r.v)} · ${r.cambios.length} ${r.cambios.length===1?"cambio":"cambios"}</span>
+        ${i?"":`<span class="badge">Actual</span>`}
+      </div>
+      <ul style="margin:0;padding-left:18px;color:var(--mute);font-size:12.5px;line-height:1.7">
+        ${r.cambios.map(c=>`<li>${esc(c)}</li>`).join("")}
+      </ul>
+    </div>`).join("");
+  el.innerHTML=`
+  <div class="card"><header><h3>Novedades de la app</h3></header><div class="body">
+    <p style="color:var(--mute);font-size:12.5px;margin-bottom:20px">
+      Todo lo que se publica queda apuntado aquí, de lo más nuevo a lo más viejo.
+      Estás usando la <strong style="color:var(--bone)">v ${esc(APP_VERSION)}</strong>.
+      Si al entrar te sale un aviso de versión nueva, es esta pestaña lo que tienes que mirar.</p>
+    ${bloques}
+    <p class="dim tiny" style="margin-top:20px">Historial completo desde el 15 de agosto de 2026, el día de la primera subida.
+      Va por fecha porque hasta la 0.017 el número de versión no se subía en cada publicación.</p>
+  </div></div>`;
 }
 
 /* ── Pestaña 1 · Datos ──────────────────────────────────────────────────── */
@@ -7014,6 +7763,105 @@ function openModal(html,narrow){
 }
 function closeModal(){cerrarNotas(true);document.getElementById("modalRoot").innerHTML="";
   document.querySelectorAll(".fila-activa").forEach(x=>x.classList.remove("fila-activa"))}
+/* ════════ SALIR DE LA APP ════════
+   Al tocar un enlace que lleva fuera, se pregunta antes en vez de irse sin
+   avisar. Ojo con la expectativa: una web no puede elegir el navegador con el
+   que se abre nada (Chrome, Safari... eso es del sistema operativo). Lo que si
+   se puede es abrir la APP nativa del sitio usando su esquema propio
+   (spotify:, instagram:, comgooglemaps:...), que en el movil es justo lo que
+   se quiere para no caer en el navegador embebido. Si el esquema no existe en
+   el dispositivo no pasa nada visible: por eso hay un respaldo por tiempo que
+   abre el enlace normal. */
+const EX_SIN_AVISO="malo.enlaces.sinAviso";
+/* Cada entrada: como se reconoce el sitio y como se construye el enlace de su
+   app. Devolver "" = ese sitio no tiene app conocida para esta URL. */
+const EX_APPS=[
+  {re:/(^|\.)open\.spotify\.com$/, nombre:"Spotify",
+   app:u=>"spotify:"+u.pathname.replace(/^\//,"").replace(/\//g,":")},
+  {re:/(^|\.)instagram\.com$/, nombre:"Instagram",
+   app:u=>{const m=u.pathname.match(/^\/([A-Za-z0-9._]+)\/?$/);
+           return m?"instagram://user?username="+m[1]:"instagram://app"}},
+  {re:/(^|\.)(youtube\.com|youtu\.be)$/, nombre:"YouTube",
+   app:u=>{const v=u.searchParams.get("v")||(/youtu\.be$/.test(u.hostname)?u.pathname.slice(1):"");
+           return v?"vnd.youtube://"+v:""}},
+  {re:/(^|\.)(google\.com|google\.es)$/, nombre:"Google Maps",
+   app:u=>/^\/maps/.test(u.pathname)?"comgooglemaps://?q="+encodeURIComponent(u.searchParams.get("q")||u.pathname):""},
+  {re:/(^|\.)maps\.app\.goo\.gl$/, nombre:"Google Maps", app:()=>""},
+  {re:/(^|\.)(wa\.me|api\.whatsapp\.com)$/, nombre:"WhatsApp",
+   app:u=>{const t=u.pathname.replace(/^\//,"")||u.searchParams.get("phone")||"";
+           return t?"whatsapp://send?phone="+t:""}},
+  {re:/(^|\.)(twitter\.com|x\.com)$/, nombre:"X", app:()=>""},
+  {re:/(^|\.)tiktok\.com$/, nombre:"TikTok", app:()=>""},
+  {re:/(^|\.)drive\.google\.com$/, nombre:"Drive", app:()=>""}
+];
+function exAppDe(u){
+  const e=EX_APPS.find(x=>x.re.test(u.hostname));
+  if(!e)return null;
+  let esquema="";try{esquema=e.app(u)||""}catch(_){}
+  return {nombre:e.nombre,esquema};
+}
+function cierraExterno(){const n=document.getElementById("exRoot");if(n)n.innerHTML=""}
+function abreExterno(url){
+  let u;try{u=new URL(url,location.href)}catch(_){window.open(url,"_blank","noopener");return}
+  const info=exAppDe(u);
+  const root=document.getElementById("exRoot");
+  root.innerHTML=`
+  <div class="ex-bg" id="exBg" role="dialog" aria-modal="true" aria-labelledby="exTit">
+    <div class="ex-card">
+      <h4 id="exTit">Salir de MALO</h4>
+      <div class="ex-host">${esc(u.hostname.replace(/^www\./,""))}</div>
+      <div class="ex-url">${esc(u.pathname+(u.search||""))}</div>
+      <div class="ex-btns">
+        ${info&&info.esquema?`<button class="btn primary" id="exApp">Abrir en ${esc(info.nombre)}</button>`:""}
+        <button class="btn ${info&&info.esquema?"":"primary"}" id="exWeb">Abrir en una pestaña nueva</button>
+        <button class="btn" id="exCopiar">Copiar enlace</button>
+        <button class="btn ghost" id="exNo">Cancelar</button>
+      </div>
+      <label class="ex-pie"><input type="checkbox" id="exNunca"> No volver a preguntarme en este dispositivo</label>
+    </div>
+  </div>`;
+  const recuerda=()=>{ if(document.getElementById("exNunca").checked)
+    {try{localStorage.setItem(EX_SIN_AVISO,"1")}catch(_){}} };
+  const web=()=>{recuerda();cierraExterno();window.open(u.href,"_blank","noopener")};
+  document.getElementById("exBg").addEventListener("mousedown",e=>{if(e.target.id==="exBg")cierraExterno()});
+  document.getElementById("exNo").addEventListener("click",cierraExterno);
+  document.getElementById("exWeb").addEventListener("click",web);
+  document.getElementById("exCopiar").addEventListener("click",async()=>{
+    recuerda();
+    try{await navigator.clipboard.writeText(u.href);toast("Enlace copiado")}
+    catch(_){toast("No se pudo copiar: "+u.href)}
+    cierraExterno();
+  });
+  const ba=document.getElementById("exApp");
+  if(ba)ba.addEventListener("click",()=>{
+    recuerda();cierraExterno();
+    /* Si la app no esta instalada, el esquema no hace nada y seguimos aqui:
+       por eso a los 900 ms se abre el enlace normal. Si la app si abre, la
+       pestana pasa a segundo plano y el respaldo no llega a ejecutarse. */
+    const t=setTimeout(()=>{ if(!document.hidden)window.open(u.href,"_blank","noopener") },900);
+    document.addEventListener("visibilitychange",()=>clearTimeout(t),{once:true});
+    location.href=info.esquema;
+  });
+  const p=document.querySelector(".ex-card .btn.primary");if(p)p.focus();
+}
+/* Delegado global: cualquier <a> que salga del dominio de la app. Se salta con
+   data-directo en el propio enlace (por ejemplo enlaces de descarga). */
+document.addEventListener("click",e=>{
+  const a=e.target.closest&&e.target.closest("a[href]");
+  if(!a||a.dataset.directo!==undefined)return;
+  const href=a.getAttribute("href")||"";
+  if(!/^https?:\/\//i.test(href))return;          // mailto:, tel:, #ancla, blob:
+  let u;try{u=new URL(href,location.href)}catch(_){return}
+  if(u.host===location.host)return;                // dentro de la app
+  try{if(localStorage.getItem(EX_SIN_AVISO)==="1")return}catch(_){}
+  e.preventDefault();
+  abreExterno(u.href);
+},true);
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&document.getElementById("exRoot")&&document.getElementById("exRoot").innerHTML.trim())
+    {e.stopPropagation();cierraExterno()}
+},true);
+
 function toast(m){document.getElementById("toastRoot").innerHTML=`<div class="toast">${esc(m)}</div>`;setTimeout(()=>{document.getElementById("toastRoot").innerHTML=""},5000)}
 function val(id){const e=document.getElementById(id);return e?e.value.trim():""}
 function num(id){return n(val(id))}
@@ -10046,7 +10894,8 @@ function formShow(id,comoNuevo){
       /* al marcar cobrado, la fecha de cobro se pone sola a hoy si está vacía:
          el rating de puntualidad del promotor la necesita. */
       const f=document.getElementById("c_cob");if(f&&!f.value)f.value=hoy()}
-    const g=e.target.dataset.g;if(g!==undefined)gastos[+g][e.target.dataset.k]=e.target.value;
+    const g=e.target.dataset.g;
+    if(g!==undefined){const kg=e.target.dataset.k;gastos[+g][kg]=kg==="importe"?n(e.target.value):e.target.value}
     const a=e.target.dataset.a;if(a!==undefined)adjuntos[+a][e.target.dataset.k]=e.target.dataset.k==="importe"?n(e.target.value):e.target.value;
     pintaCascada();
   });
@@ -10054,7 +10903,9 @@ function formShow(id,comoNuevo){
     const d=e.target.closest("[data-del-g]");
     if(d){gastos.splice(+d.dataset.delG,1);pintaGastos();pintaCascada();return}
     const da=e.target.closest("[data-del-a]");
-    if(da){adjuntos.splice(+da.dataset.delA,1);pintaAdjuntos()}});
+    /* pintaCascada() tambien aqui: sin ella, al borrar un adjunto con importe
+       los numeros de la cascada se quedaban con el valor viejo. */
+    if(da){adjuntos.splice(+da.dataset.delA,1);pintaAdjuntos();pintaCascada()}});
   document.getElementById("addAdj").addEventListener("click",()=>{adjuntos.push({tipo:"gasto",concepto:"",importe:0,url:""});pintaAdjuntos()});
   document.getElementById("addGasto").addEventListener("click",()=>{gastos.push({concepto:"",importe:0,cargo:"artista"});pintaGastos();pintaCascada()});
   function pintaDjHint(){
@@ -10154,7 +11005,7 @@ function abrirGraficoKpi(tipo){
 }
 
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-distrib],[data-cancion],[data-medio],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
+  const el=e.target.closest("[data-yt],[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-distrib],[data-cancion],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
   if(!el)return;
   if(el.dataset.goto){e.preventDefault();VIEW=el.dataset.goto;render();window.scrollTo(0,0);return}
   const act=el.dataset.act;
@@ -10411,6 +11262,7 @@ document.addEventListener("click",e=>{
   if(el.dataset.ctx)return formContexto(el.dataset.ctx);
   if(el.dataset.sub)return formSuscriptor(el.dataset.sub);
   if(el.dataset.distrib)return formDistribuir(el.dataset.distrib);
+  if(el.dataset.yt)return abreExterno(el.dataset.yt);
   if(el.dataset.cancion)return formCancion(el.dataset.cancion);
   if(el.dataset.medio)return formMedios(el.dataset.medio);
   if(el.dataset.prod)return formProduccion(el.dataset.prod);
@@ -10619,6 +11471,7 @@ async function startApp(){
   try{ cierreDeMes(); }catch(e){ console.error("cierreDeMes",e); }
   try{ recordatoriosFrios(); }catch(e){ console.error("recordatoriosFrios",e); }
   render();
+  try{ avisoNovedades(); }catch(e){ console.error("avisoNovedades",e); }
 }
 /* El botón del móvil reutiliza el mismo PNG que la barra lateral: el base64 pesa
    y no hay por qué llevarlo dos veces en el archivo. */
