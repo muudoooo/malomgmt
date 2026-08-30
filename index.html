@@ -1665,7 +1665,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.026";
+const APP_VERSION="0.027";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1674,6 +1674,11 @@ const APP_VERSION="0.026";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-30",v:"0.027",cambios:[
+    "Mailing puede mandar la lista a Resend, que es con lo que ya envía correo la web de MALO: botón «Enviar lista a Resend» que sube los contactos filtrados (solo los que tienen consentimiento) para lanzar el envío masivo desde allí.",
+    "Se manda solo el quién, nunca el email en sí: el mensaje se redacta y se envía en Resend, que se encarga del link de baja, de los rebotes y de las aperturas. Eso es justo lo que no conviene montar a mano.",
+    "Los contactos sin consentimiento se quedan fuera y la app dice cuántos son. El filtro se aplica otra vez en el servidor, para que no dependa del navegador.",
+    "Falta la clave de API de Resend en Supabase para que funcione; hasta entonces el botón lo avisa."]},
   {fecha:"2026-08-30",v:"0.026",cambios:[
     "Cada evento de la Ticketera dice ahora de quién son sus fans: una columna nueva con el artista o marca dueño del evento (se cambia con un desplegable y se guarda solo) y, debajo, el line-up que tocó esa noche.",
     "Los cuatro shows DISOBEY quedan atribuidos a la marca DISOBEY, que es lo honesto: son multiartista y nadie puede saber a quién venía a ver cada uno. Los eventos de artistas de fuera (VRITNI, Christ Dillinger) se quedan sin dueño: son fans que trajo la producción de MALO.",
@@ -6381,6 +6386,7 @@ function saveMedios(isNew){
 
 function viewMailing(el,ta){
   ta.innerHTML=`<button class="btn sm" data-act="import-subs">Importar CSV</button>
+                <button class="btn sm" data-act="sync-resend">Enviar lista a Resend</button>
                 <button class="btn primary sm" data-act="new-sub">Añadir contacto</button>`;
   const total=DB.suscriptores.filter(x=>!x.baja).length;
   const conConsent=DB.suscriptores.filter(x=>!x.baja&&x.consentimiento).length;
@@ -6676,6 +6682,43 @@ function importarSuscriptores(){
   });
 }
 
+/* ── Envío masivo: la lista va a Resend ──────────────────────────────────────
+   Aquí vive el QUIÉN (segmentado por artista, evento, ciudad y consentimiento);
+   el envío en sí se redacta en Resend, que ya gestiona el link de baja, los
+   rebotes y las aperturas — la parte con riesgo legal y la más pesada de
+   mantener. El dominio malomgmt.com ya está verificado allí.
+   Se manda solo lo filtrado y solo con consentimiento; la Edge Function vuelve
+   a filtrar por su cuenta, porque eso no puede depender del navegador. */
+async function sincronizarResend(){
+  const l=susFiltrados().filter(x=>x.consentimiento&&!x.baja);
+  const fuera=susFiltrados().length-l.length;
+  if(!l.length){toast("Ninguno de los contactos filtrados tiene consentimiento");return}
+  if(!confirm(`Se van a mandar ${l.length} contactos a la lista de Resend`
+    +`${fuera?`\n\n${fuera} quedan fuera por no tener consentimiento.`:""}`
+    +`\n\nNo se envía ningún email todavía: eso se redacta y se lanza en Resend.`))return;
+  const btn=document.querySelector('[data-act="sync-resend"]');
+  if(btn){btn.disabled=true;btn.textContent="Enviando lista…"}
+  const filas=l.map(x=>({email:x.email,nombre:x.nombre||"",consentimiento:!!x.consentimiento,baja:!!x.baja}));
+  /* Resend va a dos peticiones por segundo, así que la función procesa por
+     tandas y aquí se encadenan hasta acabar. */
+  let desde=0,creados=0,actualizados=0,fallos=0,vueltas=0;
+  try{
+    while(vueltas++<20){
+      const {data,error}=await sb.functions.invoke("mailing-resend",{body:{contactos:filas,desde}});
+      if(error)throw error;
+      if(data&&data.error)throw new Error(data.error);
+      creados+=n(data.creados);actualizados+=n(data.actualizados);fallos+=n(data.nFallos);
+      if(btn)btn.textContent=`Enviando lista… ${data.procesados}/${data.total}`;
+      if(!n(data.restantes))break;
+      desde=n(data.procesados);
+    }
+    toast(`Resend: ${creados} nuevos · ${actualizados} actualizados${fallos?` · ${fallos} fallaron`:""}`);
+  }catch(e){
+    toast("No se pudo sincronizar: "+((e&&e.message)||e));
+  }
+  if(btn){btn.disabled=false;btn.textContent="Enviar lista a Resend"}
+}
+
 function redactarEnvio(){
   const l=susFiltrados();
   const sinConsent=l.filter(x=>!x.consentimiento).length;
@@ -6696,6 +6739,7 @@ function redactarEnvio(){
     <div class="section-title">Cómo enviarlo</div>
     <div style="display:flex;gap:9px;flex-wrap:wrap">
       <button class="btn primary" id="mail_csv">Descargar CSV para tu servicio de email</button>
+      <button class="btn" data-act="sync-resend">Enviar la lista a Resend</button>
       <button class="btn" id="mail_texto">Copiar solo el texto</button>
       <button class="btn" id="mail_mailto">Abrir en tu cliente de correo</button>
     </div>
@@ -11268,6 +11312,7 @@ document.addEventListener("click",e=>{
     if(act==="new-sub")return formSuscriptor(null);
     if(act==="save-sub")return saveSuscriptor(el.dataset.id,el.dataset.new==="1");
     if(act==="import-subs")return importarSuscriptores();
+    if(act==="sync-resend")return sincronizarResend();
     if(act==="del-sub"){if(!confirm("¿Eliminar este contacto de la base de mailing?"))return;
       const idDel=el.dataset.id;
       DB.suscriptores=DB.suscriptores.filter(x=>x.id!==idDel);closeModal();toast("Contacto eliminado");
