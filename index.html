@@ -1669,7 +1669,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.030";
+const APP_VERSION="0.031";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1678,6 +1678,12 @@ const APP_VERSION="0.030";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-30",v:"0.031",cambios:[
+    "Editorial gana dos pestañas: «Ingresos» y «Liquidación». Ya no es solo el catálogo y las alertas, ahora también el dinero.",
+    "Ingresos separa las dos fechas que la editorial mezcla y que no son lo mismo: cuándo te paga (por semestres) y cuándo sonó la música. Entre una y otra pasan de 9 a 14 meses, así que verlo junto engaña al proyectar.",
+    "Desglose del semestre por tipo de uso, plataforma y territorio, y el detalle obra a obra.",
+    "Liquidación responde la pregunta directa: de lo que le llega a cada cliente, cuánto es comisión de management y cuánto hay que pagarle. El porcentaje sale de la ficha del cliente, así que quien está al 0 % aparece con su autoría pero sin comisión.",
+    "La cascada editorial es más corta que la de distribución a propósito: la editorial ya se ha quedado su parte dentro del propio extracto, y volver a descontarla sería cobrarla dos veces."]},
   {fecha:"2026-08-30",v:"0.030",cambios:[
     "Nueva sección «Editorial»: el lado de la autoría, aparte del de la distribución. Son cosas distintas — la distribución paga la grabación y la editorial paga la obra — y mezclarlas solo confunde.",
     "Entra el catálogo completo de la editorial: 157 obras con su código, su ISWC, quién las escribió y con qué porcentaje, y qué artistas las grabaron.",
@@ -1866,7 +1872,7 @@ const DOW=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
 function blank(){return {version:6,miembros:{},localidades:{},creado:new Date().toISOString(),empresa:{nombre:"MALO",logo:""},
   clientes:[],promotores:[],shows:[],eventos:[],producciones:[],suscriptores:[],medios:[],contexto:[],mensajes:[],tareas:[],
   temas:[],canciones:[],cancionParticipantes:[],cancionIngresos:[],
-  obras:[],obraParticipantes:[],
+  obras:[],obraParticipantes:[],obraIngresos:[],
   subcategorias:JSON.parse(JSON.stringify(SUBCAT_DEFAULT)),generos:GENERO_DEFAULT.slice()}}
 let DB=blank();
 
@@ -2103,6 +2109,7 @@ const TABLE_MAP={
   mensajes:{id:"id",texto:"texto",autor:"autor",autorNombre:"autor_nombre",creadoEn:"creado_en"},
   obras:{id:"id",workCode:"work_code",titulo:"titulo",iswc:"iswc",editorial:"editorial",recordedBy:"recorded_by",notas:"notas",creadoEn:"creado_en"},
   obraParticipantes:{id:"id",obraId:"obra_id",clienteId:"cliente_id",nombre:"nombre",capacidad:"capacidad",sociedad:"sociedad",controlada:"controlada",contPct:"cont_pct",mecanicoPct:"mecanico_pct",ejecucionPct:"ejecucion_pct"},
+  obraIngresos:{id:"id",obraId:"obra_id",clienteId:"cliente_id",fuente:"fuente",periodo:"periodo",devengoDesde:"devengo_desde",devengoHasta:"devengo_hasta",tipoUso:"tipo_uso",dsp:"dsp",territorio:"territorio",unidades:"unidades",importeBruto:"importe_bruto",importeNeto:"importe_neto"},
   medios:{id:"id",nombre:"nombre",tipo:"tipo",medio:"medio",email:"email",telefono:"telefono",instagram:"instagram",ciudad:"ciudad",enlace:"enlace",notas:"notas",ultimoContacto:"ultimo_contacto",creadoEn:"creado_en"},
   temas:{id:"id",clienteId:"cliente_id",titulo:"titulo",version:"version",estado:"estado",
     fechaEnvio:"fecha_envio",fechaSalida:"fecha_salida",sello:"sello",isrc:"isrc",
@@ -2235,7 +2242,7 @@ async function fetchTodos(tabla){
   return {data:todo,error:err};
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp,etv,etp,eta,obrp,obpp]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp,etv,etp,eta,obrp,obpp,obip]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -2282,7 +2289,8 @@ async function loadRemote(){
        los datos entran por los exports de UMPG, no se editan en la app. Sin el
        SQL la app va exactamente igual y la sección lo dice. */
     sb.from("obras").select("*"),
-    sb.from("obra_participantes").select("*")
+    sb.from("obra_participantes").select("*"),
+    sb.from("obra_ingresos").select("*")
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -2322,6 +2330,7 @@ async function loadRemote(){
   DB.sinEditorial=!!obrp.error||!!obpp.error;
   DB.obras=DB.sinEditorial?[]:(obrp.data||[]).map(r=>fromRow("obras",r));
   DB.obraParticipantes=DB.sinEditorial?[]:(obpp.data||[]).map(r=>fromRow("obraParticipantes",r));
+  DB.obraIngresos=(DB.sinEditorial||obip.error)?[]:(obip.data||[]).map(r=>fromRow("obraIngresos",r));
   if(DB.sinEditorial)console.warn("Sección Editorial no disponible:",(obrp.error||obpp.error).message);
   DB.sinMedios=!!medp.error;
   DB.medios=DB.sinMedios?[]:(medp.data||[]).map(r=>fromRow("medios",r));
@@ -3007,7 +3016,7 @@ let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",doc
   ordenShows:"fecha_asc",ordenClientes:"cat",ordenContactos:"cat",relBD:"",ordenDocs:"fecha_desc",
   ordenMailing:"alpha",ordenMapa:"n_desc",anio:String(new Date().getFullYear()),
   temaQ:"",temaCliente:"",temaEstado:"",ordenTemas:"envio_desc",
-  edVista:"alertas",edQ:"",edAutor:"",edSoloProblema:false,
+  edVista:"alertas",edQ:"",edAutor:"",edSoloProblema:false,edPeriodo:"",
   cancionQ:"",cancionArtista:"",ordenCanciones:"artista",cancionVista:"galeria",cancionGrupo:"artista",
   cancionTipo:"",cancionPortada:"release",cancionDesde:"",cancionHasta:"",
   bolsilloArtista:"",bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
@@ -6419,12 +6428,15 @@ function viewEditorial(el,ta){
   const conProblema=obras.filter(o=>info.get(o.id).problema);
   const sinIswc=obras.filter(o=>!o.iswc).length;
 
-  ta.innerHTML=`<button class="btn ghost" data-act="ed-vista" data-v="alertas"${filtro.edVista==="alertas"?' disabled':''}>Alertas</button>
-    <button class="btn ghost" data-act="ed-vista" data-v="catalogo"${filtro.edVista==="catalogo"?' disabled':''}>Catálogo</button>`;
+  ta.innerHTML=["alertas","catalogo","ingresos","liquidacion"].map(v=>
+    `<button class="btn ghost" data-act="ed-vista" data-v="${v}"${filtro.edVista===v?' disabled':''}>${
+      {alertas:"Alertas",catalogo:"Catálogo",ingresos:"Ingresos",liquidacion:"Liquidación"}[v]}</button>`).join("");
   document.getElementById("viewSub").textContent=
     `${obras.length} obras · ${obras.length-sinIswc} con ISWC · ${conProblema.length} con algo que reclamar`;
 
   if(filtro.edVista==="catalogo") return edCatalogo(el,obras,info);
+  if(filtro.edVista==="ingresos") return edIngresos(el,obras);
+  if(filtro.edVista==="liquidacion") return edLiquidacion(el,obras);
   return edAlertas(el,obras,info,conProblema);
 }
 
@@ -6517,6 +6529,130 @@ function edCatalogo(el,obras,info){
   if(fp)fp.addEventListener("change",e=>{filtro.edSoloProblema=e.target.checked;render()});
   const cl=document.getElementById("edclr");
   if(cl)cl.addEventListener("click",()=>{filtro.edQ="";filtro.edAutor="";filtro.edSoloProblema=false;render()});
+}
+
+/* ── Ingresos editoriales ──
+   Dos ejes temporales y no son lo mismo: «periodo» es cuando PAGA la editorial
+   (semestral) y «devengo» cuando SONO la musica. Entre uno y otro hay de 9 a 14
+   meses, asi que mezclarlos falsea cualquier lectura. Se enseñan los dos. */
+function edPeriodos(){
+  return [...new Set((DB.obraIngresos||[]).map(i=>i.periodo).filter(Boolean))].sort().reverse();
+}
+function edIngresosDe(periodo){
+  const ing=(DB.obraIngresos||[]);
+  return periodo?ing.filter(i=>i.periodo===periodo):ing;
+}
+function edEur(v){return (Math.round((+v||0)*100)/100).toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"}
+
+function edIngresos(el,obras){
+  const periodos=edPeriodos();
+  if(!periodos.length){
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Todavía no hay liquidaciones cargadas.</strong><br>
+      Los ingresos entran desde el «Detalle de la liquidación» de UMPG Window con
+      <code>herramientas/umpg/umpg_ingresos.py</code>.</p></div></div>`;return;
+  }
+  const per=filtro.edPeriodo||periodos[0];
+  const ing=edIngresosDe(per);
+  const bruto=ing.reduce((a,i)=>a+(+i.importeBruto||0),0);
+  const neto=ing.reduce((a,i)=>a+(+i.importeNeto||0),0);
+  const tit=new Map(obras.map(o=>[o.id,o.titulo||o.workCode]));
+
+  const agrupa=(campo)=>{
+    const m=new Map();
+    ing.forEach(i=>{const k=i[campo]||"—";m.set(k,(m.get(k)||0)+(+i.importeNeto||0))});
+    return [...m.entries()].sort((a,b)=>b[1]-a[1]);
+  };
+  const porObra=(()=>{
+    const m=new Map();
+    ing.forEach(i=>m.set(i.obraId,(m.get(i.obraId)||0)+(+i.importeNeto||0)));
+    return [...m.entries()].sort((a,b)=>b[1]-a[1]);
+  })();
+  const devengos=[...new Set(ing.map(i=>`${i.devengoDesde||"?"}–${i.devengoHasta||"?"}`))].sort();
+
+  el.innerHTML=`
+  <div class="filters">
+    <select id="edper">${periodos.map(p=>`<option${p===per?" selected":""}>${esc(p)}</option>`).join("")}</select>
+    <span class="hint">Periodo de liquidación · la editorial paga por semestres</span>
+  </div>
+  <div class="card"><div class="body">
+    <p><strong>${edEur(bruto)}</strong> recaudó la editorial · <strong>${edEur(neto)}</strong> llegó a los clientes
+    <span class="dim">(${bruto?((neto/bruto)*100).toFixed(1):0} %)</span></p>
+    <p class="hint">Devengo real: <strong>${devengos.map(esc).join(", ")}</strong> — o sea, lo que sonó entonces
+    se cobra ahora. El desfase es normal en editorial y conviene tenerlo en cuenta al proyectar.</p>
+  </div></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px">
+    ${[["Por tipo de uso","tipoUso"],["Por plataforma","dsp"],["Por territorio","territorio"]].map(([lab,campo])=>`
+      <div class="card"><div class="body">
+        <h4>${lab}</h4>
+        <table><tbody>${agrupa(campo).slice(0,10).map(([k,v])=>
+          `<tr><td>${esc(k)}</td><td style="text-align:right" class="strong">${edEur(v)}</td></tr>`).join("")}</tbody></table>
+      </div></div>`).join("")}
+  </div>
+  <div class="card"><div class="body flush">
+    <table><thead><tr><th>Obra</th><th style="text-align:right">Neto</th></tr></thead>
+    <tbody>${porObra.map(([id,v])=>
+      `<tr><td class="strong">${esc(tit.get(id)||id)}</td><td style="text-align:right">${edEur(v)}</td></tr>`).join("")}</tbody></table>
+  </div></div>`;
+  const sel=document.getElementById("edper");
+  if(sel)sel.addEventListener("change",e=>{filtro.edPeriodo=e.target.value;render()});
+}
+
+/* ── Liquidación por cliente ──
+   La cascada editorial es MAS CORTA que la de distribucion: la editorial ya se
+   ha quedado su parte dentro del propio statement (importeBruto -> importeNeto),
+   asi que aqui solo queda aplicar la comision de management. Descontar otra vez
+   el porcentaje de la editorial seria cobrarlo dos veces. */
+function edLiquidacion(el,obras){
+  const periodos=edPeriodos();
+  if(!periodos.length){
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Todavía no hay liquidaciones cargadas.</strong><br>
+      Sin ingresos no hay nada que liquidar.</p></div></div>`;return;
+  }
+  const per=filtro.edPeriodo||periodos[0];
+  const ing=edIngresosDe(per);
+  const porCliente=new Map();
+  ing.forEach(i=>{
+    const k=i.clienteId||"(sin asignar)";
+    const a=porCliente.get(k)||{neto:0,obras:new Set()};
+    a.neto+=(+i.importeNeto||0);a.obras.add(i.obraId);porCliente.set(k,a);
+  });
+  const filas=[...porCliente.entries()].map(([id,a])=>{
+    const c=(DB.clientes||[]).find(x=>x.id===id);
+    const pct=c&&c.comisiones?(+c.comisiones.management||0):0;
+    const comision=a.neto*pct/100;
+    return {id,nombre:c?(c.nombre||c.nombreReal):"(sin asignar)",pct,neto:a.neto,
+      comision,paga:a.neto-comision,obras:a.obras.size,esCliente:!!c};
+  }).sort((a,b)=>b.neto-a.neto);
+  const tNeto=filas.reduce((a,f)=>a+f.neto,0);
+  const tCom=filas.reduce((a,f)=>a+f.comision,0);
+
+  el.innerHTML=`
+  <div class="filters">
+    <select id="edper2">${periodos.map(p=>`<option${p===per?" selected":""}>${esc(p)}</option>`).join("")}</select>
+    <span class="hint">Periodo de liquidación</span>
+  </div>
+  <div class="card"><div class="body">
+    <p>De los <strong>${edEur(tNeto)}</strong> que llegaron a los clientes en ${esc(per)},
+    a MALO le corresponden <strong>${edEur(tCom)}</strong> de comisión de management.</p>
+    <p class="hint">El porcentaje sale de la ficha de cada cliente (Clientes → Comisiones → Management).
+    Un cliente al 0 % es alguien de quien ya no se lleva management pero a quien sí hay que pagarle su autoría.</p>
+  </div></div>
+  <div class="card"><div class="body flush">
+  <table><thead><tr><th>Cliente</th><th style="text-align:right">Obras</th><th style="text-align:right">Le llega</th>
+    <th style="text-align:right">Mgmt</th><th style="text-align:right">Comisión MALO</th><th style="text-align:right">A pagarle</th></tr></thead>
+  <tbody>${filas.map(f=>`<tr>
+    <td class="strong">${esc(f.nombre)}${f.esCliente?"":' <span class="pill" style="border-color:var(--alert);color:var(--alert)">sin ficha</span>'}</td>
+    <td style="text-align:right" class="dim">${f.obras}</td>
+    <td style="text-align:right">${edEur(f.neto)}</td>
+    <td style="text-align:right" class="dim">${f.pct}%</td>
+    <td style="text-align:right" class="strong">${edEur(f.comision)}</td>
+    <td style="text-align:right">${edEur(f.paga)}</td></tr>`).join("")}
+  </tbody>
+  <tfoot><tr><th>Total</th><th></th><th style="text-align:right">${edEur(tNeto)}</th><th></th>
+    <th style="text-align:right">${edEur(tCom)}</th><th style="text-align:right">${edEur(tNeto-tCom)}</th></tr></tfoot></table>
+  </div></div>`;
+  const sel=document.getElementById("edper2");
+  if(sel)sel.addEventListener("change",e=>{filtro.edPeriodo=e.target.value;render()});
 }
 
 function viewMedios(el,ta){
