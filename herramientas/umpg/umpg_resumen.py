@@ -21,11 +21,16 @@ Y uno global:
 Uso:  python3 umpg_resumen.py
 """
 
-import io, os, re, csv, glob, collections
+import io, os, re, csv, glob, shutil, collections
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.expanduser("~/MALO/UMPG PUBLISHING")
 SALIDA = os.path.join(RAIZ, "resumenes-vault")
+# Copia al vault de Obsidian, que es donde se consulta de verdad.
+# (Los de ADA acaban sueltos en la raiz de «03 Projects/MALO APP»; aqui van
+#  ordenados dentro de la carpeta del proyecto.)
+VAULT = os.path.expanduser(
+    "~/MALO MAINFRAME/03 Projects/Royalties Editorial/03 Liquidaciones")
 CLIENTES = os.path.join(AQUI, "clientes_malo.tsv")
 
 ALIAS = {"AHC3": "8BELIAL", "AHC4": "ROOMTRASH6", "AHC5": "CYBERNENE",
@@ -217,8 +222,19 @@ def main():
     print()
     print("=== ALERTAS DE REGISTRO: %d obras" % len(alertas))
     print("  (%d de ellas generaron dinero este periodo)" % sum(1 for a in alertas if float(a[6]) > 0))
+    n = len(por_cli) * 2 + 1
     print()
-    print("guardados %d CSVs en %s" % (len(por_cli) * 2 + 1, SALIDA))
+    print("guardados %d CSVs en %s" % (n, SALIDA))
+
+    # y una copia en el vault, que es donde se leen
+    if os.path.isdir(os.path.dirname(VAULT)):
+        if not os.path.isdir(VAULT):
+            os.makedirs(VAULT)
+        for f in glob.glob(os.path.join(SALIDA, "*.csv")):
+            shutil.copy2(f, VAULT)
+        print("copiados al vault: %s" % VAULT)
+    else:
+        print("(no se encontro el vault, no se copio nada)")
 
 
 if __name__ == "__main__":

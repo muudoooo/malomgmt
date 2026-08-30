@@ -1669,7 +1669,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.031";
+const APP_VERSION="0.032";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1678,6 +1678,12 @@ const APP_VERSION="0.031";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-30",v:"0.032",cambios:[
+    "Arreglado: las pestañas de Editorial no funcionaban. Al pulsarlas no pasaba nada — un fallo de programación que se coló en la 0.030.",
+    "Editorial se parece ya a Canciones: las pestañas van dentro de la página en vez de en la barra de arriba, y la de Alertas lleva el número de obras pendientes al lado.",
+    "Ahora se puede pulsar cualquier obra y se abre su ficha: el reparto completo con cada autor y su editorial, qué porcentaje cobra de mecánico y de ejecución, en qué sociedad está, y lo que ha generado.",
+    "Si a la obra le falta algo del registro, la ficha lo dice arriba y en rojo, explicando qué implica.",
+    "El buscador del catálogo ya no pierde el foco mientras escribes."]},
   {fecha:"2026-08-30",v:"0.031",cambios:[
     "Editorial gana dos pestañas: «Ingresos» y «Liquidación». Ya no es solo el catálogo y las alertas, ahora también el dinero.",
     "Ingresos separa las dos fechas que la editorial mezcla y que no son lo mismo: cuándo te paga (por semestres) y cuándo sonó la música. Entre una y otra pasan de 9 a 14 meses, así que verlo junto engaña al proyectar.",
@@ -6428,16 +6434,24 @@ function viewEditorial(el,ta){
   const conProblema=obras.filter(o=>info.get(o.id).problema);
   const sinIswc=obras.filter(o=>!o.iswc).length;
 
-  ta.innerHTML=["alertas","catalogo","ingresos","liquidacion"].map(v=>
-    `<button class="btn ghost" data-act="ed-vista" data-v="${v}"${filtro.edVista===v?' disabled':''}>${
-      {alertas:"Alertas",catalogo:"Catálogo",ingresos:"Ingresos",liquidacion:"Liquidación"}[v]}</button>`).join("");
+  ta.innerHTML="";
   document.getElementById("viewSub").textContent=
     `${obras.length} obras · ${obras.length-sinIswc} con ISWC · ${conProblema.length} con algo que reclamar`;
 
-  if(filtro.edVista==="catalogo") return edCatalogo(el,obras,info);
-  if(filtro.edVista==="ingresos") return edIngresos(el,obras);
-  if(filtro.edVista==="liquidacion") return edLiquidacion(el,obras);
-  return edAlertas(el,obras,info,conProblema);
+  const v=filtro.edVista;
+  if(v==="catalogo") edCatalogo(el,obras,info);
+  else if(v==="ingresos") edIngresos(el,obras);
+  else if(v==="liquidacion") edLiquidacion(el,obras);
+  else edAlertas(el,obras,info,conProblema);
+
+  /* Las pestañas van en el CUERPO, no en la barra de arriba: es como lo hace
+     Canciones, se ven también desde el portal del artista y tienen el mismo
+     aspecto que el resto de la app. */
+  el.insertAdjacentHTML("afterbegin",`<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+    ${[["alertas","Alertas"],["catalogo","Catálogo"],["ingresos","Ingresos"],["liquidacion","Liquidación"]].map(([id,lab])=>
+      `<button class="btn ${v===id?"primary":"ghost"} sm portal-ok" data-act="ed-vista" data-v="${id}">${lab}${
+        id==="alertas"&&conProblema.length?` <span class="dim">${conProblema.length}</span>`:""}</button>`).join("")}
+  </div>`);
 }
 
 function edAlertas(el,obras,info,conProblema){
@@ -6472,7 +6486,7 @@ function edAlertas(el,obras,info,conProblema){
       const medias=d.aMedias.includes(p);
       return `<span class="pill${medias?"":" artist"}"${medias?' style="border-color:var(--alert);color:var(--alert)" title="Cobra el 50% en vez del 75%: no tiene editorial asignada en esta obra"':''}>${esc(n)}</span>`;
     }).join(" ");
-    return `<tr>
+    return `<tr class="click" data-obra="${o.id}">
       <td class="strong"><span>${esc(o.titulo||o.workCode)}</span>
         <div class="dim tiny">${esc(o.workCode)}${o.iswc?" · "+esc(o.iswc):' · <span style="color:var(--alert)">sin ISWC</span>'}</div></td>
       <td>${mios||'<span class="dim tiny">—</span>'}</td>
@@ -6509,7 +6523,7 @@ function edCatalogo(el,obras,info){
   <table><thead><tr><th>Obra</th><th>Autores</th><th>ISWC</th><th>Grabada por</th><th></th></tr></thead>
   <tbody>${list.map(o=>{
     const d=info.get(o.id);
-    return `<tr>
+    return `<tr class="click" data-obra="${o.id}">
       <td class="strong"><span>${esc(o.titulo||"(sin título)")}</span><div class="dim tiny">${esc(o.workCode)}</div></td>
       <td class="tiny">${d.autores.map(p=>{
         const n=edNombreCliente(p.clienteId);
@@ -6522,7 +6536,8 @@ function edCatalogo(el,obras,info){
       </td></tr>`}).join("")}</tbody></table>
   </div></div>`;
   const q=document.getElementById("edq");
-  if(q)q.addEventListener("input",e=>{filtro.edQ=e.target.value;clearTimeout(window.__edT);window.__edT=setTimeout(render,220)});
+  if(q)q.addEventListener("input",e=>{filtro.edQ=e.target.value;render();
+    const n2=document.getElementById("edq");if(n2){n2.focus();n2.setSelectionRange(n2.value.length,n2.value.length)}});
   const fa=document.getElementById("edaut");
   if(fa)fa.addEventListener("change",e=>{filtro.edAutor=e.target.value;render()});
   const fp=document.getElementById("edprob");
@@ -6542,7 +6557,6 @@ function edIngresosDe(periodo){
   const ing=(DB.obraIngresos||[]);
   return periodo?ing.filter(i=>i.periodo===periodo):ing;
 }
-function edEur(v){return (Math.round((+v||0)*100)/100).toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"}
 
 function edIngresos(el,obras){
   const periodos=edPeriodos();
@@ -6575,7 +6589,7 @@ function edIngresos(el,obras){
     <span class="hint">Periodo de liquidación · la editorial paga por semestres</span>
   </div>
   <div class="card"><div class="body">
-    <p><strong>${edEur(bruto)}</strong> recaudó la editorial · <strong>${edEur(neto)}</strong> llegó a los clientes
+    <p><strong>${eur(bruto)}</strong> recaudó la editorial · <strong>${eur(neto)}</strong> llegó a los clientes
     <span class="dim">(${bruto?((neto/bruto)*100).toFixed(1):0} %)</span></p>
     <p class="hint">Devengo real: <strong>${devengos.map(esc).join(", ")}</strong> — o sea, lo que sonó entonces
     se cobra ahora. El desfase es normal en editorial y conviene tenerlo en cuenta al proyectar.</p>
@@ -6585,13 +6599,13 @@ function edIngresos(el,obras){
       <div class="card"><div class="body">
         <h4>${lab}</h4>
         <table><tbody>${agrupa(campo).slice(0,10).map(([k,v])=>
-          `<tr><td>${esc(k)}</td><td style="text-align:right" class="strong">${edEur(v)}</td></tr>`).join("")}</tbody></table>
+          `<tr><td>${esc(k)}</td><td style="text-align:right" class="strong">${eur(v)}</td></tr>`).join("")}</tbody></table>
       </div></div>`).join("")}
   </div>
   <div class="card"><div class="body flush">
     <table><thead><tr><th>Obra</th><th style="text-align:right">Neto</th></tr></thead>
     <tbody>${porObra.map(([id,v])=>
-      `<tr><td class="strong">${esc(tit.get(id)||id)}</td><td style="text-align:right">${edEur(v)}</td></tr>`).join("")}</tbody></table>
+      `<tr><td class="strong">${esc(tit.get(id)||id)}</td><td style="text-align:right">${eur(v)}</td></tr>`).join("")}</tbody></table>
   </div></div>`;
   const sel=document.getElementById("edper");
   if(sel)sel.addEventListener("change",e=>{filtro.edPeriodo=e.target.value;render()});
@@ -6632,8 +6646,8 @@ function edLiquidacion(el,obras){
     <span class="hint">Periodo de liquidación</span>
   </div>
   <div class="card"><div class="body">
-    <p>De los <strong>${edEur(tNeto)}</strong> que llegaron a los clientes en ${esc(per)},
-    a MALO le corresponden <strong>${edEur(tCom)}</strong> de comisión de management.</p>
+    <p>De los <strong>${eur(tNeto)}</strong> que llegaron a los clientes en ${esc(per)},
+    a MALO le corresponden <strong>${eur(tCom)}</strong> de comisión de management.</p>
     <p class="hint">El porcentaje sale de la ficha de cada cliente (Clientes → Comisiones → Management).
     Un cliente al 0 % es alguien de quien ya no se lleva management pero a quien sí hay que pagarle su autoría.</p>
   </div></div>
@@ -6643,16 +6657,80 @@ function edLiquidacion(el,obras){
   <tbody>${filas.map(f=>`<tr>
     <td class="strong">${esc(f.nombre)}${f.esCliente?"":' <span class="pill" style="border-color:var(--alert);color:var(--alert)">sin ficha</span>'}</td>
     <td style="text-align:right" class="dim">${f.obras}</td>
-    <td style="text-align:right">${edEur(f.neto)}</td>
+    <td style="text-align:right">${eur(f.neto)}</td>
     <td style="text-align:right" class="dim">${f.pct}%</td>
-    <td style="text-align:right" class="strong">${edEur(f.comision)}</td>
-    <td style="text-align:right">${edEur(f.paga)}</td></tr>`).join("")}
+    <td style="text-align:right" class="strong">${eur(f.comision)}</td>
+    <td style="text-align:right">${eur(f.paga)}</td></tr>`).join("")}
   </tbody>
-  <tfoot><tr><th>Total</th><th></th><th style="text-align:right">${edEur(tNeto)}</th><th></th>
-    <th style="text-align:right">${edEur(tCom)}</th><th style="text-align:right">${edEur(tNeto-tCom)}</th></tr></tfoot></table>
+  <tfoot><tr><th>Total</th><th></th><th style="text-align:right">${eur(tNeto)}</th><th></th>
+    <th style="text-align:right">${eur(tCom)}</th><th style="text-align:right">${eur(tNeto-tCom)}</th></tr></tfoot></table>
   </div></div>`;
   const sel=document.getElementById("edper2");
   if(sel)sel.addEventListener("change",e=>{filtro.edPeriodo=e.target.value;render()});
+}
+
+/* Ficha de una obra: el reparto completo y lo que ha generado.
+   Equivalente a abrir una canción en el Catálogo, pero del lado de la autoría. */
+function fichaObra(id){
+  const o=(DB.obras||[]).find(x=>x.id===id);
+  if(!o)return;
+  const d=edObra(o);
+  const ing=(DB.obraIngresos||[]).filter(i=>i.obraId===id);
+  const neto=ing.reduce((a,i)=>a+(+i.importeNeto||0),0);
+  const bruto=ing.reduce((a,i)=>a+(+i.importeBruto||0),0);
+  const porFuente=new Map();
+  ing.forEach(i=>{const k=`${i.tipoUso||"—"} · ${i.dsp||"—"} · ${i.territorio||"—"}`;
+    porFuente.set(k,(porFuente.get(k)||0)+(+i.importeNeto||0))});
+  const devengos=[...new Set(ing.map(i=>`${i.devengoDesde||"?"}–${i.devengoHasta||"?"}`))];
+  /* Si la obra está enlazada a grabaciones del catálogo, se enseña el puente. */
+  const grabs=(DB.obraCanciones||[]).filter(x=>x.obraId===id)
+    .map(x=>(DB.canciones||[]).find(c=>c.id===x.cancionId)).filter(Boolean);
+
+  openModal(`
+  <header><h3>${esc(o.titulo||o.workCode)}</h3><div class="spacer"></div>
+    <button class="btn ghost sm" data-act="close">Cerrar</button></header>
+  <div class="body">
+    <p class="dim tiny">${esc(o.workCode)}${o.iswc?" · ISWC "+esc(o.iswc):
+      ' · <span style="color:var(--alert)">sin ISWC</span>'}${o.editorial?" · "+esc(o.editorial):""}</p>
+    ${o.recordedBy?`<p class="hint">Grabada por <strong>${esc(o.recordedBy)}</strong></p>`:""}
+    ${grabs.length?`<p class="hint">En el catálogo: ${grabs.map(c=>
+      `<span class="pill artist">${esc(c.titulo)}</span>`).join(" ")}</p>`:""}
+
+    ${d.problema?`<div class="card" style="border-color:var(--alert);margin:12px 0"><div class="body">
+      <p style="color:var(--alert)"><strong>Registro incompleto.</strong></p>
+      <p class="tiny">
+      ${d.pctHuerfano?`Un <strong>${d.pctHuerfano.toFixed(2)} %</strong> de la obra no tiene editorial identificada.<br>`:""}
+      ${d.sinSociedad?`${d.sinSociedad} parte${d.sinSociedad===1?"":"s"} sin sociedad: esa porción no cobra ejecución pública.<br>`:""}
+      ${d.noControlada?`${d.noControlada} parte${d.noControlada===1?"":"s"} fuera del control del editor.`:""}</p>
+    </div></div>`:""}
+
+    <h4>Reparto</h4>
+    <table><thead><tr><th>Quién</th><th></th><th style="text-align:right">Obra</th>
+      <th style="text-align:right">Mecánico</th><th style="text-align:right">Ejecución</th><th>Sociedad</th></tr></thead>
+    <tbody>${d.ps.slice().sort((a,b)=>(b.contPct||0)-(a.contPct||0)||a.capacidad.localeCompare(b.capacidad))
+      .map(p=>{
+        const n2=edNombreCliente(p.clienteId);
+        const desc=p.nombre==="Unknown Publisher";
+        return `<tr${desc?' style="color:var(--alert)"':''}>
+        <td class="${n2?"strong":""}">${esc(n2||p.nombre)}</td>
+        <td class="tiny dim">${p.capacidad==="CA"?"autor":"editorial"}</td>
+        <td style="text-align:right">${p.contPct!=null?(+p.contPct).toFixed(2)+" %":"—"}</td>
+        <td style="text-align:right">${p.mecanicoPct!=null?(+p.mecanicoPct).toFixed(2)+" %":"—"}</td>
+        <td style="text-align:right">${p.ejecucionPct!=null?(+p.ejecucionPct).toFixed(2)+" %":"—"}</td>
+        <td class="tiny">${p.sociedad==="NS"?'<span style="color:var(--alert)">sin sociedad</span>':esc(p.sociedad||"—")}
+          ${p.controlada===false?' <span class="dim">· sin control</span>':""}</td></tr>`}).join("")}
+    </tbody></table>
+    <p class="hint">«Obra» es el reparto entre autores (letra y música). «Mecánico» y «Ejecución»
+    son lo que cobra de verdad cada uno, según quién sea su editorial.</p>
+
+    <h4 style="margin-top:18px">Ingresos</h4>
+    ${ing.length?`
+      <p>La editorial recaudó <strong>${eur(bruto)}</strong> y llegaron <strong>${eur(neto)}</strong>.</p>
+      ${devengos.length?`<p class="hint">Devengo: ${devengos.map(esc).join(", ")}</p>`:""}
+      <table><tbody>${[...porFuente.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>
+        `<tr><td class="tiny">${esc(k)}</td><td style="text-align:right">${eur(v)}</td></tr>`).join("")}</tbody></table>`
+      :`<p class="dim">Todavía no ha generado ingresos en los periodos cargados.</p>`}
+  </div>`);
 }
 
 function viewMedios(el,ta){
@@ -11564,7 +11642,7 @@ function abrirGraficoKpi(tipo){
 }
 
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-yt],[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-distrib],[data-cancion],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
+  const el=e.target.closest("[data-yt],[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-distrib],[data-cancion],[data-obra],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
   if(!el)return;
   if(el.dataset.goto){e.preventDefault();VIEW=el.dataset.goto;render();window.scrollTo(0,0);return}
   const act=el.dataset.act;
@@ -11689,7 +11767,7 @@ document.addEventListener("click",e=>{
       </div>`);
       return;
     }
-    if(act==="ed-vista"){filtro.edVista=t.dataset.v||"alertas";render();return}
+    if(act==="ed-vista"){filtro.edVista=el.dataset.v||"alertas";render();window.scrollTo(0,0);return}
     if(act==="new-tarea")return formTarea(null);
     if(act==="new-medio")return formMedios(null);
     if(act==="save-medio")return saveMedios(el.dataset.new==="1");
@@ -11825,6 +11903,7 @@ document.addEventListener("click",e=>{
   if(el.dataset.distrib)return formDistribuir(el.dataset.distrib);
   if(el.dataset.yt)return abreExterno(el.dataset.yt);
   if(el.dataset.cancion)return formCancion(el.dataset.cancion);
+  if(el.dataset.obra)return fichaObra(el.dataset.obra);
   if(el.dataset.medio)return formMedios(el.dataset.medio);
   if(el.dataset.prod)return formProduccion(el.dataset.prod);
   if(el.dataset.show){
