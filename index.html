@@ -1665,7 +1665,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.027";
+const APP_VERSION="0.028";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1674,6 +1674,13 @@ const APP_VERSION="0.027";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-30",v:"0.028",cambios:[
+    "Mailing deja de ser una lista de emails y pasa a responder la pregunta que importa: dónde tienes público. Arriba del todo, tus plazas ordenadas por número de fans con su barra; tocas una y la lista se filtra a esa ciudad.",
+    "Las cifras de cabecera ahora sirven para algo: a cuánta gente puedes escribir de verdad (con consentimiento), cuál es tu plaza más fuerte y qué peso tiene sobre el total, y en cuántas ciudades tienes público real.",
+    "La tabla enseña la plaza como columna propia y nuevo filtro por ciudad, además de los de artista y etiqueta.",
+    "Si entre los filtrados hay gente sin consentimiento, la app lo dice y deja verlos de un clic, en vez de dejar que te enteres al enviar.",
+    "Fuera el párrafo que explicaba que la app no podía enviar: ahora se manda la lista a Resend desde ahí mismo.",
+    "La pantalla vacía explica cómo traer los compradores desde Enterticket en dos pasos, en vez de recibirte con un muro legal."]},
   {fecha:"2026-08-30",v:"0.027",cambios:[
     "Mailing puede mandar la lista a Resend, que es con lo que ya envía correo la web de MALO: botón «Enviar lista a Resend» que sube los contactos filtrados (solo los que tienen consentimiento) para lanzar el envío masivo desde allí.",
     "Se manda solo el quién, nunca el email en sí: el mensaje se redacta y se envía en Resend, que se encarga del link de baja, de los rebotes y de las aperturas. Eso es justo lo que no conviene montar a mano.",
@@ -2947,7 +2954,7 @@ let CANC_TAB="catalogo";
 /* Para animar la entrada solo cuando se cambia de apartado (paquete de
    animaciones ago-2026), no en cada re-render del buscador. */
 let VIEW_PREV_ANIM=null;
-let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",docTipo:"",docAnio:"",mailCliente:"",mailEtiqueta:"",mailSoloConsent:false,verAntiguos:false,mapaCliente:"",mapaAnio:"",mapaCom:"",
+let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",docTipo:"",docAnio:"",mailCliente:"",mailEtiqueta:"",mailPlaza:"",mailSoloConsent:false,verAntiguos:false,mapaCliente:"",mapaAnio:"",mapaCom:"",
   ordenShows:"fecha_asc",ordenClientes:"cat",ordenContactos:"cat",relBD:"",ordenDocs:"fecha_desc",
   ordenMailing:"alpha",ordenMapa:"n_desc",anio:String(new Date().getFullYear()),
   temaQ:"",temaCliente:"",temaEstado:"",ordenTemas:"envio_desc",
@@ -6279,10 +6286,22 @@ function etiquetasTodas(){
   DB.suscriptores.forEach(x=>(x.etiquetas||[]).forEach(e=>set.add(e)));
   return [...set].sort((a,b)=>a.localeCompare(b));
 }
+/* Dónde está el público, que para un promotor es EL dato: decide en qué ciudad
+   se monta el próximo show. Sale de «ciudad», que al importar de Enterticket se
+   rellena con la provincia del comprador. */
+function plazasTodas(){
+  const m={};
+  DB.suscriptores.filter(x=>!x.baja).forEach(x=>{
+    const k=(x.ciudad||"").trim()||"Sin plaza";
+    m[k]=(m[k]||0)+1;
+  });
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
 function susFiltrados(){
   let l=DB.suscriptores.filter(x=>!x.baja);
   if(filtro.mailCliente)l=l.filter(x=>x.clienteId===filtro.mailCliente);
   if(filtro.mailEtiqueta)l=l.filter(x=>(x.etiquetas||[]).includes(filtro.mailEtiqueta));
+  if(filtro.mailPlaza)l=l.filter(x=>(x.ciudad||"—")===filtro.mailPlaza);
   if(filtro.mailSoloConsent)l=l.filter(x=>x.consentimiento);
   if(filtro.q){const q=filtro.q.toLowerCase();
     l=l.filter(x=>[x.email,x.nombre,x.ciudad,x.origen,(x.etiquetas||[]).join(" ")].join(" ").toLowerCase().includes(q))}
@@ -6393,22 +6412,28 @@ function viewMailing(el,ta){
   const bajas=DB.suscriptores.filter(x=>x.baja).length;
   const lista=susFiltrados();
   const etiquetas=etiquetasTodas();
+  const plazas=plazasTodas().filter(([p])=>p!=="Sin plaza");
+  const plazasReales=plazas.filter(([,n0])=>n0>=5).length;
+  /* El número que de verdad importa: a cuántos de los filtrados se les puede
+     escribir sin infringir nada. */
+  const escribibles=lista.filter(x=>x.consentimiento).length;
   document.getElementById("viewSub").textContent=`${lista.length} de ${total}`;
 
   if(!DB.suscriptores.length){
     el.innerHTML=`<div class="card"><div class="empty">
-      <p><strong>Base de datos de fans y compradores.</strong><br>Etiqueta cada contacto con el cliente del que viene y sus intereses, para poder segmentar los envíos.</p>
+      <p><strong>Aquí vive tu público.</strong><br>Quién ha comprado una entrada, de qué plaza es y a qué artista vino.
+      Sirve para dos cosas: decidir en qué ciudad montar el próximo show, y avisar a los de esa ciudad cuando lo tengas.</p>
+      <p class="dim tiny" style="max-width:520px;margin:0 auto 16px">
+      Lo más rápido para arrancar: en Enterticket, <strong style="color:var(--bone)">Base de datos → Exportar → CSV</strong>
+      te baja los compradores que aceptaron publicidad. Ese archivo entra aquí tal cual y cada contacto queda
+      etiquetado con su evento, su artista y su provincia.</p>
       <div style="display:flex;gap:9px;justify-content:center;flex-wrap:wrap">
-        <button class="btn primary" data-act="new-sub">Añadir el primero</button>
-        <button class="btn" data-act="import-subs">Importar CSV</button></div>
+        <button class="btn primary" data-act="import-subs">Importar el CSV de Enterticket</button>
+        <button class="btn" data-act="new-sub">Añadir uno a mano</button></div>
       </div></div>
-      <div class="card" style="border-color:rgba(217,130,43,.3)"><div class="body">
-        <p style="font-size:12.5px;color:var(--mute);line-height:1.65">
-        <strong style="color:var(--warn)">Antes de cargar datos de terceros.</strong> Los emails de fans son datos personales.
-        El RGPD exige que tengas una base legal para tenerlos, que puedas demostrar el consentimiento cuando aplique,
-        y que cualquiera pueda darse de baja. La casilla de consentimiento y el botón de baja están para eso —
-        pero la responsabilidad legal es de MALO, no de esta herramienta. Consúltalo con vuestro asesor antes de importar listas grandes.</p>
-      </div></div>`;
+      <p class="hint" style="text-align:center;margin-top:14px">
+      Los emails de fans son datos personales: solo se envía a quien tiene el consentimiento marcado, y la responsabilidad
+      legal de la lista es de MALO, no de esta herramienta.</p>`;
     return;
   }
 
@@ -6417,43 +6442,65 @@ function viewMailing(el,ta){
 
   el.innerHTML=`
   <div class="strip">
-    <div class="cell"><div class="lab">Contactos activos</div><div class="val">${total}</div>
-      <div class="note">${bajas?bajas+" dados de baja":"Ninguna baja"}</div></div>
-    <div class="cell"><div class="lab">Con consentimiento</div><div class="val ${conConsent===total?"v-malo":"v-alert"}">${conConsent}</div>
-      <div class="note">${total-conConsent>0?(total-conConsent)+" sin marcar":"Todos marcados"}</div></div>
-    <div class="cell"><div class="lab">Etiquetas en uso</div><div class="val v-artist">${etiquetas.length}</div></div>
+    <div class="cell"><div class="lab">Puedes escribir a</div><div class="val v-malo">${conConsent}</div>
+      <div class="note">${total-conConsent>0?`${total-conConsent} sin consentimiento, fuera`:"Todos con consentimiento"}</div></div>
+    <div class="cell"><div class="lab">Tu plaza más fuerte</div><div class="val">${plazas.length?esc(plazas[0][0]):"—"}</div>
+      <div class="note">${plazas.length?`${plazas[0][1]} contactos · ${Math.round(plazas[0][1]/total*100)} % de la base`:""}</div></div>
+    <div class="cell"><div class="lab">Plazas con público</div><div class="val v-artist">${plazasReales}</div>
+      <div class="note">${plazasReales?"ciudades con 5 o más":"aún sin datos de ciudad"}</div></div>
     <div class="cell"><div class="lab">Seleccionados ahora</div><div class="val">${lista.length}</div>
-      <div class="note">Según los filtros de abajo</div></div>
+      <div class="note">${lista.length!==total?"con los filtros puestos":"toda la base"}</div></div>
   </div>
+
+  <div class="card"><header><h3>Dónde está tu público</h3><div class="spacer"></div>
+    <span class="dim tiny" style="text-transform:none;letter-spacing:0">Toca una plaza para escribir solo a esa</span></header>
+    <div class="body">
+      ${plazas.length?plazas.slice(0,10).map(([p,n0])=>{
+        const pct=Math.round(n0/plazas[0][1]*100);
+        const on=filtro.mailPlaza===p;
+        return `<button data-plaza="${esc(p)}" style="display:grid;grid-template-columns:130px 1fr 60px;gap:12px;align-items:center;
+          width:100%;background:none;border:0;padding:6px 0;cursor:pointer;text-align:left;color:inherit">
+          <span style="font-size:12.5px;color:${on?"var(--malo)":"var(--bone)"};font-weight:${on?"600":"400"}">${esc(p)}</span>
+          <span style="height:9px;border-radius:3px;background:var(--rule-2);overflow:hidden">
+            <span style="display:block;height:100%;width:${pct}%;background:${on?"var(--malo)":"var(--artist)"}"></span></span>
+          <span class="num tiny" style="font-family:var(--mono);color:var(--mute)">${n0}</span>
+        </button>`}).join("")
+      :`<p class="dim tiny" style="margin:0">Los contactos no tienen ciudad. Al importar de Enterticket se rellena con la provincia del comprador.</p>`}
+      ${plazas.length>10?`<p class="hint" style="margin:10px 0 0">Y ${plazas.length-10} plazas más con menos gente.</p>`:""}
+    </div></div>
 
   <div class="filters">
     <input type="search" id="mq" placeholder="Buscar email, nombre, ciudad…" value="${esc(filtro.q)}">
     <select id="mcli"><option value="">Todos los clientes</option>
       ${DB.clientes.map(c=>`<option value="${c.id}" ${filtro.mailCliente===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select>
+    <select id="mplaza"><option value="">Todas las plazas</option>
+      ${plazas.map(([p,n0])=>`<option value="${esc(p)}" ${filtro.mailPlaza===p?"selected":""}>${esc(p)} (${n0})</option>`).join("")}</select>
     <select id="metq"><option value="">Todas las etiquetas</option>
       ${etiquetas.map(e=>`<option value="${esc(e)}" ${filtro.mailEtiqueta===e?"selected":""}>${esc(e)}</option>`).join("")}</select>
     ${selectOrden("ordMailing",[["alpha","Nombre A-Z"],["email","Email A-Z"],["fecha_desc","Alta más reciente"]],filtro.ordenMailing)}
     <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--mute);cursor:pointer">
       <input type="checkbox" id="mconsent" ${filtro.mailSoloConsent?"checked":""} style="width:auto"> Solo con consentimiento</label>
-    ${(filtro.q||filtro.mailCliente||filtro.mailEtiqueta||filtro.mailSoloConsent)?`<button class="btn ghost sm" id="mclr">Quitar filtros</button>`:""}
+    ${(filtro.q||filtro.mailCliente||filtro.mailEtiqueta||filtro.mailPlaza||filtro.mailSoloConsent)?`<button class="btn ghost sm" id="mclr">Quitar filtros</button>`:""}
   </div>
 
-  <div class="card"><header><h3>Enviar a los ${lista.length} seleccionados</h3><div class="spacer"></div>
+  <div class="card"><header><h3>${escribibles} ${escribibles===1?"contacto":"contactos"} a los que puedes escribir ahora</h3><div class="spacer"></div>
     <button class="btn sm" id="copiarEmails">Copiar emails</button>
     <button class="btn sm" id="exportarSeg">Exportar CSV</button>
+    <button class="btn sm" data-act="sync-resend">Enviar lista a Resend</button>
     <button class="btn primary sm" id="redactar">Redactar envío</button></header>
-    <div class="body">
-      <p class="hint" style="margin:0">Esta herramienta <strong style="color:var(--bone)">prepara</strong> el envío: segmenta, redacta y exporta.
-      El envío masivo real se hace desde un servicio de email (Brevo, Mailchimp, MailerLite) importando el CSV — un navegador no puede mandar cientos de correos por sí solo, y hacerlo desde tu Gmail personal acabaría en spam.</p>
-    </div></div>
+    ${lista.length-escribibles>0?`<div class="body"><p class="hint" style="margin:0">
+      De los ${lista.length} filtrados, <strong style="color:var(--warn)">${lista.length-escribibles} no tienen consentimiento</strong> y quedan fuera de cualquier envío.
+      <button class="btn ghost sm" id="verSinConsent" style="margin-left:6px">Ver quiénes son</button></p></div>`:""}
+    </div>
 
   <div class="grid2">
     <div class="card" style="margin:0"><header><h3>Contactos</h3></header><div class="body flush">
-      ${lista.length?`<table><thead><tr><th>Email</th><th>Nombre</th><th>Cliente de origen</th><th>Etiquetas</th><th>Consent.</th></tr></thead>
+      ${lista.length?`<table data-movil="Email,Plaza,Consent."><thead><tr><th>Email</th><th>Nombre</th><th>Plaza</th><th>De quién es</th><th>Etiquetas</th><th>Consent.</th></tr></thead>
       <tbody>${lista.slice(0,300).map(x=>{const ca=x.clienteId?catDe(x.clienteId):null;
         return `<tr class="click" data-sub="${x.id}" ${ca?`style="--c:${ca.color}"`:""}>
           <td class="strong" style="font-size:12.5px">${esc(x.email)}</td>
-          <td class="dim">${esc(x.nombre||"—")}${x.ciudad?`<div class="tiny dim">${esc(x.ciudad)}</div>`:""}</td>
+          <td class="dim">${esc(x.nombre||"—")}</td>
+          <td class="dim">${x.ciudad?esc(x.ciudad):`<span class="dim tiny">—</span>`}</td>
           <td>${x.clienteId?`<span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(x.clienteId))}</span>`:`<span class="dim tiny">sin asignar</span>`}</td>
           <td>${(x.etiquetas||[]).map(e=>`<span class="pill artist" style="margin:1px 2px">${esc(e)}</span>`).join("")||`<span class="dim tiny">—</span>`}</td>
           <td>${x.consentimiento?`<span class="pill ok">sí</span>`:`<span class="pill alert">no</span>`}</td>
@@ -6481,11 +6528,17 @@ function viewMailing(el,ta){
     const i=document.getElementById("mq");i.focus();i.setSelectionRange(i.value.length,i.value.length)});
   document.getElementById("mcli").addEventListener("change",e=>{filtro.mailCliente=e.target.value;render()});
   buscable("mcli");
+  document.getElementById("mplaza").addEventListener("change",e=>{filtro.mailPlaza=e.target.value;render()});
   document.getElementById("metq").addEventListener("change",e=>{filtro.mailEtiqueta=e.target.value;render()});
+  el.querySelectorAll("[data-plaza]").forEach(b=>b.addEventListener("click",()=>{
+    filtro.mailPlaza=filtro.mailPlaza===b.dataset.plaza?"":b.dataset.plaza;render()}));
+  const vsc=document.getElementById("verSinConsent");
+  if(vsc)vsc.addEventListener("click",()=>{filtro.mailSoloConsent=false;filtro.q="";render();
+    toast("Los que salen con «no» en Consent. no reciben envíos")});
   document.getElementById("mconsent").addEventListener("change",e=>{filtro.mailSoloConsent=e.target.checked;render()});
   document.getElementById("ordMailing").addEventListener("change",e=>{filtro.ordenMailing=e.target.value;render()});
   const mc=document.getElementById("mclr");
-  if(mc)mc.addEventListener("click",()=>{filtro.q="";filtro.mailCliente="";filtro.mailEtiqueta="";filtro.mailSoloConsent=false;render()});
+  if(mc)mc.addEventListener("click",()=>{filtro.q="";filtro.mailCliente="";filtro.mailEtiqueta="";filtro.mailPlaza="";filtro.mailSoloConsent=false;render()});
   el.querySelectorAll("[data-etq]").forEach(b=>b.addEventListener("click",()=>{
     filtro.mailEtiqueta=filtro.mailEtiqueta===b.dataset.etq?"":b.dataset.etq;render()}));
   document.getElementById("copiarEmails").addEventListener("click",()=>{
