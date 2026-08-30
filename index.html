@@ -1665,7 +1665,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.024";
+const APP_VERSION="0.025";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1674,6 +1674,11 @@ const APP_VERSION="0.024";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-30",v:"0.025",cambios:[
+    "La Ticketera cuenta solo desde 2026. Los shows de 2024 y 2025 siguen guardados —sirven de referencia de aforo y precio para presupuestar— pero no aparecen ni suman salvo que elijas «Todo el histórico» en el selector del bloque.",
+    "Cifras de los dos VRITNI de septiembre puestas al día con la venta real.",
+    "Importar contactos ahora entiende el export de Enterticket tal cual: subes el CSV (o lo pegas) y cada comprador entra en Mailing con su evento y su provincia, y con el consentimiento que marcó al comprar.",
+    "Quien ya estaba en la lista y vuelve a comprar ya no se descarta: suma la etiqueta del evento nuevo y se marca como «repite», así puedes filtrar a los que van a todo."]},
   {fecha:"2026-08-30",v:"0.024",cambios:[
     "Recuperado todo lo que la publicación de Medios del 28 de agosto había borrado sin querer (las versiones 0.017 a 0.023): el formulario de producciones con cupo y previsión, la galería de Canciones con portadas y agrupación, y el resto de mejoras de esos días. Medios sigue ahí, no se pierde nada.",
     "Nueva conexión con Enterticket: en Producciones aparece el bloque «Ticketera» con los eventos de la ticketera, sus ventas, su recaudación y su estado. Los datos vienen de nuestra base de datos; de momento se cargan a mano y cuando Enterticket dé acceso a su API se actualizarán solos.",
@@ -2933,7 +2938,7 @@ let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",doc
   cancionQ:"",cancionArtista:"",ordenCanciones:"artista",cancionVista:"galeria",cancionGrupo:"artista",
   cancionTipo:"",cancionPortada:"release",cancionDesde:"",cancionHasta:"",
   bolsilloArtista:"",bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
-  redesArtista:""};
+  redesArtista:"",etDesde:"2026"};
 const _n=new Date();
 let CAL={y:_n.getFullYear(),m:_n.getMonth(),sel:null,cliente:"",categoria:"",sub:"",tipo:""};
 
@@ -3740,13 +3745,23 @@ function etBloque(){
     <span class="pill alert">Falta ejecutar el SQL de Enterticket</span>
     <p class="dim tiny" style="margin:8px 0 0">Pide al desarrollador que ejecute <code>supabase/enterticket.sql</code> y recarga: aparecerán los eventos de la ticketera con sus ventas.</p>
   </div></div>`;
-  const evs=DB.etEventos||[];
-  if(!evs.length)return "";
+  const todos=DB.etEventos||[];
+  if(!todos.length)return "";
+  /* Por defecto solo cuenta 2026 en adelante: los shows de 2024-2025 siguen
+     guardados (sirven de referencia de aforo y precio) pero ni se listan ni
+     suman hasta que se pide «todo el histórico». */
+  const desde=filtro.etDesde||"";
+  const evs=desde?todos.filter(e=>(e.fechaIni||"")>=desde+"-01-01"):todos;
+  const ocultos=todos.length-evs.length;
   const ultimo=evs.reduce((t,e)=>e.sincronizadoEn>t?e.sincronizadoEn:t,"");
   const tot=evs.reduce((t,e)=>{t.v+=n(e.vendidas);t.i+=n(e.ingresos);return t},{v:0,i:0});
   return `<div class="card"><div class="body flush">
     <div class="section-title" style="margin:14px 16px 6px">Ticketera · Enterticket <div class="spacer"></div>
-      <span class="dim tiny" style="text-transform:none;letter-spacing:0">${evs.length} eventos · ${tot.v} entradas · ${eur0(tot.i)}${ultimo?` · datos del ${fecha(ultimo.slice(0,10))}`:""}</span></div>
+      <span class="dim tiny" style="text-transform:none;letter-spacing:0">${evs.length} eventos · ${tot.v} entradas · ${eur0(tot.i)}${ultimo?` · datos del ${fecha(ultimo.slice(0,10))}`:""}</span>
+      <select id="etDesde" style="width:auto;margin-left:10px;font-size:11px;padding:3px 6px">
+        <option value="2026" ${desde==="2026"?"selected":""}>Desde 2026</option>
+        <option value="" ${desde?"":"selected"}>Todo el histórico${ocultos?` (+${ocultos})`:""}</option>
+      </select></div>
     <table data-movil="Evento,Vendidas,Ingresos">
       <thead><tr><th>Fecha</th><th>Evento</th><th style="width:1%;white-space:nowrap">Estado</th><th>Vendidas</th><th class="num">Ingresos</th><th>Producción enlazada</th></tr></thead>
       <tbody>${evs.map(e=>{
@@ -3774,7 +3789,8 @@ function viewEventos(el,ta){
   if(!list.length){
     el.innerHTML=`<div class="card"><div class="empty">
       <p><strong>Producciones propias de MALO.</strong><br>Aquí el dinero funciona al revés que en booking: tú asumes los costes y te quedas el resultado, en vez de cobrar una comisión.</p>
-      <button class="btn primary" data-act="new-prod">Crear el primero</button></div></div>`+etBloque();return;
+      <button class="btn primary" data-act="new-prod">Crear el primero</button></div></div>`+etBloque();
+    etFiltroAnio(el);return;
   }
   const T=enFirme.reduce((t,p)=>{const c=calcProd(p);t.ing+=c.ingresos;t.cos+=c.costes;t.ben+=c.beneficio;return t},{ing:0,cos:0,ben:0});
   document.getElementById("viewSub").textContent=`${list.length} producciones${nBorrador?` · ${nBorrador} en borrador`:""}`;
@@ -3802,6 +3818,13 @@ function viewEventos(el,ta){
         <td>${c.modoFee?`<span class="dim tiny">no aplica</span>`:(c.beEntradas!==null?`<span class="pill ${c.vendidas>=c.beEntradas?"ok":"warn"}">${c.beEntradas} entradas</span>`:`<span class="dim tiny">sin precio</span>`)}</td>
       </tr>`}).join("")}</tbody></table></div></div>
   ${etBloque()}`;
+  etFiltroAnio(el);
+}
+/* El selector de año del bloque Ticketera. Se engancha después de pintar,
+   igual que el resto de filtros de la app. */
+function etFiltroAnio(el){
+  const s=el.querySelector("#etDesde");
+  if(s)s.addEventListener("change",e=>{filtro.etDesde=e.target.value;render()});
 }
 
 /* Convierte el line-up de una producción en shows reales.
@@ -6506,10 +6529,12 @@ function importarSuscriptores(){
     <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
   <div class="mbody">
     <p style="color:var(--mute);font-size:12.5px;margin-bottom:16px">
-      El archivo debe tener una fila de cabecera. Se reconocen las columnas
+      Sube el archivo o pega el contenido. Se reconocen las columnas
       <code style="font-family:var(--mono);color:var(--bone)">email, nombre, telefono, ciudad, etiquetas, origen</code>
-      (las etiquetas separadas por <code style="font-family:var(--mono);color:var(--bone)">|</code>).
-      Los emails repetidos se ignoran.</p>
+      y también <strong>el export de Enterticket</strong> tal cual
+      (<code style="font-family:var(--mono);color:var(--bone)">E-mail, Nombre y apellidos, Provincia, Evento, Acepta recibir publicidad…</code>):
+      cada contacto entra etiquetado con su evento, y quien ya estaba suma la etiqueta nueva
+      y se marca como <strong>repite</strong>.</p>
     <div class="fgrid">
       <div class="f s6"><label>Asignar todos a este cliente</label><select id="imp_cli"><option value="">— sin asignar —</option>
         ${DB.clientes.map(c=>`<option value="${c.id}">${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select></div>
@@ -6517,8 +6542,9 @@ function importarSuscriptores(){
       <div class="f s12" style="flex-direction:row;gap:9px;align-items:center">
         <input type="checkbox" id="imp_consent" style="width:auto">
         <label for="imp_consent" style="font-family:var(--sans);font-size:13px;text-transform:none;letter-spacing:0;color:var(--bone);cursor:pointer">
-          Todos han dado consentimiento expreso</label></div>
-      <div class="f s12"><label>Pega aquí el CSV</label>
+          Todos han dado consentimiento expreso <span class="dim">(si el archivo trae columna de publicidad, manda el archivo)</span></label></div>
+      <div class="f s12"><label>Archivo CSV</label><input type="file" id="imp_file" accept=".csv,text/csv,text/plain"></div>
+      <div class="f s12"><label>…o pega aquí el CSV</label>
         <textarea id="imp_csv" style="min-height:150px;font-family:var(--mono);font-size:11.5px" placeholder="email;nombre;ciudad&#10;fan@ejemplo.com;Ana;Barcelona"></textarea></div>
     </div>
     <div id="imp_info" style="margin-top:12px;font-size:12px;color:var(--mute)"></div>
@@ -6527,37 +6553,83 @@ function importarSuscriptores(){
     <button class="btn primary" id="imp_go">Importar</button></footer>`);
   buscable("imp_cli");
 
+  /* Subir el archivo rellena el textarea: a partir de ahí es el mismo camino
+     que pegarlo a mano, así no hay dos rutas de importación que mantener. */
+  const fi=document.getElementById("imp_file");
+  if(fi)fi.addEventListener("change",()=>{
+    const f=fi.files&&fi.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>{document.getElementById("imp_csv").value=String(r.result||"");
+      document.getElementById("imp_info").textContent=`${f.name} cargado (${Math.round(f.size/1024)} KB). Pulsa Importar.`};
+    r.readAsText(f,"utf-8");
+  });
+
   document.getElementById("imp_go").addEventListener("click",()=>{
     const txt=document.getElementById("imp_csv").value.trim();
-    if(!txt){document.getElementById("imp_info").textContent="Pega primero el contenido del CSV.";return}
+    if(!txt){document.getElementById("imp_info").textContent="Sube el archivo o pega el contenido del CSV.";return}
     const sep=txt.split("\n")[0].includes(";")?";":",";
     const lineas=txt.split(/\r?\n/).filter(l=>l.trim());
-    const cab=lineas[0].split(sep).map(h=>h.replace(/^"|"$/g,"").trim().toLowerCase());
-    const idx=k=>cab.findIndex(h=>h===k);
-    const iEmail=idx("email"),iNom=idx("nombre"),iTel=idx("telefono"),iCiu=idx("ciudad"),
-          iEtq=idx("etiquetas"),iOri=idx("origen");
-    if(iEmail<0){document.getElementById("imp_info").innerHTML=`<span style="color:var(--alert)">No encuentro una columna llamada «email» en la cabecera.</span>`;return}
+    /* Enterticket exporta con BOM, comillas y tildes en la cabecera. */
+    const norm=x=>String(x||"").replace(/^\uFEFF/,"").replace(/^"|"$/g,"").trim()
+      .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    const cab=lineas[0].split(sep).map(norm);
+    const idx=(...nombres)=>{
+      for(const nom of nombres){const i=cab.indexOf(nom);if(i>=0)return i}
+      return -1;
+    };
+    const iEmail=idx("email","e-mail","correo","mail"),
+          iNom=idx("nombre","nombre y apellidos","nombre completo"),
+          iTel=idx("telefono","movil"),
+          iCiu=idx("ciudad","provincia","localidad"),
+          iEtq=idx("etiquetas","tags"),
+          iOri=idx("origen"),
+          iEvt=idx("evento"),
+          iPub=idx("acepta recibir publicidad","acepta publicidad","consentimiento","publicidad"),
+          iFec=idx("fecha compra","fecha de compra","fecha alta");
+    if(iEmail<0){document.getElementById("imp_info").innerHTML=`<span style="color:var(--alert)">No encuentro una columna de email en la cabecera.</span>`;return}
     const cliBase=val("imp_cli"),etqBase=val("imp_etq").split(",").map(t=>t.trim()).filter(Boolean);
     const consent=document.getElementById("imp_consent").checked;
-    const existentes=new Set(DB.suscriptores.map(s=>s.email.toLowerCase()));
+    /* dd/mm/aaaa [hh:mm] -> aaaa-mm-dd. Cualquier otra cosa, la fecha de hoy. */
+    const fechaCsv=v=>{const m=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(String(v||"").trim());
+      return m?`${m[3]}-${m[2]}-${m[1]}`:""};
+    const porEmail=new Map();
+    (DB.suscriptores||[]).forEach(x=>porEmail.set((x.email||"").toLowerCase(),x));
     let nuevos=0,repes=0,malos=0;
     lineas.slice(1).forEach(l=>{
       const celdas=l.split(sep).map(c=>c.replace(/^"|"$/g,"").trim());
       const email=(celdas[iEmail]||"").trim();
       if(!email||!email.includes("@")){malos++;return}
-      if(existentes.has(email.toLowerCase())){repes++;return}
-      existentes.add(email.toLowerCase());
-      const etqFila=iEtq>=0?(celdas[iEtq]||"").split("|").map(t=>t.trim()).filter(Boolean):[];
-      DB.suscriptores.push({id:uid("sus"),email,
-        nombre:iNom>=0?(celdas[iNom]||""):"",telefono:iTel>=0?(celdas[iTel]||""):"",
-        ciudad:iCiu>=0?(celdas[iCiu]||""):"",clienteId:cliBase,
-        origen:iOri>=0?(celdas[iOri]||""):"",
-        etiquetas:[...new Set([...etqBase,...etqFila])],
-        consentimiento:consent,baja:false,fechaAlta:hoy(),notas:""});
+      const cel=i=>i>=0?(celdas[i]||"").trim():"";
+      /* El evento es la etiqueta que de verdad sirve para segmentar: quién
+         vino a qué. Los repetidos acumulan una etiqueta más en vez de perderse. */
+      const etqFila=[...(iEtq>=0?cel(iEtq).split("|"):[]),cel(iEvt)].map(t=>t.trim()).filter(Boolean);
+      const etiquetas=[...new Set([...etqBase,...etqFila])];
+      /* El consentimiento de cada fila manda sobre la casilla de arriba. */
+      const okPub=iPub>=0?/^(si|sí|s|yes|y|1|true)$/i.test(cel(iPub)):consent;
+      const ya=porEmail.get(email.toLowerCase());
+      if(ya){
+        repes++;
+        const antes=(ya.etiquetas||[]).length;
+        ya.etiquetas=[...new Set([...(ya.etiquetas||[]),...etiquetas])];
+        /* Ya estaba y vuelve a comprar: eso es lo que hay que poder filtrar. */
+        if(ya.etiquetas.length>antes&&!ya.etiquetas.includes("repite"))ya.etiquetas.push("repite");
+        if(!ya.nombre&&cel(iNom))ya.nombre=cel(iNom);
+        if(!ya.telefono&&cel(iTel))ya.telefono=cel(iTel);
+        if(!ya.ciudad&&cel(iCiu))ya.ciudad=cel(iCiu);
+        if(okPub)ya.consentimiento=true;
+        return;
+      }
+      const nuevo={id:uid("sus"),email,
+        nombre:cel(iNom),telefono:cel(iTel),ciudad:cel(iCiu),clienteId:cliBase,
+        origen:cel(iOri)||(iEvt>=0?"enterticket":""),
+        etiquetas,consentimiento:okPub,baja:false,
+        fechaAlta:fechaCsv(cel(iFec))||hoy(),notas:""};
+      DB.suscriptores.push(nuevo);
+      porEmail.set(email.toLowerCase(),nuevo);
       nuevos++;
     });
     closeModal();
-    toast(`${nuevos} importados${repes?` · ${repes} repetidos omitidos`:""}${malos?` · ${malos} sin email válido`:""}`);
+    toast(`${nuevos} importados${repes?` · ${repes} ya estaban (etiqueta añadida)`:""}${malos?` · ${malos} sin email válido`:""}`);
     touch();
   });
 }
