@@ -1669,7 +1669,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.029";
+const APP_VERSION="0.030";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1678,6 +1678,12 @@ const APP_VERSION="0.029";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-30",v:"0.030",cambios:[
+    "Nueva sección «Editorial»: el lado de la autoría, aparte del de la distribución. Son cosas distintas — la distribución paga la grabación y la editorial paga la obra — y mezclarlas solo confunde.",
+    "Entra el catálogo completo de la editorial: 157 obras con su código, su ISWC, quién las escribió y con qué porcentaje, y qué artistas las grabaron.",
+    "Lo importante es la pestaña de Alertas: 58 obras tienen un trozo de la autoría que no está llegando a nadie (sin editorial identificada, sin sociedad o fuera del control del editor). Salen ordenadas por cuánto porcentaje hay sin dueño, para reclamar por dinero y no por orden alfabético.",
+    "Marcados en rojo los autores del roster que en esas obras cobran la mitad en vez de tres cuartos: Juan, Jorge y Blas tienen 49 obras así.",
+    "La sección es de solo lectura: los datos entran desde los exports de UMPG Window, no se editan a mano."]},
   {fecha:"2026-08-30",v:"0.029",cambios:[
     "Arreglada la tabla de contactos: se salía de la tarjeta y partía los nombres en tres líneas. Ahora ocupa todo el ancho, cada contacto es una fila de una línea y se ve a qué evento vino.",
     "Corregido un fallo que marcaba como «repite» a casi todo el mundo: al volver a importar el mismo archivo bastaba con que se añadiera cualquier etiqueta. Ahora solo se marca a quien de verdad ha ido a un evento distinto.",
@@ -1860,6 +1866,7 @@ const DOW=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
 function blank(){return {version:6,miembros:{},localidades:{},creado:new Date().toISOString(),empresa:{nombre:"MALO",logo:""},
   clientes:[],promotores:[],shows:[],eventos:[],producciones:[],suscriptores:[],medios:[],contexto:[],mensajes:[],tareas:[],
   temas:[],canciones:[],cancionParticipantes:[],cancionIngresos:[],
+  obras:[],obraParticipantes:[],
   subcategorias:JSON.parse(JSON.stringify(SUBCAT_DEFAULT)),generos:GENERO_DEFAULT.slice()}}
 let DB=blank();
 
@@ -2094,6 +2101,8 @@ const TABLE_MAP={
   contexto:{id:"id",fecha:"fecha",titulo:"titulo",tipo:"tipo",ciudad:"ciudad",notas:"notas"},
   localidades:{nombre:"nombre",original:"original",provincia:"provincia",comunidad:"comunidad"},
   mensajes:{id:"id",texto:"texto",autor:"autor",autorNombre:"autor_nombre",creadoEn:"creado_en"},
+  obras:{id:"id",workCode:"work_code",titulo:"titulo",iswc:"iswc",editorial:"editorial",recordedBy:"recorded_by",notas:"notas",creadoEn:"creado_en"},
+  obraParticipantes:{id:"id",obraId:"obra_id",clienteId:"cliente_id",nombre:"nombre",capacidad:"capacidad",sociedad:"sociedad",controlada:"controlada",contPct:"cont_pct",mecanicoPct:"mecanico_pct",ejecucionPct:"ejecucion_pct"},
   medios:{id:"id",nombre:"nombre",tipo:"tipo",medio:"medio",email:"email",telefono:"telefono",instagram:"instagram",ciudad:"ciudad",enlace:"enlace",notas:"notas",ultimoContacto:"ultimo_contacto",creadoEn:"creado_en"},
   temas:{id:"id",clienteId:"cliente_id",titulo:"titulo",version:"version",estado:"estado",
     fechaEnvio:"fecha_envio",fechaSalida:"fecha_salida",sello:"sello",isrc:"isrc",
@@ -2226,7 +2235,7 @@ async function fetchTodos(tabla){
   return {data:todo,error:err};
 }
 async function loadRemote(){
-  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp,etv,etp,eta]=await Promise.all([
+  const [cli,prm,sho,evt,prd,sub,emp,sus,ga,ctx,msj,tar,mie,loc,gen,rpl,tem,ctr,pfi,can,canp,cani,rsn,rex,rolp,distp,medp,etv,etp,eta,obrp,obpp]=await Promise.all([
     sb.from("clientes").select("*"), sb.from("promotores").select("*"),
     sb.from("shows").select("*"), sb.from("eventos").select("*"),
     sb.from("producciones").select("*"), sb.from("subcategorias").select("*"),
@@ -2268,7 +2277,12 @@ async function loadRemote(){
     sb.from("producciones").select("enterticket_id").limit(1),
     /* Sonda: a quién pertenece cada evento y quién tocó
        (supabase/enterticket-artistas.sql). Sin ellas la Ticketera va igual. */
-    sb.from("et_eventos").select("cliente_id,artistas").limit(1)
+    sb.from("et_eventos").select("cliente_id,artistas").limit(1),
+    /* Sonda: sección Editorial/SGAE (supabase/editorial.sql). Es SOLO LECTURA:
+       los datos entran por los exports de UMPG, no se editan en la app. Sin el
+       SQL la app va exactamente igual y la sección lo dice. */
+    sb.from("obras").select("*"),
+    sb.from("obra_participantes").select("*")
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:
@@ -2304,6 +2318,11 @@ async function loadRemote(){
      formulario y generar el email, pero ese cajón no se guarda. */
   DB.sinDistribucion=!!distp.error;
   if(DB.sinDistribucion)console.warn("Columna «canciones.distribucion» no disponible:",distp.error.message);
+  /* Editorial: catálogo de obras y reparto de copyright. Solo lectura. */
+  DB.sinEditorial=!!obrp.error||!!obpp.error;
+  DB.obras=DB.sinEditorial?[]:(obrp.data||[]).map(r=>fromRow("obras",r));
+  DB.obraParticipantes=DB.sinEditorial?[]:(obpp.data||[]).map(r=>fromRow("obraParticipantes",r));
+  if(DB.sinEditorial)console.warn("Sección Editorial no disponible:",(obrp.error||obpp.error).message);
   DB.sinMedios=!!medp.error;
   DB.medios=DB.sinMedios?[]:(medp.data||[]).map(r=>fromRow("medios",r));
   if(DB.sinMedios)console.warn("Tabla «medios» no disponible:",medp.error.message);
@@ -2905,6 +2924,7 @@ const VIEWS=[
   {id:"medios",label:"Medios",k:"p"},
   {id:"mapa",label:"Mapa",k:"9"},
   {id:"canciones",label:"Canciones",k:"m"},
+  {id:"editorial",label:"Editorial",k:"e"},
   {id:"bolsillo",label:"Bolsillo",k:"b"},
   {id:"redes",label:"Redes",k:"r"},
   {id:"capturas",label:"Transcripción",k:"c"},
@@ -2927,6 +2947,7 @@ const ICONO_VIEW={
   mapa:"M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
   temas:"M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3z",
   canciones:"M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM3 21h4",
+  editorial:"M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM14 10.5a2.5 2.5 0 1 0 0 3",
   bolsillo:"M4 8h16v12H4zM4 8l3-5h10l3 5M9 12a3 3 0 0 0 6 0",
   redes:"M4 20h16M4 16l5-6 4 4 7-8M16 6h4v4",
   capturas:"M4 8h3l2-3h6l2 3h3v12H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
@@ -2942,7 +2963,7 @@ const DOCK_PRIMERO=["panel","shows","contactos","redes","calendario"];
    Deben cubrir TODOS los ids de VIEWS: lo que falte no saldría en el menú. */
 const NAV_GRUPOS=[
   ["Día a día",["panel","calendario","shows","contactos","clientes"]],
-  ["Música",["canciones","bolsillo","redes"]],
+  ["Música",["canciones","editorial","bolsillo","redes"]],
   ["Gestión",["producciones","documentos","mailing","medios","mapa","capturas"]],
   ["Sistema",["equipo","generadores","datos"]]];
 const DOCK_VIEWS=[...DOCK_PRIMERO.map(id=>VIEWS.find(v=>v.id===id)),...VIEWS.filter(v=>!DOCK_PRIMERO.includes(v.id))];
@@ -2986,6 +3007,7 @@ let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",doc
   ordenShows:"fecha_asc",ordenClientes:"cat",ordenContactos:"cat",relBD:"",ordenDocs:"fecha_desc",
   ordenMailing:"alpha",ordenMapa:"n_desc",anio:String(new Date().getFullYear()),
   temaQ:"",temaCliente:"",temaEstado:"",ordenTemas:"envio_desc",
+  edVista:"alertas",edQ:"",edAutor:"",edSoloProblema:false,
   cancionQ:"",cancionArtista:"",ordenCanciones:"artista",cancionVista:"galeria",cancionGrupo:"artista",
   cancionTipo:"",cancionPortada:"release",cancionDesde:"",cancionHasta:"",
   bolsilloArtista:"",bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
@@ -3185,7 +3207,7 @@ function render(){
   ({panel:viewPanel,calendario:viewCalendario,shows:viewShows,producciones:viewEventos,
     clientes:viewClientes,contactos:viewContactos,documentos:viewDocumentos,
     mailing:viewMailing,medios:viewMedios,mapa:viewMapa,canciones:viewCanciones,
-    bolsillo:viewBolsillo,redes:viewRedes,
+    editorial:viewEditorial,bolsillo:viewBolsillo,redes:viewRedes,
     equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos,
     inicio:viewInicioPortal})[VIEW](el,ta);
   /* Cascada de entrada solo al cambiar de apartado: los nodos recién
@@ -6352,6 +6374,151 @@ function susFiltrados(){
 }
 const TIPOS_MEDIO=["Periodista","Radio","Playlist","Medio digital","Revista","Blog","TV","Podcast","Sello / distribuidora","Otro"];
 function igUrlMedio(h){h=String(h||"").trim();if(!h)return"";if(/^https?:/i.test(h))return h;return "https://instagram.com/"+h.replace(/^@/,"");}
+/* ════════ EDITORIAL / SGAE ════════
+   El lado de la OBRA (autoría), separado a propósito del de la GRABACIÓN
+   (Canciones/Bolsillo): liquida por ISWC y no por ISRC, es semestral y reparte
+   entre autores y editoriales. Los datos entran por los exports de UMPG Window
+   (herramientas/umpg) — aquí SOLO SE LEEN, no se editan.
+
+   Lo que de verdad importa de esta sección no es el catálogo, es la pestaña de
+   alertas: qué obras tienen un trozo de autoría sin dueño, sin sociedad o fuera
+   de control. Eso es dinero que no está llegando a nadie. */
+
+/* Radiografía de una obra: quién cobra, cuánto y qué falla. */
+function edObra(o){
+  const ps=(DB.obraParticipantes||[]).filter(p=>p.obraId===o.id);
+  const autores=ps.filter(p=>p.capacidad==="CA");
+  const desconocido=ps.filter(p=>p.nombre==="Unknown Publisher");
+  const pctHuerfano=desconocido.reduce((a,p)=>a+(+p.mecanicoPct||0),0);
+  const sinSociedad=ps.filter(p=>p.sociedad==="NS").length;
+  const noControlada=ps.filter(p=>p.controlada===false).length;
+  /* Del roster: los que además cobran la mitad en vez de tres cuartos porque no
+     tienen editorial asignada en esta obra. */
+  const mios=autores.filter(p=>p.clienteId);
+  const aMedias=mios.filter(p=>p.contPct&&Math.abs((+p.mecanicoPct/+p.contPct)-0.5)<0.02);
+  return {ps,autores,mios,aMedias,pctHuerfano,sinSociedad,noControlada,
+    sinIswc:!o.iswc,problema:pctHuerfano>0||sinSociedad>0||noControlada>0};
+}
+function edNombreCliente(id){
+  const c=(DB.clientes||[]).find(x=>x.id===id);
+  return c?(c.nombre||c.nombreReal||"—"):null;
+}
+
+function viewEditorial(el,ta){
+  if(DB.sinEditorial){
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Falta ejecutar el SQL de Editorial.</strong><br>
+      Pide al desarrollador que ejecute <code>supabase/editorial.sql</code> y <code>supabase/editorial-datos.sql</code>, y recarga.</p></div></div>`;return;
+  }
+  const obras=(DB.obras||[]).slice();
+  if(!obras.length){
+    el.innerHTML=`<div class="card"><div class="empty">
+      <p><strong>Catálogo editorial.</strong><br>Las obras registradas en la editorial, con sus autores, su ISWC y su reparto.
+      Se carga desde los exports de UMPG Window con <code>herramientas/umpg</code>.</p></div></div>`;return;
+  }
+  const info=new Map(obras.map(o=>[o.id,edObra(o)]));
+  const conProblema=obras.filter(o=>info.get(o.id).problema);
+  const sinIswc=obras.filter(o=>!o.iswc).length;
+
+  ta.innerHTML=`<button class="btn ghost" data-act="ed-vista" data-v="alertas"${filtro.edVista==="alertas"?' disabled':''}>Alertas</button>
+    <button class="btn ghost" data-act="ed-vista" data-v="catalogo"${filtro.edVista==="catalogo"?' disabled':''}>Catálogo</button>`;
+  document.getElementById("viewSub").textContent=
+    `${obras.length} obras · ${obras.length-sinIswc} con ISWC · ${conProblema.length} con algo que reclamar`;
+
+  if(filtro.edVista==="catalogo") return edCatalogo(el,obras,info);
+  return edAlertas(el,obras,info,conProblema);
+}
+
+function edAlertas(el,obras,info,conProblema){
+  /* Por dinero, no por orden alfabético: primero lo que más porcentaje de obra
+     tiene sin dueño. Y si la obra está enlazada a una grabación del catálogo,
+     enseñamos lo que genera de máster para priorizar de verdad. */
+  const list=conProblema.slice().sort((a,b)=>info.get(b.id).pctHuerfano-info.get(a.id).pctHuerfano
+    ||(a.titulo||"").localeCompare(b.titulo||""));
+  const totalHuerfano=list.reduce((a,o)=>a+info.get(o.id).pctHuerfano,0);
+  const afectados=new Map();
+  list.forEach(o=>info.get(o.id).aMedias.forEach(p=>{
+    const n=edNombreCliente(p.clienteId)||p.nombre;afectados.set(n,(afectados.get(n)||0)+1)}));
+
+  if(!list.length){
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Sin alertas.</strong><br>
+      Todas las obras tienen editorial identificada, sociedad y control.</p></div></div>`;return;
+  }
+  el.innerHTML=`
+  <div class="card"><div class="body">
+    <p><strong>${list.length} de ${obras.length} obras</strong> tienen un trozo de la autoría que no está llegando a nadie:
+    sin editorial identificada, sin sociedad o fuera del control del editor.
+    Suman <strong>${totalHuerfano.toFixed(2)} puntos</strong> de obra sin dueño.</p>
+    ${afectados.size?`<p class="hint">Del roster, cobran la mitad en vez de tres cuartos en esas obras:
+      ${[...afectados.entries()].sort((a,b)=>b[1]-a[1]).map(([n,c])=>`<span class="pill">${esc(n)} · ${c}</span>`).join(" ")}</p>`:""}
+  </div></div>
+  <div class="card"><div class="body flush">
+  <table><thead><tr><th>Obra</th><th>Autores del roster</th><th style="text-align:right">Sin dueño</th><th>Qué falla</th></tr></thead>
+  <tbody>${list.map(o=>{
+    const d=info.get(o.id);
+    const mios=d.mios.map(p=>{
+      const n=edNombreCliente(p.clienteId)||p.nombre;
+      const medias=d.aMedias.includes(p);
+      return `<span class="pill${medias?"":" artist"}"${medias?' style="border-color:var(--alert);color:var(--alert)" title="Cobra el 50% en vez del 75%: no tiene editorial asignada en esta obra"':''}>${esc(n)}</span>`;
+    }).join(" ");
+    return `<tr>
+      <td class="strong"><span>${esc(o.titulo||o.workCode)}</span>
+        <div class="dim tiny">${esc(o.workCode)}${o.iswc?" · "+esc(o.iswc):' · <span style="color:var(--alert)">sin ISWC</span>'}</div></td>
+      <td>${mios||'<span class="dim tiny">—</span>'}</td>
+      <td style="text-align:right"><strong>${d.pctHuerfano?d.pctHuerfano.toFixed(2)+"%":"—"}</strong></td>
+      <td class="tiny">
+        ${d.pctHuerfano?'<span class="pill" style="border-color:var(--alert);color:var(--alert)">editor desconocido</span> ':""}
+        ${d.sinSociedad?`<span class="pill">sin sociedad ×${d.sinSociedad}</span> `:""}
+        ${d.noControlada?`<span class="pill">sin control ×${d.noControlada}</span>`:""}
+      </td></tr>`}).join("")}</tbody></table>
+  </div></div>`;
+}
+
+function edCatalogo(el,obras,info){
+  let list=obras.slice();
+  if(filtro.edQ){const q=filtro.edQ.toLowerCase();
+    list=list.filter(o=>[o.titulo,o.workCode,o.iswc,o.recordedBy].join(" ").toLowerCase().includes(q))}
+  if(filtro.edAutor)list=list.filter(o=>info.get(o.id).mios.some(p=>p.clienteId===filtro.edAutor));
+  if(filtro.edSoloProblema)list=list.filter(o=>info.get(o.id).problema);
+  list.sort((a,b)=>(a.titulo||"").localeCompare(b.titulo||""));
+
+  /* Solo los clientes que de verdad figuran como autores en alguna obra. */
+  const autores=[...new Set((DB.obraParticipantes||[]).filter(p=>p.clienteId).map(p=>p.clienteId))]
+    .map(id=>[id,edNombreCliente(id)]).filter(x=>x[1]).sort((a,b)=>a[1].localeCompare(b[1]));
+
+  el.innerHTML=`
+  <div class="filters">
+    <input type="search" id="edq" placeholder="Buscar obra, código, ISWC…" value="${esc(filtro.edQ||"")}">
+    <select id="edaut"><option value="">Todos los autores</option>
+      ${autores.map(([id,n])=>`<option value="${esc(id)}"${filtro.edAutor===id?" selected":""}>${esc(n)}</option>`).join("")}</select>
+    <label class="chk"><input type="checkbox" id="edprob"${filtro.edSoloProblema?" checked":""}> Solo con problema</label>
+    ${(filtro.edQ||filtro.edAutor||filtro.edSoloProblema)?`<button class="btn ghost sm" id="edclr">Quitar filtros</button>`:""}
+  </div>
+  <div class="card"><div class="body flush">
+  <table><thead><tr><th>Obra</th><th>Autores</th><th>ISWC</th><th>Grabada por</th><th></th></tr></thead>
+  <tbody>${list.map(o=>{
+    const d=info.get(o.id);
+    return `<tr>
+      <td class="strong"><span>${esc(o.titulo||"(sin título)")}</span><div class="dim tiny">${esc(o.workCode)}</div></td>
+      <td class="tiny">${d.autores.map(p=>{
+        const n=edNombreCliente(p.clienteId);
+        return `<span class="pill${n?" artist":""}" title="${(+p.contPct||0).toFixed(2)}% de la obra">${esc(n||p.nombre)} ${(+p.contPct||0).toFixed(0)}%</span>`;
+      }).join(" ")}</td>
+      <td class="dim tiny">${o.iswc?esc(o.iswc):"—"}</td>
+      <td class="dim tiny">${esc(o.recordedBy||"—")}</td>
+      <td style="width:1%;white-space:nowrap;text-align:right">
+        ${d.problema?'<span class="pill" style="border-color:var(--alert);color:var(--alert)" title="Tiene autoría sin dueño, sin sociedad o fuera de control">!</span>':""}
+      </td></tr>`}).join("")}</tbody></table>
+  </div></div>`;
+  const q=document.getElementById("edq");
+  if(q)q.addEventListener("input",e=>{filtro.edQ=e.target.value;clearTimeout(window.__edT);window.__edT=setTimeout(render,220)});
+  const fa=document.getElementById("edaut");
+  if(fa)fa.addEventListener("change",e=>{filtro.edAutor=e.target.value;render()});
+  const fp=document.getElementById("edprob");
+  if(fp)fp.addEventListener("change",e=>{filtro.edSoloProblema=e.target.checked;render()});
+  const cl=document.getElementById("edclr");
+  if(cl)cl.addEventListener("click",()=>{filtro.edQ="";filtro.edAutor="";filtro.edSoloProblema=false;render()});
+}
+
 function viewMedios(el,ta){
   ta.innerHTML=`<button class="btn primary" data-act="new-medio">Nuevo contacto</button>`;
   const list0=(DB.medios||[]).slice();
@@ -11386,6 +11553,7 @@ document.addEventListener("click",e=>{
       </div>`);
       return;
     }
+    if(act==="ed-vista"){filtro.edVista=t.dataset.v||"alertas";render();return}
     if(act==="new-tarea")return formTarea(null);
     if(act==="new-medio")return formMedios(null);
     if(act==="save-medio")return saveMedios(el.dataset.new==="1");
