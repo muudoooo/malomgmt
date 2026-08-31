@@ -1669,7 +1669,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.038";
+const APP_VERSION="0.039";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1678,6 +1678,8 @@ const APP_VERSION="0.038";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-31",v:"0.039",cambios:[
+    "En Merch, «Ticket medio» pasa a ser «Precio medio por artículo». Lo de antes era el valor medio del pedido, que mezcla el envío y no dice a cuánto se vende una pieza; ahora se calcula por unidad vendida."]},
   {fecha:"2026-08-31",v:"0.038",cambios:[
     "Los artículos de merch ya se pueden fichar desde la app: coste por unidad, quién pagó la producción, unidades fabricadas, tipo de IVA y el enlace a la factura. Pulsa cualquier producto en la tabla.",
     "La comisión de MALO en merch se calcula después de gastos, y depende de quién puso el dinero: si lo paga el artista va sobre el margen, y si lo adelanta MALO va sobre el bruto — es mayor, porque asume el riesgo y además recupera el coste con las ventas.",
@@ -5847,7 +5849,11 @@ function viewMerch(el,ta){
 
   const ingresos=pedidos.reduce((a,p)=>a+p.total,0);
   const nPed=pedidos.length;
-  const ticket=nPed?ingresos/nPed:0;
+  /* «Ticket medio» era total de pedidos / nº de pedidos: correcto, pero mezcla el
+     envio y no dice a cuanto se vende una pieza. Lo que interesa en merch es el
+     precio medio del ARTICULO, asi que se calcula sobre las lineas. */
+  const pvpTotal=lin.reduce((a,l)=>a+l.pvp,0);
+  const precioMedio=unidades?pvpTotal/unidades:0;
   const unidades=lin.reduce((a,l)=>a+l.cantidad,0);
   /* La base imponible: lo que de verdad es ingreso. «Ingresos (pedidos)» incluye
      envío e impuestos, así que no cuadra con el desglose por producto — y no debe. */
@@ -5892,7 +5898,8 @@ function viewMerch(el,ta){
     <div class="cell"><div class="lab">Base de producto</div><div class="val">${eur0(base)}</div>
       <div class="note">sin IVA (${eur0(impuesto)} de impuesto)${hayEstimado?" · parte estimada":""}</div></div>
     <div class="cell"><div class="lab">Pedidos</div><div class="val">${nPed}</div></div>
-    <div class="cell"><div class="lab">Ticket medio</div><div class="val">${eur0(ticket)}</div></div>
+    <div class="cell"><div class="lab">Precio medio por artículo</div><div class="val">${eur(precioMedio)}</div>
+      <div class="note">PVP con IVA · ${unidades} unidades</div></div>
     <div class="cell"><div class="lab">Unidades</div><div class="val v-artist">${unidades}</div></div>
     ${portal?"":`<div class="cell"><div class="lab">Coste producción</div><div class="val v-alert">${eur0(totCoste)}</div>
       <div class="note">${sinFichar?`${sinFichar} sin coste fichado`:"todo fichado"}</div></div>
