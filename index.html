@@ -1669,7 +1669,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.035";
+const APP_VERSION="0.036";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1678,6 +1678,11 @@ const APP_VERSION="0.035";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-31",v:"0.036",cambios:[
+    "Nueva sección «Merch»: las ventas de las tiendas Shopify (MALO y Disobey) entran solas cada madrugada. Ingresos, pedidos, ticket medio, unidades, evolución mensual, desglose por producto y por artista, y la lista de pedidos.",
+    "El merch se asigna a cada artista por el nombre del producto («ROOMTRASH - …» cuenta para roomtrash), y aparece en su Bolsillo como tercera fuente junto a canciones y shows.",
+    "En Bolsillo el merch se puede quitar del total con una casilla («contar en el total»), para mirar solo música y shows cuando haga falta.",
+    "Ojo con los números: el importe por producto no lleva envío ni impuestos; el total del pedido sí. Los envíos del merch de Disobey los gestiona su departamento — aquí solo se mira el dinero."]},
   {fecha:"2026-08-31",v:"0.035",cambios:[
     "Nueva pestaña «Colaboraciones» en Canciones: los temas de otros artistas donde los nuestros ponen voz o producción. Ahí el máster es del otro, así que lo único que entra es la autoría.",
     "Cada una enseña qué porcentaje de la obra es nuestro y cuánto se liquidó el último semestre, que es lo que hace falta para estimar. La editorial paga cada 6 meses y con casi un año de retraso, así que un tema estrenado hoy no aparece hasta el año que viene.",
@@ -2372,6 +2377,14 @@ async function loadRemote(){
     sincronizadoEn:r.sincronizado_en||""}))
     .sort((a,b)=>(b.fechaIni||"").localeCompare(a.fechaIni||""));
   if(DB.sinEnterticket)console.warn("Tabla «et_eventos» no disponible:",etv.error.message);
+  /* Merch (Shopify): tabla «merch_ventas», la llena la función shopify-sync
+     cada madrugada. Solo lectura aquí. Sin el SQL la app va y la sección lo dice. */
+  const mv=await fetchTodos("merch_ventas");
+  DB.sinMerch=!!mv.error;
+  DB.merch=DB.sinMerch?[]:(mv.data||[]).map(r=>({id:String(r.id),tienda:r.tienda||"",numero:r.numero||"",
+    fecha:r.fecha||"",email:r.email||"",comprador:r.cliente||"",total:n(r.total),moneda:r.moneda||"EUR",
+    estadoPago:r.estado_pago||"",items:Array.isArray(r.items)?r.items:[]}));
+  if(DB.sinMerch)console.warn("Tabla «merch_ventas» no disponible:",mv.error.message);
   DB.sinEnterticketProd=!!etp.error;
   if(DB.sinEnterticketProd)console.warn("Columna «producciones.enterticket_id» no disponible:",etp.error.message);
   DB.sinEtArtistas=!!eta.error;
@@ -2960,6 +2973,7 @@ const VIEWS=[
   {id:"canciones",label:"Canciones",k:"m"},
   {id:"editorial",label:"Editorial",k:"e"},
   {id:"bolsillo",label:"Bolsillo",k:"b"},
+  {id:"merch",label:"Merch",k:"h"},
   {id:"redes",label:"Redes",k:"r"},
   {id:"capturas",label:"Transcripción",k:"c"},
   {id:"equipo",label:"Equipo",k:"0"},
@@ -2983,6 +2997,7 @@ const ICONO_VIEW={
   canciones:"M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM3 21h4",
   editorial:"M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM14 10.5a2.5 2.5 0 1 0 0 3",
   bolsillo:"M4 8h16v12H4zM4 8l3-5h10l3 5M9 12a3 3 0 0 0 6 0",
+  merch:"M8 4l4 2 4-2 4 4-3 2v10H7V10L4 8zM9 4a3 3 0 0 0 6 0",
   redes:"M4 20h16M4 16l5-6 4 4 7-8M16 6h4v4",
   capturas:"M4 8h3l2-3h6l2 3h3v12H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   equipo:"M4 5h16v11H9l-5 4z",
@@ -2997,7 +3012,7 @@ const DOCK_PRIMERO=["panel","shows","contactos","redes","calendario"];
    Deben cubrir TODOS los ids de VIEWS: lo que falte no saldría en el menú. */
 const NAV_GRUPOS=[
   ["Día a día",["panel","calendario","shows","contactos","clientes"]],
-  ["Música",["canciones","editorial","bolsillo","redes"]],
+  ["Música",["canciones","editorial","bolsillo","merch","redes"]],
   ["Gestión",["producciones","documentos","mailing","medios","mapa","capturas"]],
   ["Sistema",["equipo","generadores","datos"]]];
 const DOCK_VIEWS=[...DOCK_PRIMERO.map(id=>VIEWS.find(v=>v.id===id)),...VIEWS.filter(v=>!DOCK_PRIMERO.includes(v.id))];
@@ -3045,7 +3060,8 @@ let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",doc
   edVista:"alertas",edQ:"",edAutor:"",edSoloProblema:false,edPeriodo:"",extQ:"",extArtista:"",
   cancionQ:"",cancionArtista:"",ordenCanciones:"artista",cancionVista:"galeria",cancionGrupo:"artista",
   cancionTipo:"",cancionPortada:"release",cancionDesde:"",cancionHasta:"",
-  bolsilloArtista:"",bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
+  bolsilloArtista:"",bolsilloMerch:true,bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
+  merchTienda:"",merchArtista:"",
   redesArtista:"",etDesde:"2026"};
 const _n=new Date();
 let CAL={y:_n.getFullYear(),m:_n.getMonth(),sel:null,cliente:"",categoria:"",sub:"",tipo:""};
@@ -3242,7 +3258,7 @@ function render(){
   ({panel:viewPanel,calendario:viewCalendario,shows:viewShows,producciones:viewEventos,
     clientes:viewClientes,contactos:viewContactos,documentos:viewDocumentos,
     mailing:viewMailing,medios:viewMedios,mapa:viewMapa,canciones:viewCanciones,
-    editorial:viewEditorial,bolsillo:viewBolsillo,redes:viewRedes,
+    editorial:viewEditorial,bolsillo:viewBolsillo,merch:viewMerch,redes:viewRedes,
     equipo:viewEquipo,capturas:viewCapturas,generadores:viewGeneradores,datos:viewDatos,
     inicio:viewInicioPortal})[VIEW](el,ta);
   /* Cascada de entrada solo al cambiar de apartado: los nodos recién
@@ -5439,8 +5455,37 @@ function saveCancion(isNew){
   touch();
 }
 
+/* ── Merch (Shopify) ──────────────────────────────────────────────────────
+   Cada pedido trae sus líneas en items [{titulo,cantidad,importe}]. El
+   artista se deduce del título del producto («ROOMTRASH - …» → roomtrash):
+   se compara el prefijo del título con nombre y nombre real de cada cliente,
+   en ambos sentidos, para que «ROOMTRASH» case con «roomtrash6». */
+function merchArtistaDe(titulo){
+  const t=(titulo||"").trim().toLowerCase();if(!t)return null;
+  const pref=t.split(/\s*[-–·|]\s*/)[0].trim();
+  const art=(DB.clientes||[]).find(c=>[c.nombre,c.nombreReal].filter(Boolean)
+    .map(x=>String(x).trim().toLowerCase())
+    .some(nm=>nm&&(t.startsWith(nm)||(pref.length>=4&&nm.startsWith(pref)))));
+  return art?art.id:null;
+}
+function merchLineas(){
+  const out=[];
+  (DB.merch||[]).forEach(p=>{(p.items||[]).forEach(it=>{
+    out.push({pedidoId:p.id,numero:p.numero,tienda:p.tienda,fecha:p.fecha,mes:(p.fecha||"").slice(0,7),
+      email:p.email,comprador:p.comprador,titulo:it.titulo||"—",cantidad:n(it.cantidad),
+      importe:n(it.importe),artistaId:merchArtistaDe(it.titulo)});
+  })});
+  return out;
+}
+function merchPorMes(cli){
+  const out={};
+  merchLineas().filter(l=>!cli||l.artistaId===cli)
+    .forEach(l=>{if(l.mes)out[l.mes]=(out[l.mes]||0)+l.importe});
+  return out;
+}
 function viewBolsillo(el,ta){
-  const artistas=DB.clientes.slice().filter(c=>cancionesDe(c.id).length||showsDeArtista(c.id).length)
+  const lineasMerch=merchLineas();
+  const artistas=DB.clientes.slice().filter(c=>cancionesDe(c.id).length||showsDeArtista(c.id).length||lineasMerch.some(l=>l.artistaId===c.id))
     .sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
   if(!filtro.bolsilloArtista&&artistas.length)filtro.bolsilloArtista=artistas[0].id;
   ta.innerHTML=`<select id="bsArt" style="background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;padding:6px 10px">
@@ -5455,9 +5500,12 @@ function viewBolsillo(el,ta){
   const cli=filtro.bolsilloArtista;
   const r=rangoBolsillo(),rAnt=rangoAnterior(r);
   const cancMes=bolsilloCancionesPorMes(cli),showMes=bolsilloShowsPorMes(cli);
+  const merchMes=merchPorMes(cli);
+  const conMerch=!!filtro.bolsilloMerch;
   const totalCanciones=sumaEnRango(cancMes,r),totalShows=sumaEnRango(showMes,r);
-  const totalAnt=rAnt?sumaEnRango(cancMes,rAnt)+sumaEnRango(showMes,rAnt):null;
-  const totalActual=totalCanciones+totalShows;
+  const totalMerch=sumaEnRango(merchMes,r);
+  const totalAnt=rAnt?sumaEnRango(cancMes,rAnt)+sumaEnRango(showMes,rAnt)+(conMerch?sumaEnRango(merchMes,rAnt):0):null;
+  const totalActual=totalCanciones+totalShows+(conMerch?totalMerch:0);
   const variacion=totalAnt!==null&&totalAnt>0?((totalActual-totalAnt)/totalAnt*100):null;
 
   document.getElementById("viewSub").textContent=r.label;
@@ -5466,6 +5514,7 @@ function viewBolsillo(el,ta){
   const m12=meses12();
   const serieCanc=m12.map(k=>cancMes[k]?cancMes[k].pool:0);
   const serieShows=m12.map(k=>showMes[k]||0);
+  const serieMerch=m12.map(k=>conMerch?(merchMes[k]||0):0);
   const maxBar=Math.max(1,...m12.map((k,i)=>serieCanc[i]+serieShows[i]));
 
   const porCancion=participacionesDe(cli).map(p=>{
@@ -5485,6 +5534,9 @@ function viewBolsillo(el,ta){
     ingresosDe(c.id).filter(i=>(i.mes||"").slice(0,7)>=r.desde&&(i.mes||"").slice(0,7)<=r.hasta)
       .forEach(i=>combinado.push({fecha:i.mes,tipo:"canción",titulo:tituloConCreditos(c),importe:poolDeMes(c,i.bruto)*n(p.pct)/100}));
   });
+  if(conMerch)merchLineas().filter(l=>l.artistaId===cli&&l.mes>=r.desde&&l.mes<=r.hasta)
+    .forEach(l=>combinado.push({fecha:(l.fecha||"").slice(0,10),tipo:"merch",
+      titulo:l.titulo+(l.cantidad>1?` ×${l.cantidad}`:""),importe:l.importe}));
   combinado.sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
 
   el.innerHTML=`
@@ -5508,14 +5560,18 @@ function viewBolsillo(el,ta){
       ${variacion!==null?`<div class="note">${variacion>=0?"↑":"↓"} ${pct(Math.abs(variacion))} vs periodo anterior</div>`:""}</div>
     <div class="cell"><div class="lab">Canciones</div><div class="val v-artist">${eur0(totalCanciones)}</div></div>
     <div class="cell"><div class="lab">Shows</div><div class="val">${eur0(totalShows)}</div></div>
+    ${(totalMerch>0||(DB.merch||[]).length)?`<div class="cell"><div class="lab">Merch</div>
+      <div class="val ${conMerch?"":"dim"}" style="${conMerch?"":"text-decoration:line-through;opacity:.55"}">${eur0(totalMerch)}</div>
+      <div class="note"><label style="cursor:pointer;display:inline-flex;align-items:center;gap:5px">
+        <input type="checkbox" id="bsMerchChk" ${conMerch?"checked":""}> contar en el total</label></div></div>`:""}
   </div>
 
   <div class="card"><header><h3>Evolución mensual · 12 meses</h3><div class="spacer"></div>
-    ${(()=>{const tot=m12.map((k,i)=>serieCanc[i]+serieShows[i]);const a=tot[tot.length-1],b=tot[tot.length-2]||0;
+    ${(()=>{const tot=m12.map((k,i)=>serieCanc[i]+serieShows[i]+serieMerch[i]);const a=tot[tot.length-1],b=tot[tot.length-2]||0;
       return (a||b)?`<span class="tiny ${a>=b?"v-ok":"v-alert"}" style="font-family:var(--mono)">${a>=b?"▲":"▼"} ${eur0(Math.abs(a-b))} vs mes anterior</span>`:""})()}
   </header><div class="body">
   ${(()=>{
-    const tot=m12.map((k,i)=>serieCanc[i]+serieShows[i]);
+    const tot=m12.map((k,i)=>serieCanc[i]+serieShows[i]+serieMerch[i]);
     if(!tot.some(v=>v>0))return `<div class="empty"><p>Sin movimientos en los últimos 12 meses.</p></div>`;
     const W=320,H=100,vmax=Math.max(...tot);
     const ey=v=>H-12-(v/Math.max(1,vmax))*(H-26);
@@ -5527,7 +5583,7 @@ function viewBolsillo(el,ta){
         <stop offset="0" stop-color="#F0568F" stop-opacity=".32"/><stop offset="1" stop-color="#F0568F" stop-opacity="0"/></linearGradient></defs>
       <path d="${area}" fill="url(#gradBolsillo)"/>
       <path d="${linea}" fill="none" stroke="var(--malo)" stroke-width="2.5" stroke-linecap="round"/>
-      ${pts.map((pt,i)=>`<circle cx="${pt[0].toFixed(1)}" cy="${pt[1].toFixed(1)}" r="3" fill="var(--malo)"><title>${NOM[+m12[i].slice(5,7)-1]}: ${eur(tot[i])} · canciones ${eur(serieCanc[i])} · shows ${eur(serieShows[i])}</title></circle>`).join("")}
+      ${pts.map((pt,i)=>`<circle cx="${pt[0].toFixed(1)}" cy="${pt[1].toFixed(1)}" r="3" fill="var(--malo)"><title>${NOM[+m12[i].slice(5,7)-1]}: ${eur(tot[i])} · canciones ${eur(serieCanc[i])} · shows ${eur(serieShows[i])}${conMerch&&serieMerch[i]?` · merch ${eur(serieMerch[i])}`:""}</title></circle>`).join("")}
     </svg>
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mute-2);margin-top:6px">
       ${m12.map((k,ix)=>`<span>${ix%2?"":NOM[+k.slice(5,7)-1]}</span>`).join("")}</div>`;
@@ -5544,8 +5600,8 @@ function viewBolsillo(el,ta){
     <div class="card"><header><h3>Shows + Canciones combinado</h3></header><div class="body flush">
       ${combinado.length?`<table><thead><tr><th>Fecha</th><th>Origen</th><th>Detalle</th><th class="num">Importe</th></tr></thead>
       <tbody>${combinado.slice(0,60).map(x=>`<tr>
-        <td class="tiny dim" style="font-family:var(--mono)">${x.tipo==="show"?fecha(x.fecha):x.fecha.slice(0,7)}</td>
-        <td><span class="pill ${x.tipo==="show"?"artist":"malo"}">${x.tipo}</span></td>
+        <td class="tiny dim" style="font-family:var(--mono)">${x.tipo==="canción"?x.fecha.slice(0,7):fecha(x.fecha)}</td>
+        <td><span class="pill ${x.tipo==="show"?"artist":x.tipo==="merch"?"ok":"malo"}">${x.tipo}</span></td>
         <td class="dim">${esc(x.titulo)}</td><td class="num">${eur0(x.importe)}</td></tr>`).join("")}</tbody></table>`
       :`<div class="empty"><p>Nada en este periodo todavía.</p></div>`}
     </div></div>
@@ -5561,6 +5617,8 @@ function viewBolsillo(el,ta){
   if(sme)sme.addEventListener("change",e=>{filtro.bolsilloMes=e.target.value;render()});
   const st=document.getElementById("bsTrim");
   if(st)st.addEventListener("change",e=>{filtro.bolsilloTrim=e.target.value;render()});
+  const bm=document.getElementById("bsMerchChk");
+  if(bm)bm.addEventListener("change",e=>{filtro.bolsilloMerch=e.target.checked;render()});
   const br=document.getElementById("bsReporte");
   if(br)br.addEventListener("click",()=>{const rr=rangoBolsillo();reporteRoyalties(cli,rr,etiquetaBolsillo(rr))});
 }
@@ -5656,6 +5714,128 @@ function reporteRoyalties(cliId,r,etiqueta){
    del mes y evolución de los últimos 12 meses. Los números se registran a mano
    (fecha + seguidores) hasta que se conecte cada red por API; con eso ya se
    puede calcular crecimiento aunque el dato no sea "tiempo real". */
+/* ── Merch: la tienda vista por dentro ──────────────────────────────────────
+   Los datos entran solos cada madrugada desde Shopify (tabla merch_ventas,
+   función shopify-sync). Aquí NO se gestiona logística (los envíos los lleva
+   otro departamento): esto es el dinero y qué se vende. El importe por
+   producto es la suma de líneas; el total del pedido incluye envío/impuestos,
+   por eso «Ingresos» (pedidos) es algo mayor que la suma por producto. */
+function viewMerch(el,ta){
+  if(DB.sinMerch||!(DB.merch||[]).length){
+    ta.innerHTML="";
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Todavía no hay ventas de merch que enseñar.</strong><br>
+      ${DB.sinMerch?"Falta ejecutar el SQL de merch (supabase/merch.sql) o la tabla no está accesible.":"La sincronización con Shopify corre cada madrugada; en cuanto haya pedidos, aparecen aquí."}</p></div></div>`;
+    return;
+  }
+  const tiendas=[...new Set((DB.merch||[]).map(p=>p.tienda).filter(Boolean))].sort();
+  const lineas=merchLineas();
+  const artIds=[...new Set(lineas.map(l=>l.artistaId).filter(Boolean))];
+  ta.innerHTML=`<select id="mrTienda" style="background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;padding:6px 10px">
+    <option value="">Todas las tiendas</option>
+    ${tiendas.map(t=>`<option value="${esc(t)}" ${filtro.merchTienda===t?"selected":""}>${esc(t.toUpperCase())}</option>`).join("")}</select>`;
+
+  const fT=p=>!filtro.merchTienda||p.tienda===filtro.merchTienda;
+  const fA=l=>!filtro.merchArtista||(filtro.merchArtista==="__otros"?!l.artistaId:l.artistaId===filtro.merchArtista);
+  const pedidos=(DB.merch||[]).filter(fT).filter(p=>!filtro.merchArtista||p.items.some(it=>{
+    const aid=merchArtistaDe(it.titulo);return filtro.merchArtista==="__otros"?!aid:aid===filtro.merchArtista}));
+  const lin=lineas.filter(l=>fT({tienda:l.tienda})).filter(fA);
+
+  const ingresos=pedidos.reduce((a,p)=>a+p.total,0);
+  const nPed=pedidos.length;
+  const ticket=nPed?ingresos/nPed:0;
+  const unidades=lin.reduce((a,l)=>a+l.cantidad,0);
+
+  const porProducto=Object.values(lin.reduce((m,l)=>{
+    const k=l.titulo;(m[k]=m[k]||{titulo:k,artistaId:l.artistaId,uds:0,imp:0});m[k].uds+=l.cantidad;m[k].imp+=l.importe;return m;
+  },{})).sort((a,b)=>b.imp-a.imp);
+  const porArtista=Object.values(lin.reduce((m,l)=>{
+    const k=l.artistaId||"__otros";(m[k]=m[k]||{id:k,uds:0,imp:0});m[k].uds+=l.cantidad;m[k].imp+=l.importe;return m;
+  },{})).sort((a,b)=>b.imp-a.imp);
+  const nomArt=id=>id==="__otros"?"Sin asignar":((cliente(id)||{}).nombre||(cliente(id)||{}).nombreReal||"—");
+
+  const NOM=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  const m12=meses12();
+  const mesMap={};pedidos.forEach(p=>{const k=(p.fecha||"").slice(0,7);if(k)mesMap[k]=(mesMap[k]||0)+p.total});
+  const tot=m12.map(k=>mesMap[k]||0);
+
+  document.getElementById("viewSub").textContent=`${nPed} pedidos · ${unidades} unidades`;
+
+  el.innerHTML=`
+  <div class="filters">
+    <select id="mrArt">
+      <option value="">Todos los artistas</option>
+      ${artIds.map(id=>`<option value="${id}" ${filtro.merchArtista===id?"selected":""}>${esc(nomArt(id))}</option>`).join("")}
+      ${lineas.some(l=>!l.artistaId)?`<option value="__otros" ${filtro.merchArtista==="__otros"?"selected":""}>Sin asignar</option>`:""}
+    </select>
+  </div>
+
+  <div class="strip">
+    <div class="cell"><div class="lab">Ingresos (pedidos)</div><div class="val v-malo">${eur0(ingresos)}</div>
+      <div class="note">con envío e impuestos</div></div>
+    <div class="cell"><div class="lab">Pedidos</div><div class="val">${nPed}</div></div>
+    <div class="cell"><div class="lab">Ticket medio</div><div class="val">${eur0(ticket)}</div></div>
+    <div class="cell"><div class="lab">Unidades</div><div class="val v-artist">${unidades}</div></div>
+  </div>
+
+  <div class="card"><header><h3>Evolución mensual · 12 meses</h3><div class="spacer"></div>
+    ${(()=>{const a=tot[tot.length-1],b=tot[tot.length-2]||0;
+      return (a||b)?`<span class="tiny ${a>=b?"v-ok":"v-alert"}" style="font-family:var(--mono)">${a>=b?"▲":"▼"} ${eur0(Math.abs(a-b))} vs mes anterior</span>`:""})()}
+  </header><div class="body">
+  ${(()=>{
+    if(!tot.some(v=>v>0))return `<div class="empty"><p>Sin ventas en los últimos 12 meses.</p></div>`;
+    const W=320,H=100,vmax=Math.max(...tot);
+    const ey=v=>H-12-(v/Math.max(1,vmax))*(H-26);
+    const pts=tot.map((v,i)=>[(i/(tot.length-1))*W,ey(v)]);
+    const linea=pts.map((pt,i)=>(i?"L":"M")+pt[0].toFixed(1)+","+pt[1].toFixed(1)).join(" ");
+    const area=`${linea} L${W},${H} L0,${H} Z`;
+    return `<svg width="100%" height="100" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Ventas de merch mensuales">
+      <defs><linearGradient id="gradMerch" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#3ECF8E" stop-opacity=".3"/><stop offset="1" stop-color="#3ECF8E" stop-opacity="0"/></linearGradient></defs>
+      <path d="${area}" fill="url(#gradMerch)"/>
+      <path d="${linea}" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round"/>
+      ${pts.map((pt,i)=>`<circle cx="${pt[0].toFixed(1)}" cy="${pt[1].toFixed(1)}" r="3" fill="var(--ok)"><title>${NOM[+m12[i].slice(5,7)-1]}: ${eur(tot[i])}</title></circle>`).join("")}
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mute-2);margin-top:6px">
+      ${m12.map((k,ix)=>`<span>${ix%2?"":NOM[+k.slice(5,7)-1]}</span>`).join("")}</div>`;
+  })()}
+  </div></div>
+
+  <div class="grid2">
+    <div class="card"><header><h3>Por producto</h3></header><div class="body flush">
+      ${porProducto.length?`<table><thead><tr><th>Producto</th><th>Artista</th><th class="num">Uds</th><th class="num">Importe</th></tr></thead>
+      <tbody>${porProducto.map(x=>`<tr>
+        <td class="strong">${esc(x.titulo)}</td>
+        <td class="dim">${esc(x.artistaId?nomArt(x.artistaId):"—")}</td>
+        <td class="num">${x.uds}</td><td class="num v-artist">${eur0(x.imp)}</td></tr>`).join("")}</tbody></table>`
+      :`<div class="empty"><p>Nada con este filtro.</p></div>`}
+    </div></div>
+    <div class="card"><header><h3>Por artista <span class="dim tiny">(esto alimenta su Bolsillo)</span></h3></header><div class="body flush">
+      ${porArtista.length?`<table><thead><tr><th>Artista</th><th class="num">Uds</th><th class="num">Importe</th></tr></thead>
+      <tbody>${porArtista.map(x=>`<tr>
+        <td class="strong">${esc(nomArt(x.id))}</td>
+        <td class="num">${x.uds}</td><td class="num v-malo">${eur0(x.imp)}</td></tr>`).join("")}</tbody></table>`
+      :`<div class="empty"><p>Nada con este filtro.</p></div>`}
+    </div></div>
+  </div>
+
+  <div class="card"><header><h3>Pedidos</h3><div class="spacer"></div>
+    <span class="dim tiny">los envíos los gestiona el departamento de la tienda</span></header><div class="body flush">
+    <table><thead><tr><th>Fecha</th><th>Nº</th><th>Tienda</th><th>Comprador</th><th>Artículos</th><th class="num">Total</th><th>Pago</th></tr></thead>
+    <tbody>${pedidos.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,80).map(p=>`<tr>
+      <td class="tiny dim" style="font-family:var(--mono)">${fecha((p.fecha||"").slice(0,10))}</td>
+      <td class="tiny" style="font-family:var(--mono)">${esc(p.numero)}</td>
+      <td><span class="pill ${p.tienda==="malo"?"malo":"ok"}">${esc(p.tienda)}</span></td>
+      <td class="dim">${esc(p.comprador||p.email||"—")}</td>
+      <td class="dim tiny">${esc(p.items.map(it=>`${it.titulo}${n(it.cantidad)>1?` ×${n(it.cantidad)}`:""}`).join(" · "))}</td>
+      <td class="num strong">${eur0(p.total)}</td>
+      <td class="tiny dim">${esc((p.estadoPago||"").toLowerCase())}</td></tr>`).join("")}</tbody></table>
+  </div></div>`;
+
+  const st=document.getElementById("mrTienda");
+  if(st)st.addEventListener("change",e=>{filtro.merchTienda=e.target.value;render()});
+  const sa2=document.getElementById("mrArt");
+  if(sa2)sa2.addEventListener("change",e=>{filtro.merchArtista=e.target.value;render()});
+}
 function viewRedes(el,ta){
   const artistas=DB.clientes.slice().filter(c=>(c.categoria||"artista")!=="evento")
     .sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
