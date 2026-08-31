@@ -1669,7 +1669,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.040";
+const APP_VERSION="0.041";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1678,6 +1678,8 @@ const APP_VERSION="0.040";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-09-01",v:"0.041",cambios:[
+    "Arreglada la sección Merch, que desde ayer se quedaba en blanco al abrirla. El cambio del «Precio medio por artículo» leía las unidades una línea antes de calcularlas, y eso corta la vista entera."]},
   {fecha:"2026-08-31",v:"0.039",cambios:[
     "En Merch, «Ticket medio» pasa a ser «Precio medio por artículo». Lo de antes era el valor medio del pedido, que mezcla el envío y no dice a cuánto se vende una pieza; ahora se calcula por unidad vendida."]},
   {fecha:"2026-08-31",v:"0.038",cambios:[
@@ -5866,8 +5868,8 @@ function viewMerch(el,ta){
      envio y no dice a cuanto se vende una pieza. Lo que interesa en merch es el
      precio medio del ARTICULO, asi que se calcula sobre las lineas. */
   const pvpTotal=lin.reduce((a,l)=>a+l.pvp,0);
-  const precioMedio=unidades?pvpTotal/unidades:0;
   const unidades=lin.reduce((a,l)=>a+l.cantidad,0);
+  const precioMedio=unidades?pvpTotal/unidades:0;
   /* La base imponible: lo que de verdad es ingreso. «Ingresos (pedidos)» incluye
      envío e impuestos, así que no cuadra con el desglose por producto — y no debe. */
   const base=lin.reduce((a,l)=>a+l.importe,0);

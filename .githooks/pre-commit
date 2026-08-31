@@ -56,6 +56,20 @@ fi
 
 echo "  OK  index.html compila"
 
+# ── Prueba de humo: ejecutar, no solo compilar ───────────────────────────────
+# Compilar no basta. Han pasado a produccion dos fallos que compilaban bien y
+# reventaban al ejecutarse (pestañas de Editorial en v0.030, seccion Merch en
+# v0.039). Esto pinta cada vista con un DOM y una BD falsos.
+if [ -x herramientas/humo.sh ]; then
+  if ! herramientas/humo.sh; then
+    echo ""
+    echo "  X  alguna vista revienta al ejecutarse - commit cancelado"
+    echo "     Compila, pero el usuario veria la seccion en blanco."
+    echo ""
+    exit 1
+  fi
+fi
+
 # ── Freno de mano: borrados masivos ──────────────────────────────────────────
 #
 # Por que existe: el 27 ago 2026 dos commits distintos se escribieron a partir
