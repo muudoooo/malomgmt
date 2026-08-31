@@ -1669,7 +1669,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.037";
+const APP_VERSION="0.038";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1678,6 +1678,13 @@ const APP_VERSION="0.037";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-31",v:"0.038",cambios:[
+    "Los artículos de merch ya se pueden fichar desde la app: coste por unidad, quién pagó la producción, unidades fabricadas, tipo de IVA y el enlace a la factura. Pulsa cualquier producto en la tabla.",
+    "La comisión de MALO en merch se calcula después de gastos, y depende de quién puso el dinero: si lo paga el artista va sobre el margen, y si lo adelanta MALO va sobre el bruto — es mayor, porque asume el riesgo y además recupera el coste con las ventas.",
+    "La ficha del artículo enseña las dos columnas comparadas, para ver de un golpe cuánto cambia según quién paga.",
+    "El artista ya ve su Merch desde el portal: sus productos, su coste, su comisión y su neto, y puede abrir la factura de producción. No puede modificar nada — lo impide la base de datos, no un botón escondido.",
+    "No ve los pedidos ni los datos de los compradores de la tienda, ni el merch de sus compañeros.",
+    "Bolsillo pasa a sumar el NETO del merch en vez de la facturación, así que el mensual deja de estar inflado. Y avisa de los productos sin coste fichado, porque hasta entonces el margen sale igual al bruto."]},
   {fecha:"2026-08-31",v:"0.037",cambios:[
     "El merch ya descuenta el IVA. Los precios que llegan de Shopify van con IVA dentro y ese IVA no es ingreso de nadie: va a Hacienda. Una camiseta de 25 € son 20,66 € de ingreso real.",
     "El impuesto se coge de Shopify, no de un 21 % fijo: las ventas fuera de la UE no llevan IVA y un porcentaje inventado las contaría mal. Si un pedido es de antes de traer el dato, se estima y se avisa.",
@@ -1904,7 +1911,7 @@ const DOW=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
 function blank(){return {version:6,miembros:{},localidades:{},creado:new Date().toISOString(),empresa:{nombre:"MALO",logo:""},
   clientes:[],promotores:[],shows:[],eventos:[],producciones:[],suscriptores:[],medios:[],contexto:[],mensajes:[],tareas:[],
   temas:[],canciones:[],cancionParticipantes:[],cancionIngresos:[],
-  obras:[],obraParticipantes:[],obraIngresos:[],obraCanciones:[],
+  obras:[],obraParticipantes:[],obraIngresos:[],obraCanciones:[],merchArticulos:[],
   subcategorias:JSON.parse(JSON.stringify(SUBCAT_DEFAULT)),generos:GENERO_DEFAULT.slice()}}
 let DB=blank();
 
@@ -2143,6 +2150,10 @@ const TABLE_MAP={
   obraParticipantes:{id:"id",obraId:"obra_id",clienteId:"cliente_id",nombre:"nombre",capacidad:"capacidad",sociedad:"sociedad",controlada:"controlada",contPct:"cont_pct",mecanicoPct:"mecanico_pct",ejecucionPct:"ejecucion_pct"},
   obraIngresos:{id:"id",obraId:"obra_id",clienteId:"cliente_id",fuente:"fuente",periodo:"periodo",devengoDesde:"devengo_desde",devengoHasta:"devengo_hasta",tipoUso:"tipo_uso",dsp:"dsp",territorio:"territorio",unidades:"unidades",importeBruto:"importe_bruto",importeNeto:"importe_neto"},
   obraCanciones:{obraId:"obra_id",cancionId:"cancion_id",confianza:"confianza"},
+  merchArticulos:{titulo:"titulo",clienteId:"cliente_id",tipo:"tipo",costeUnitario:"coste_unitario",
+    quienPago:"quien_pago",unidadesProducidas:"unidades_producidas",ivaPct:"iva_pct",
+    facturaDriveId:"factura_drive_id",facturaUrl:"factura_url",notas:"notas",
+    editadoPor:"editado_por",editadoEn:"editado_en"},
   medios:{id:"id",nombre:"nombre",tipo:"tipo",medio:"medio",email:"email",telefono:"telefono",instagram:"instagram",ciudad:"ciudad",enlace:"enlace",notas:"notas",ultimoContacto:"ultimo_contacto",creadoEn:"creado_en"},
   temas:{id:"id",clienteId:"cliente_id",titulo:"titulo",version:"version",estado:"estado",
     fechaEnvio:"fecha_envio",fechaSalida:"fecha_salida",sello:"sello",isrc:"isrc",
@@ -2393,6 +2404,12 @@ async function loadRemote(){
     totalImpuestos:r.total_impuestos==null?null:n(r.total_impuestos),
     ivaIncluido:r.iva_incluido==null?true:!!r.iva_incluido}));
   if(DB.sinMerch)console.warn("Tabla «merch_ventas» no disponible:",mv.error.message);
+  /* Catalogo de articulos: coste, quien pago la produccion y la factura. Lo escribe
+     el equipo; el artista solo lo lee (lo impide el RLS, no la interfaz). */
+  const ma=await fetchTodos("merch_articulos");
+  DB.sinMerchArticulos=!!ma.error;
+  DB.merchArticulos=DB.sinMerchArticulos?[]:(ma.data||[]).map(r=>fromRow("merchArticulos",r));
+  if(DB.sinMerchArticulos)console.warn("Tabla «merch_articulos» no disponible:",ma.error.message);
   DB.sinEnterticketProd=!!etp.error;
   if(DB.sinEnterticketProd)console.warn("Columna «producciones.enterticket_id» no disponible:",etp.error.message);
   DB.sinEtArtistas=!!eta.error;
@@ -2492,6 +2509,9 @@ async function save(){
         const r=toRow("producciones",p);if(DB.sinEnterticketProd)delete r.enterticket_id;return r})),
       DB.suscriptores.length&&sb.from("suscriptores").upsert(DB.suscriptores.map(x=>toRow("suscriptores",x))),
       (!DB.sinMedios&&(DB.medios||[]).length)&&sb.from("medios").upsert(DB.medios.map(x=>toRow("medios",x))),
+      /* merch_articulos si se guarda (lo edita el equipo). merch_ventas NO: la llena
+         shopify-sync y aqui es de solo lectura. */
+      (!DB.sinMerchArticulos&&(DB.merchArticulos||[]).length)&&sb.from("merch_articulos").upsert(DB.merchArticulos.map(x=>toRow("merchArticulos",x))),
       DB.contexto.length&&sb.from("contexto").upsert(DB.contexto.map(x=>toRow("contexto",x))),
       DB.tareas.length&&sb.from("tareas").upsert(DB.tareas.map(x=>toRow("tareas",x))),
       (!DB.sinTemas&&(DB.temas||[]).length)&&sb.from("temas").upsert(DB.temas.map(x=>toRow("temas",x))),
@@ -3032,6 +3052,7 @@ const PORTAL_VIEWS=[
   {id:"calendario",label:"Agenda",k:""},
   {id:"canciones",label:"Canciones",k:""},
   {id:"editorial",label:"Editorial",k:""},
+  {id:"merch",label:"Merch",k:""},
   {id:"bolsillo",label:"Bolsillo",k:""},
   {id:"redes",label:"Redes",k:""}];
 const PORTAL_IDS=PORTAL_VIEWS.map(v=>v.id);
@@ -5488,28 +5509,82 @@ const IVA_MERCH=21;
    Mismo criterio que las entradas en calcProd (taquillaNeta = PVP / (1+iva/100)).
    Se prefiere SIEMPRE el impuesto que manda Shopify: las ventas fuera de la UE no
    llevan IVA y un 21 % fijo las contaría de menos. */
+/* El articulo fichado de un titulo. Aqui esta el coste, quien pago la produccion y
+   la factura — lo que la app no podia saber por si sola. */
+function merchArticulo(titulo){
+  const t=(titulo||"").trim();
+  return (DB.merchArticulos||[]).find(a=>(a.titulo||"").trim()===t)||null;
+}
+
+/* La cascada del merch. Distinta de la de shows a PROPOSITO, y la diferencia la
+   decide QUIEN PAGO LA PRODUCCION:
+
+     paga el artista  ->  comision de MALO sobre el MARGEN (base - coste)
+     paga MALO        ->  comision sobre el BRUTO (la base), que es mayor, porque
+                          adelanto el dinero y asume el riesgo; ademas recupera el
+                          coste con las ventas
+
+   Ejemplo (camiseta 25 EUR, IVA 21 %, coste 8, comision 20 %):
+     paga artista -> comision 2,53 · neto artista 10,13
+     paga MALO    -> comision 4,13 · neto artista  8,53 (+8 que recupera MALO)
+
+   No usa clientes.base_comision como calcShow: ahi la base la fija el contrato del
+   artista, aqui la fija quien puso el dinero de esa produccion concreta. */
+function merchCascada(base,coste,pctMgmt,quienPago){
+  const margen=base-coste;
+  const baseCom=quienPago==="malo"?base:margen;
+  const comision=Math.max(0,baseCom)*n(pctMgmt)/100;
+  return {base,coste,margen,comision,neto:margen-comision,
+    recuperaMalo:quienPago==="malo"?coste:0};
+}
+function merchPctDe(clienteId){
+  const c=(DB.clientes||[]).find(x=>x.id===clienteId);
+  return c&&c.comisiones?n(c.comisiones.management):0;
+}
+
 function merchLineas(){
   const out=[];
+  const portal=esArtistaPortal();
   (DB.merch||[]).forEach(p=>{(p.items||[]).forEach(it=>{
+    const art=merchArticulo(it.titulo);
+    /* El artista lo dice el articulo fichado. La deduccion por el nombre del titulo
+       queda solo de respaldo para lo que aun no se ha fichado. */
+    const artistaId=(art&&art.clienteId)||merchArtistaDe(it.titulo);
+    /* El portal solo ve lo suyo. La seguridad la pone la vista merch_lineas en
+       Postgres; esto es la capa de UX encima. */
+    if(portal&&DB.miClienteId&&artistaId!==DB.miClienteId)return;
     const pvp=n(it.importe);
     let base;
     if(it.impuesto!=null&&p.ivaIncluido!==false)      base=pvp-n(it.impuesto);
     else if(it.impuesto!=null)                        base=pvp;   // el precio ya era sin IVA
     else if(it.ivaPct!=null)                          base=pvp/(1+n(it.ivaPct)/100);
+    else if(art&&art.ivaPct!=null)                    base=pvp/(1+n(art.ivaPct)/100);
     else                                              base=pvp/(1+IVA_MERCH/100);
+    const uds=n(it.cantidad);
+    const coste=art?uds*n(art.costeUnitario):0;
+    const quienPago=(art&&art.quienPago)||"artista";
+    const c=merchCascada(base,coste,merchPctDe(artistaId),quienPago);
     out.push({pedidoId:p.id,numero:p.numero,tienda:p.tienda,fecha:p.fecha,mes:(p.fecha||"").slice(0,7),
-      email:p.email,comprador:p.comprador,titulo:it.titulo||"—",cantidad:n(it.cantidad),
+      /* el comprador NO se expone en el portal: son datos personales de la tienda */
+      email:portal?"":p.email,comprador:portal?"":p.comprador,
+      titulo:it.titulo||"—",cantidad:uds,
       pvp,importe:base,impuesto:pvp-base,
-      /* si no hay dato de Shopify se ha estimado, y conviene poder decirlo */
+      coste:c.coste,margen:c.margen,comision:c.comision,neto:c.neto,
+      quienPago,recuperaMalo:c.recuperaMalo,
+      facturaUrl:art?(art.facturaUrl||""):"",
+      sinFichar:!art||!art.clienteId,
+      /* si no hay dato de Shopify el IVA se ha estimado, y conviene poder decirlo */
       estimado:it.impuesto==null,
-      artistaId:merchArtistaDe(it.titulo)});
+      artistaId});
   })});
   return out;
 }
+/* Bolsillo enseña lo que LE QUEDA al artista, no la facturación: base menos coste
+   menos comisión. Igual que en shows enseña el neto y no el caché bruto. */
 function merchPorMes(cli){
   const out={};
   merchLineas().filter(l=>!cli||l.artistaId===cli)
-    .forEach(l=>{if(l.mes)out[l.mes]=(out[l.mes]||0)+l.importe});
+    .forEach(l=>{if(l.mes)out[l.mes]=(out[l.mes]||0)+l.neto});
   return out;
 }
 function viewBolsillo(el,ta){
@@ -5750,6 +5825,7 @@ function reporteRoyalties(cliId,r,etiqueta){
    producto es la suma de líneas; el total del pedido incluye envío/impuestos,
    por eso «Ingresos» (pedidos) es algo mayor que la suma por producto. */
 function viewMerch(el,ta){
+  const portal=esArtistaPortal();
   if(DB.sinMerch||!(DB.merch||[]).length){
     ta.innerHTML="";
     el.innerHTML=`<div class="card"><div class="empty"><p><strong>Todavía no hay ventas de merch que enseñar.</strong><br>
@@ -5779,12 +5855,19 @@ function viewMerch(el,ta){
   const impuesto=lin.reduce((a,l)=>a+l.impuesto,0);
   const hayEstimado=lin.some(l=>l.estimado);
 
-  const porProducto=Object.values(lin.reduce((m,l)=>{
-    const k=l.titulo;(m[k]=m[k]||{titulo:k,artistaId:l.artistaId,uds:0,imp:0});m[k].uds+=l.cantidad;m[k].imp+=l.importe;return m;
-  },{})).sort((a,b)=>b.imp-a.imp);
-  const porArtista=Object.values(lin.reduce((m,l)=>{
-    const k=l.artistaId||"__otros";(m[k]=m[k]||{id:k,uds:0,imp:0});m[k].uds+=l.cantidad;m[k].imp+=l.importe;return m;
-  },{})).sort((a,b)=>b.imp-a.imp);
+  const acum=(m,k,l,extra)=>{
+    (m[k]=m[k]||Object.assign({uds:0,imp:0,coste:0,comision:0,neto:0},extra));
+    m[k].uds+=l.cantidad;m[k].imp+=l.importe;m[k].coste+=l.coste;
+    m[k].comision+=l.comision;m[k].neto+=l.neto;return m;
+  };
+  const porProducto=Object.values(lin.reduce((m,l)=>acum(m,l.titulo,l,
+    {titulo:l.titulo,artistaId:l.artistaId,quienPago:l.quienPago,facturaUrl:l.facturaUrl,sinFichar:l.sinFichar}),{}))
+    .sort((a,b)=>b.imp-a.imp);
+  const porArtista=Object.values(lin.reduce((m,l)=>acum(m,l.artistaId||"__otros",l,{id:l.artistaId||"__otros"}),{}))
+    .sort((a,b)=>b.imp-a.imp);
+  const sinFichar=porProducto.filter(x=>x.sinFichar).length;
+  const totComision=lin.reduce((a,l)=>a+l.comision,0);
+  const totCoste=lin.reduce((a,l)=>a+l.coste,0);
   const nomArt=id=>id==="__otros"?"Sin asignar":((cliente(id)||{}).nombre||(cliente(id)||{}).nombreReal||"—");
 
   const NOM=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -5811,7 +5894,15 @@ function viewMerch(el,ta){
     <div class="cell"><div class="lab">Pedidos</div><div class="val">${nPed}</div></div>
     <div class="cell"><div class="lab">Ticket medio</div><div class="val">${eur0(ticket)}</div></div>
     <div class="cell"><div class="lab">Unidades</div><div class="val v-artist">${unidades}</div></div>
+    ${portal?"":`<div class="cell"><div class="lab">Coste producción</div><div class="val v-alert">${eur0(totCoste)}</div>
+      <div class="note">${sinFichar?`${sinFichar} sin coste fichado`:"todo fichado"}</div></div>
+    <div class="cell"><div class="lab">Comisión MALO</div><div class="val v-malo">${eur0(totComision)}</div>
+      <div class="note">después de gastos</div></div>`}
   </div>
+  ${sinFichar&&!portal?`<div class="card" style="border-color:var(--warn)"><div class="body">
+    <p><strong>${sinFichar} producto${sinFichar===1?"":"s"} sin fichar.</strong> Sin coste ni artista asignado
+    el margen sale igual al bruto y el Bolsillo del artista queda inflado.
+    Pulsa el producto en la tabla de abajo para completarlo.</p></div></div>`:""}
 
   <div class="card"><header><h3>Evolución mensual · 12 meses</h3><div class="spacer"></div>
     ${(()=>{const a=tot[tot.length-1],b=tot[tot.length-2]||0;
@@ -5838,22 +5929,35 @@ function viewMerch(el,ta){
 
   <div class="grid2">
     <div class="card"><header><h3>Por producto</h3></header><div class="body flush">
-      ${porProducto.length?`<table><thead><tr><th>Producto</th><th>Artista</th><th class="num">Uds</th><th class="num">Importe</th></tr></thead>
-      <tbody>${porProducto.map(x=>`<tr>
-        <td class="strong">${esc(x.titulo)}</td>
+      ${porProducto.length?`<table><thead><tr><th>Producto</th><th>Artista</th><th class="num">Uds</th>
+        <th class="num">Base</th><th class="num">Coste</th><th class="num">Neto artista</th><th></th></tr></thead>
+      <tbody>${porProducto.map(x=>`<tr ${portal?"":`class="click" data-marticulo="${esc(x.titulo)}"`}>
+        <td class="strong">${esc(x.titulo)}${x.sinFichar?' <span class="pill" style="border-color:var(--warn);color:var(--warn)">sin fichar</span>':""}</td>
         <td class="dim">${esc(x.artistaId?nomArt(x.artistaId):"—")}</td>
-        <td class="num">${x.uds}</td><td class="num v-artist">${eur0(x.imp)}</td></tr>`).join("")}</tbody></table>`
+        <td class="num">${x.uds}</td>
+        <td class="num">${eur0(x.imp)}</td>
+        <td class="num ${x.coste?"v-alert":"dim"}">${x.coste?eur0(x.coste):"—"}</td>
+        <td class="num v-artist">${eur0(x.neto)}</td>
+        <td style="width:1%;white-space:nowrap" onclick="event.stopPropagation()">
+          ${x.quienPago==="malo"?'<span class="pill malo" title="La producción la adelantó MALO: la comisión va sobre el bruto">MALO</span>':""}
+          ${x.facturaUrl?`<a href="${esc(x.facturaUrl)}" target="_blank" rel="noopener" class="pill" title="Factura de producción">factura</a>`:""}
+        </td></tr>`).join("")}</tbody></table>`
       :`<div class="empty"><p>Nada con este filtro.</p></div>`}
     </div></div>
     <div class="card"><header><h3>Por artista <span class="dim tiny">(esto alimenta su Bolsillo)</span></h3></header><div class="body flush">
-      ${porArtista.length?`<table><thead><tr><th>Artista</th><th class="num">Uds</th><th class="num">Importe</th></tr></thead>
+      ${porArtista.length?`<table><thead><tr><th>Artista</th><th class="num">Uds</th><th class="num">Base</th>
+        <th class="num">Coste</th><th class="num">Comisión</th><th class="num">Neto</th></tr></thead>
       <tbody>${porArtista.map(x=>`<tr>
         <td class="strong">${esc(nomArt(x.id))}</td>
-        <td class="num">${x.uds}</td><td class="num v-malo">${eur0(x.imp)}</td></tr>`).join("")}</tbody></table>`
+        <td class="num">${x.uds}</td><td class="num">${eur0(x.imp)}</td>
+        <td class="num ${x.coste?"v-alert":"dim"}">${x.coste?eur0(x.coste):"—"}</td>
+        <td class="num v-malo">${eur0(x.comision)}</td>
+        <td class="num v-artist">${eur0(x.neto)}</td></tr>`).join("")}</tbody></table>`
       :`<div class="empty"><p>Nada con este filtro.</p></div>`}
     </div></div>
   </div>
 
+  ${portal?"":`
   <div class="card"><header><h3>Pedidos</h3><div class="spacer"></div>
     <span class="dim tiny">los envíos los gestiona el departamento de la tienda</span></header><div class="body flush">
     <table><thead><tr><th>Fecha</th><th>Nº</th><th>Tienda</th><th>Comprador</th><th>Artículos</th><th class="num">Total</th><th>Pago</th></tr></thead>
@@ -5865,7 +5969,7 @@ function viewMerch(el,ta){
       <td class="dim tiny">${esc(p.items.map(it=>`${it.titulo}${n(it.cantidad)>1?` ×${n(it.cantidad)}`:""}`).join(" · "))}</td>
       <td class="num strong">${eur0(p.total)}</td>
       <td class="tiny dim">${esc((p.estadoPago||"").toLowerCase())}</td></tr>`).join("")}</tbody></table>
-  </div></div>`;
+  </div></div>`}`;
 
   const st=document.getElementById("mrTienda");
   if(st)st.addEventListener("change",e=>{filtro.merchTienda=e.target.value;render()});
@@ -7159,6 +7263,116 @@ function viewColabs(el,ta){
     la fecha en que sonó la música. Una colaboración estrenada hoy no empieza a aparecer
     aquí hasta dentro de un año, más o menos.</p>
   </div></div>`;
+}
+
+/* Ficha del artículo de merch. Es lo único editable de esta sección: los pedidos
+   los trae Shopify y aquí son de solo lectura.
+
+   Lo que se ficha aquí es lo que la app no puede saber por sí sola — el coste de
+   producción, quién lo pagó y dónde está la factura — y sin ello el Bolsillo del
+   artista sale inflado, porque el margen se calcula igual al bruto. */
+function formMerchArticulo(titulo){
+  if(esArtistaPortal())return;
+  const t=(titulo||"").trim();
+  const a=merchArticulo(t)||{titulo:t,quienPago:"artista",costeUnitario:0};
+  const lin=merchLineas().filter(l=>(l.titulo||"").trim()===t);
+  const uds=lin.reduce((x,l)=>x+l.cantidad,0);
+  const base=lin.reduce((x,l)=>x+l.importe,0);
+  const artistas=(DB.clientes||[]).slice()
+    .filter(c=>(c.categoria||"artista")!=="evento")
+    .sort((x,y)=>(x.nombre||"").localeCompare(y.nombre||""));
+
+  openModal(`
+  <header><h3>${esc(t)}</h3><div class="spacer"></div>
+    <button class="btn primary" data-act="save-marticulo" data-titulo="${esc(t)}">Guardar</button>
+    <button class="btn ghost sm" data-act="close">Cerrar</button></header>
+  <div class="body">
+    <p class="hint">Vendidas <strong>${uds}</strong> unidades · base <strong>${eur(base)}</strong>.
+    El título lo manda Shopify y no se puede cambiar aquí: es la clave que une el
+    artículo con sus ventas.</p>
+
+    <div class="form">
+      <div class="f s6"><label>Artista</label>
+        <select id="ma_cli">
+          <option value="">— sin asignar —</option>
+          ${artistas.map(c=>`<option value="${c.id}" ${a.clienteId===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}
+        </select>
+        <p class="hint">Si se deja vacío se intenta adivinar por el título, que falla en cuanto el producto no se llama «ARTISTA - COSA».</p></div>
+
+      <div class="f s6"><label>Tipo</label>
+        <input id="ma_tipo" value="${esc(a.tipo||"")}" placeholder="Camiseta, Vinilo, Gorra…"></div>
+
+      <div class="f s4"><label>Coste por unidad (sin IVA)</label>
+        <input id="ma_coste" type="number" step="0.01" min="0" value="${a.costeUnitario!=null?a.costeUnitario:0}">
+        <p class="hint">Lo que cuesta fabricar UNA. Sin IVA: el de la imprenta es deducible.</p></div>
+
+      <div class="f s4"><label>¿Quién pagó la producción?</label>
+        <select id="ma_quien">
+          <option value="artista" ${a.quienPago!=="malo"?"selected":""}>El artista</option>
+          <option value="malo" ${a.quienPago==="malo"?"selected":""}>MALO (adelanta el dinero)</option>
+        </select></div>
+
+      <div class="f s4"><label>Unidades producidas</label>
+        <input id="ma_prod" type="number" step="1" min="0" value="${a.unidadesProducidas!=null?a.unidadesProducidas:""}" placeholder="opcional">
+        <p class="hint">Solo hace falta si paga MALO: sirve para saber cuánto queda por recuperar.</p></div>
+
+      <div class="f s6"><label>Factura de producción (enlace)</label>
+        <input id="ma_fact" value="${esc(a.facturaUrl||"")}" placeholder="https://drive.google.com/…">
+        <p class="hint">El artista puede verla, pero no puede cambiar nada de esta ficha.</p></div>
+
+      <div class="f s6"><label>IVA (%)</label>
+        <input id="ma_iva" type="number" step="0.01" min="0" value="${a.ivaPct!=null?a.ivaPct:""}" placeholder="lo dice Shopify">
+        <p class="hint">Solo si Shopify no lo manda. 21 textil y vinilo, 4 libros.</p></div>
+
+      <div class="f s12"><label>Notas</label>
+        <textarea id="ma_notas" style="min-height:60px">${esc(a.notas||"")}</textarea></div>
+    </div>
+
+    ${(()=>{
+      const coste=n(a.costeUnitario),pct=merchPctDe(a.clienteId);
+      if(!uds||!base)return "";
+      const cA=merchCascada(base,uds*coste,pct,"artista");
+      const cM=merchCascada(base,uds*coste,pct,"malo");
+      const esM=a.quienPago==="malo";
+      return `<div class="card" style="margin-top:14px"><div class="body">
+        <h4>Cómo queda el reparto</h4>
+        <table><thead><tr><th></th><th class="num">Paga el artista</th><th class="num">Paga MALO</th></tr></thead><tbody>
+          <tr><td>Base (sin IVA)</td><td class="num">${eur(base)}</td><td class="num">${eur(base)}</td></tr>
+          <tr><td>− Coste (${uds} × ${eur(coste)})</td><td class="num v-alert">${eur(uds*coste)}</td><td class="num v-alert">${eur(uds*coste)}</td></tr>
+          <tr><td>= Margen</td><td class="num">${eur(cA.margen)}</td><td class="num">${eur(cM.margen)}</td></tr>
+          <tr><td>− Comisión MALO (${pct} %)</td><td class="num v-malo">${eur(cA.comision)}<div class="tiny dim">sobre el margen</div></td>
+              <td class="num v-malo">${eur(cM.comision)}<div class="tiny dim">sobre el bruto</div></td></tr>
+          <tr class="total"><td>Neto del artista</td>
+              <td class="num ${esM?"dim":"v-artist strong"}">${eur(cA.neto)}</td>
+              <td class="num ${esM?"v-artist strong":"dim"}">${eur(cM.neto)}</td></tr>
+        </tbody></table>
+        <p class="hint">La columna en negrita es la que se aplica. Si adelanta MALO la comisión
+        va sobre el bruto —es mayor— porque asume el riesgo, y además recupera
+        ${eur(uds*coste)} de coste con las ventas.</p>
+      </div></div>`;
+    })()}
+  </div>`);
+}
+
+function saveMerchArticulo(titulo){
+  const t=(titulo||"").trim();
+  const val=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
+  const num=id=>{const v=val(id);return v===""?null:n(v)};
+  const fila={titulo:t,
+    clienteId:val("ma_cli")||null,
+    tipo:val("ma_tipo")||null,
+    costeUnitario:n(val("ma_coste")),
+    quienPago:val("ma_quien")||"artista",
+    unidadesProducidas:num("ma_prod"),
+    ivaPct:num("ma_iva"),
+    facturaUrl:val("ma_fact")||null,
+    notas:val("ma_notas"),
+    editadoEn:new Date().toISOString()};
+  if(!DB.merchArticulos)DB.merchArticulos=[];
+  const existe=DB.merchArticulos.find(x=>(x.titulo||"").trim()===t);
+  if(existe)DB.merchArticulos=DB.merchArticulos.map(x=>(x.titulo||"").trim()===t?Object.assign({},x,fila):x);
+  else DB.merchArticulos.push(fila);
+  closeModal();toast("Artículo guardado");touch();
 }
 
 function viewMedios(el,ta){
@@ -12070,7 +12284,7 @@ function abrirGraficoKpi(tipo){
 }
 
 document.addEventListener("click",e=>{
-  const el=e.target.closest("[data-yt],[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-distrib],[data-cancion],[data-obra],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
+  const el=e.target.closest("[data-yt],[data-act],[data-show],[data-cliente],[data-promotor],[data-evento],[data-prod],[data-sub],[data-ctx],[data-tarea],[data-tema],[data-distrib],[data-cancion],[data-obra],[data-marticulo],[data-goto],[data-sub-add],[data-sub-ren],[data-sub-del],[data-gen-add],[data-gen-ren],[data-gen-del],[data-kpi]");
   if(!el)return;
   if(el.dataset.goto){e.preventDefault();VIEW=el.dataset.goto;render();window.scrollTo(0,0);return}
   const act=el.dataset.act;
@@ -12196,6 +12410,7 @@ document.addEventListener("click",e=>{
       return;
     }
     if(act==="ed-vista"){filtro.edVista=el.dataset.v||"alertas";render();window.scrollTo(0,0);return}
+    if(act==="save-marticulo")return saveMerchArticulo(el.dataset.titulo);
     if(act==="new-tarea")return formTarea(null);
     if(act==="new-medio")return formMedios(null);
     if(act==="save-medio")return saveMedios(el.dataset.new==="1");
@@ -12332,6 +12547,7 @@ document.addEventListener("click",e=>{
   if(el.dataset.yt)return abreExterno(el.dataset.yt);
   if(el.dataset.cancion)return formCancion(el.dataset.cancion);
   if(el.dataset.obra)return fichaObra(el.dataset.obra);
+  if(el.dataset.marticulo)return formMerchArticulo(el.dataset.marticulo);
   if(el.dataset.medio)return formMedios(el.dataset.medio);
   if(el.dataset.prod)return formProduccion(el.dataset.prod);
   if(el.dataset.show){
