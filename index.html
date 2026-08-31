@@ -1669,7 +1669,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.039";
+const APP_VERSION="0.040";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -2392,7 +2392,7 @@ async function loadRemote(){
     cupo:r.cupo==null?null:+r.cupo,ingresos:r.ingresos==null?null:+r.ingresos,
     entradas:Array.isArray(r.entradas)?r.entradas:[],canales:r.canales||{},
     clienteId:r.cliente_id||"",artistas:Array.isArray(r.artistas)?r.artistas:[],
-    sincronizadoEn:r.sincronizado_en||""}))
+    origen:r.origen||"",sincronizadoEn:r.sincronizado_en||""}))
     .sort((a,b)=>(b.fechaIni||"").localeCompare(a.fechaIni||""));
   if(DB.sinEnterticket)console.warn("Tabla «et_eventos» no disponible:",etv.error.message);
   /* Merch (Shopify): tabla «merch_ventas», la llena la función shopify-sync
@@ -3910,9 +3910,22 @@ function etBloque(){
   const ocultos=todos.length-evs.length;
   const ultimo=evs.reduce((t,e)=>e.sincronizadoEn>t?e.sincronizadoEn:t,"");
   const tot=evs.reduce((t,e)=>{t.v+=n(e.vendidas);t.i+=n(e.ingresos);return t},{v:0,i:0});
+  /* Aviso de frescura. Enterticket todavia no ha dado credenciales de su API,
+     asi que estas cifras son una foto cargada a mano y NO se actualizan solas.
+     Antes esto se decia con un «datos del ...» gris de 11px al final de la
+     linea de estadisticas, y se leia como si fuera tiempo real: el 31 ago la
+     app mostraba 102 y 114 mientras el panel iba por 112 y 122. Si hay venta
+     activa y la foto no es de hoy, el aviso sale en rojo. */
+  const porApi=evs.length&&evs.every(e=>e.origen==="api");
+  const activos=evs.filter(e=>e.estado==="venta_activa").length;
+  const dias=ultimo?Math.floor((Date.now()-new Date(ultimo))/864e5):null;
+  const aviso=porApi?"":(dias===null
+    ?`<span class="pill alert">sin sincronizar</span>`
+    :`<span class="pill ${activos&&dias>=1?"alert":"warn"}" title="Enterticket aun no ha dado credenciales de API: estas cifras se cargan a mano desde el panel, no se actualizan solas.">${dias===0?"foto de hoy":dias===1?"foto de ayer":`foto de hace ${dias} dias`} · no es tiempo real</span>`);
   return `<div class="card"><div class="body flush">
     <div class="section-title" style="margin:14px 16px 6px">Ticketera · Enterticket <div class="spacer"></div>
-      <span class="dim tiny" style="text-transform:none;letter-spacing:0">${evs.length} eventos · ${tot.v} entradas · ${eur0(tot.i)}${ultimo?` · datos del ${fecha(ultimo.slice(0,10))}`:""}</span>
+      ${aviso}
+      <span class="dim tiny" style="text-transform:none;letter-spacing:0;margin-left:8px">${evs.length} eventos · ${tot.v} entradas · ${eur0(tot.i)}${ultimo?` · ${fecha(ultimo.slice(0,10))}`:""}</span>
       <select id="etDesde" style="width:auto;margin-left:10px;font-size:11px;padding:3px 6px">
         <option value="2026" ${desde==="2026"?"selected":""}>Desde 2026</option>
         <option value="" ${desde?"":"selected"}>Todo el histórico${ocultos?` (+${ocultos})`:""}</option>
