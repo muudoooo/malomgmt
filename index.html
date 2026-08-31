@@ -1669,7 +1669,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.034";
+const APP_VERSION="0.035";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1678,6 +1678,12 @@ const APP_VERSION="0.034";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-31",v:"0.035",cambios:[
+    "Nueva pestaña «Colaboraciones» en Canciones: los temas de otros artistas donde los nuestros ponen voz o producción. Ahí el máster es del otro, así que lo único que entra es la autoría.",
+    "Cada una enseña qué porcentaje de la obra es nuestro y cuánto se liquidó el último semestre, que es lo que hace falta para estimar. La editorial paga cada 6 meses y con casi un año de retraso, así que un tema estrenado hoy no aparece hasta el año que viene.",
+    "Tres fichadas: LA MÀQUINA DEL RITME (de Mushkaa), Vim do Norte Iberian Remix (de Sippinpurpp) y EXCLUSIVE (de sexojaja).",
+    "El título lleva entre paréntesis el artista principal, para que se vea de un golpe que ahí el nuestro es invitado y no titular.",
+    "Las seis canciones de DISOBEY VOL. I pasan a estar atribuidas a DISOBEY y no a un miembro suelto."]},
   {fecha:"2026-08-31",v:"0.034",cambios:[
     "Nueva pestaña en Canciones: «Fuera de ADA». Son las canciones de tus artistas que salieron por otro distribuidor, con su portada, su release y su fecha, agrupadas por artista para poder sentarte a repasarlas con cada uno.",
     "Aparecieron por la editorial: UMPG cobraba por obras que no estaban ni en el catálogo ni en ningún extracto de ADA. Al buscarlas se confirmó por el ISRC — las de ADA empiezan por BK4DA y estas no.",
@@ -4364,17 +4370,20 @@ function distribEnviada(c){return !!distDe(c).enviado}
 function enDistribucion(c){const d=c&&c.distribucion;return !!(d&&typeof d==="object"&&d.enviado)}
 
 function viewCanciones(el,ta){
-  const tab=["distribuir","externas"].includes(CANC_TAB)?CANC_TAB:"catalogo";
+  const tab=["distribuir","externas","colabs"].includes(CANC_TAB)?CANC_TAB:"catalogo";
   if(tab==="distribuir")viewDistribuir(el,ta);
   else if(tab==="externas")viewExternas(el,ta);
+  else if(tab==="colabs")viewColabs(el,ta);
   else viewMisCanciones(el,ta);
   /* «Fuera de ADA» solo aparece si de verdad hay alguna: si no, es una pestaña
      vacía que estorba. */
   const hayExt=(DB.canciones||[]).some(esExterna);
+  const hayCol=(DB.canciones||[]).some(esColab);
   const tabs=`<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
     <button class="btn ${tab==="catalogo"?"primary":"ghost"} sm portal-ok" data-act="canc-tab" data-tab="catalogo">Catálogo</button>
     <button class="btn ${tab==="distribuir"?"primary":"ghost"} sm portal-ok" data-act="canc-tab" data-tab="distribuir">Distribuir</button>
     ${hayExt?`<button class="btn ${tab==="externas"?"primary":"ghost"} sm portal-ok" data-act="canc-tab" data-tab="externas">Fuera de ADA</button>`:""}
+    ${hayCol?`<button class="btn ${tab==="colabs"?"primary":"ghost"} sm portal-ok" data-act="canc-tab" data-tab="colabs">Colaboraciones</button>`:""}
   </div>`;
   el.insertAdjacentHTML("afterbegin",tabs);
 }
@@ -4386,7 +4395,14 @@ function viewCanciones(el,ta){
    catálogo empiezan todas por «BK4DA» (ADA) mientras que estas no.
 
    Para qué sirve esta vista: sentarse con el artista y repasar qué tiene fuera. */
-function esExterna(c){return (c.distribuidora||"")!=="ADA"&&(c.distribuidora||"")!==""}
+/* Tres categorías, y la diferencia importa:
+     ADA           lo que distribuye MALO
+     Externa       temas PROPIOS que salieron por otro distribuidor
+     Colaboración  temas de OTROS artistas donde el nuestro es invitado —
+                   ahí MALO no es titular del máster, así que el único ingreso
+                   es la autoría, y esa llega cada 6 meses */
+function esColab(c){return (c.distribuidora||"")==="Colaboración"}
+function esExterna(c){const d=c.distribuidora||"";return d!=="ADA"&&d!==""&&d!=="Colaboración"}
 
 function viewExternas(el,ta){
   ta.innerHTML="";
@@ -4846,7 +4862,7 @@ function viewMisCanciones(el,ta){
       if(g.hasta!==undefined)filtro.cancionHasta=g.hasta;
     }catch(_){}
   }
-  const list0=(DB.canciones||[]).filter(c=>!esExterna(c));
+  const list0=(DB.canciones||[]).filter(c=>!esExterna(c)&&!esColab(c));
   const SINGLES=" ";
   const releaseDe=c=>(c.mixtape||"").trim();
   /* Cuantas canciones hay en cada release: sirve para saber si algo es un disco
@@ -6839,6 +6855,82 @@ function fichaObra(id){
         `<tr><td class="tiny">${esc(k)}</td><td style="text-align:right">${eur(v)}</td></tr>`).join("")}</tbody></table>`
       :`<p class="dim">Todavía no ha generado ingresos en los periodos cargados.</p>`}
   </div>`);
+}
+
+/* ── Colaboraciones ──
+   Temas de otros artistas donde los nuestros son invitados. No hay master que
+   cobrar: solo autoria, y la editorial paga por semestres con 9-14 meses de
+   retraso. La vista esta hecha para poder estimar eso. */
+function colabAutoria(c){
+  const link=(DB.obraCanciones||[]).find(x=>x.cancionId===c.id);
+  if(!link)return null;
+  const ps=(DB.obraParticipantes||[]).filter(p=>p.obraId===link.obraId&&p.capacidad==="CA");
+  const mios=ps.filter(p=>p.clienteId);
+  const ing=(DB.obraIngresos||[]).filter(i=>i.obraId===link.obraId);
+  const porPeriodo=new Map();
+  ing.forEach(i=>porPeriodo.set(i.periodo,(porPeriodo.get(i.periodo)||0)+(+i.importeNeto||0)));
+  const periodos=[...porPeriodo.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+  return {mios,pctNuestro:mios.reduce((a,p)=>a+(+p.contPct||0),0),periodos,
+    total:ing.reduce((a,i)=>a+(+i.importeNeto||0),0),
+    ultimo:periodos.length?periodos[periodos.length-1]:null};
+}
+
+function viewColabs(el,ta){
+  ta.innerHTML="";
+  const portal=esArtistaPortal();
+  let list=(DB.canciones||[]).filter(esColab);
+  if(portal&&DB.miClienteId)list=list.filter(c=>c.artistaId===DB.miClienteId);
+  list.sort((a,b)=>(b.fechaLanzamiento||"").localeCompare(a.fechaLanzamiento||""));
+  document.getElementById("viewSub").textContent=`${list.length} colaboraci${list.length===1?"ón":"ones"}`;
+
+  if(!list.length){
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Sin colaboraciones fichadas.</strong><br>
+      Aquí van los temas de otros artistas donde los nuestros ponen su voz o su
+      producción: no hay máster que cobrar, solo autoría.</p></div></div>`;return;
+  }
+  const info=new Map(list.map(c=>[c.id,colabAutoria(c)]));
+  const cobrado=list.reduce((a,c)=>a+((info.get(c.id)||{}).total||0),0);
+  const conObra=list.filter(c=>info.get(c.id)).length;
+
+  el.innerHTML=`
+  <div class="card"><div class="body">
+    <p><strong>${list.length} colaboraciones.</strong> En estos temas el máster es del otro
+    artista: lo único que entra es la <strong>autoría</strong>, y la editorial la paga
+    <strong>por semestres</strong>.</p>
+    <p class="hint">Cobrado hasta ahora: <strong>${eur(cobrado)}</strong>${
+      conObra<list.length?` · ${list.length-conObra} sin obra editorial enlazada todavía`:""}</p>
+  </div></div>
+  ${list.map(c=>{
+    const d=info.get(c.id);
+    const suyos=d?d.mios.map(p=>{
+      const n2=(DB.clientes||[]).find(x=>x.id===p.clienteId);
+      return `<span class="pill artist">${esc(n2?(n2.nombre||n2.nombreReal):p.nombre)} ${(+p.contPct||0).toFixed(0)}%</span>`;
+    }).join(" "):"";
+    return `<div class="card"><div class="body">
+      <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+        ${c.portadaUrl?`<img src="${esc(c.portadaUrl)}" alt="" loading="lazy" onerror="this.style.display='none'"
+          style="width:88px;height:88px;object-fit:cover;border-radius:6px;flex:none">`:""}
+        <div style="flex:1;min-width:200px">
+          <div class="strong">${esc(c.titulo||"")}</div>
+          <div class="dim tiny">${c.mixtape?esc(c.mixtape)+" · ":""}${c.fechaLanzamiento?fecha(c.fechaLanzamiento):""}${c.isrc?" · "+esc(c.isrc):""}</div>
+          <div style="margin-top:8px">${suyos||'<span class="dim tiny">sin reparto cargado</span>'}</div>
+          ${d&&d.pctNuestro?`<div class="hint">Autoría nuestra en la obra: <strong>${d.pctNuestro.toFixed(2)} %</strong></div>`:""}
+        </div>
+        <div style="text-align:right;min-width:150px">
+          ${d&&d.ultimo
+            ? `<div class="dim tiny">último semestre (${esc(d.ultimo[0])})</div>
+               <div class="strong" style="font-size:1.15em">${eur(d.ultimo[1])}</div>
+               ${d.periodos.length>1?`<div class="dim tiny">total ${eur(d.total)}</div>`:""}`
+            : `<div class="dim tiny">todavía sin liquidar</div>`}
+        </div>
+      </div>
+      ${c.notas?`<p class="hint" style="margin-top:8px">${esc(c.notas)}</p>`:""}
+    </div></div>`}).join("")}
+  <div class="card"><div class="body">
+    <p class="hint">La editorial liquida cada 6 meses y con 9-14 meses de retraso sobre
+    la fecha en que sonó la música. Una colaboración estrenada hoy no empieza a aparecer
+    aquí hasta dentro de un año, más o menos.</p>
+  </div></div>`;
 }
 
 function viewMedios(el,ta){
@@ -11916,7 +12008,7 @@ document.addEventListener("click",e=>{
       return touch()}
     if(act==="new-cancion")return formCancion(null);
     if(act==="save-cancion")return saveCancion(el.dataset.new==="1");
-    if(act==="canc-tab"){CANC_TAB=["distribuir","externas"].includes(el.dataset.tab)?el.dataset.tab:"catalogo";render();window.scrollTo(0,0);return}
+    if(act==="canc-tab"){CANC_TAB=["distribuir","externas","colabs"].includes(el.dataset.tab)?el.dataset.tab:"catalogo";render();window.scrollTo(0,0);return}
     if(act==="new-distrib")return formDistribuir(null);
     if(act==="save-distrib")return saveDistribucion(el.dataset.id,el.dataset.new==="1");
     if(act==="email-distrib")return abrirEmailDistribucion(el.dataset.id);
