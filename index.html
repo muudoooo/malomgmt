@@ -4395,12 +4395,23 @@ function viewCanciones(el,ta){
    catálogo empiezan todas por «BK4DA» (ADA) mientras que estas no.
 
    Para qué sirve esta vista: sentarse con el artista y repasar qué tiene fuera. */
-/* Tres categorías, y la diferencia importa:
-     ADA           lo que distribuye MALO
-     Externa       temas PROPIOS que salieron por otro distribuidor
-     Colaboración  temas de OTROS artistas donde el nuestro es invitado —
-                   ahí MALO no es titular del máster, así que el único ingreso
-                   es la autoría, y esa llega cada 6 meses */
+/* Tres categorías. LO QUE DECIDE ES DE QUIÉN ES EL MÁSTER:
+ *
+ *   ADA           el máster es del artista y lo distribuye MALO
+ *   Externa       el máster es del artista, pero salió por otro distribuidor
+ *   Colaboración  el máster NO es del artista: es un tema de otro donde el
+ *                 nuestro es invitado
+ *
+ * Solo cuenta como Colaboración si NO somos dueños del máster. Ese es el
+ * criterio y no admite matices: da igual cuánta autoría tenga el nuestro.
+ *
+ * Corolario que se presta a error: un tema PROPIO con un coautor externo
+ * (un productor, un feat que co-escribe) NO es colaboración. El máster sigue
+ * siendo nuestro. BEBEBE, CASH FEELING, CARACOL o SUPERGORDO tienen autores
+ * de fuera y son del catálogo, no colaboraciones.
+ *
+ * Por qué importa la distinción: en Colaboración no hay máster que cobrar,
+ * así que el único ingreso es la autoría — y la editorial paga por semestres. */
 function esColab(c){return (c.distribuidora||"")==="Colaboración"}
 function esExterna(c){const d=c.distribuidora||"";return d!=="ADA"&&d!==""&&d!=="Colaboración"}
 
@@ -6885,8 +6896,9 @@ function viewColabs(el,ta){
 
   if(!list.length){
     el.innerHTML=`<div class="card"><div class="empty"><p><strong>Sin colaboraciones fichadas.</strong><br>
-      Aquí van los temas de otros artistas donde los nuestros ponen su voz o su
-      producción: no hay máster que cobrar, solo autoría.</p></div></div>`;return;
+      Aquí van los temas cuyo máster NO es nuestro: discos de otros artistas donde
+      los nuestros ponen su voz o su producción. Sin máster que cobrar, el único
+      ingreso es la autoría.</p></div></div>`;return;
   }
   const info=new Map(list.map(c=>[c.id,colabAutoria(c)]));
   const cobrado=list.reduce((a,c)=>a+((info.get(c.id)||{}).total||0),0);
@@ -6894,9 +6906,9 @@ function viewColabs(el,ta){
 
   el.innerHTML=`
   <div class="card"><div class="body">
-    <p><strong>${list.length} colaboraciones.</strong> En estos temas el máster es del otro
-    artista: lo único que entra es la <strong>autoría</strong>, y la editorial la paga
-    <strong>por semestres</strong>.</p>
+    <p><strong>${list.length} colaboraciones.</strong> En estas <strong>el máster no es
+    nuestro</strong>: son temas de otros artistas. Lo único que entra es la
+    <strong>autoría</strong>, y la editorial la paga <strong>por semestres</strong>.</p>
     <p class="hint">Cobrado hasta ahora: <strong>${eur(cobrado)}</strong>${
       conObra<list.length?` · ${list.length-conObra} sin obra editorial enlazada todavía`:""}</p>
   </div></div>
