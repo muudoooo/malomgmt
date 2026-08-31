@@ -1669,7 +1669,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.036";
+const APP_VERSION="0.037";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1678,6 +1678,11 @@ const APP_VERSION="0.036";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-08-31",v:"0.037",cambios:[
+    "El merch ya descuenta el IVA. Los precios que llegan de Shopify van con IVA dentro y ese IVA no es ingreso de nadie: va a Hacienda. Una camiseta de 25 € son 20,66 € de ingreso real.",
+    "El impuesto se coge de Shopify, no de un 21 % fijo: las ventas fuera de la UE no llevan IVA y un porcentaje inventado las contaría mal. Si un pedido es de antes de traer el dato, se estima y se avisa.",
+    "Nueva cifra en Merch: «Base de producto», con el impuesto al lado. La de «Ingresos (pedidos)» sigue siendo la facturación con envío e impuestos — son cosas distintas y ahora se ven las dos.",
+    "En Bolsillo la barra de merch pasa a ser la base, así que el mensual del artista deja de estar inflado un 21 %."]},
   {fecha:"2026-08-31",v:"0.036",cambios:[
     "Nueva sección «Merch»: las ventas de las tiendas Shopify (MALO y Disobey) entran solas cada madrugada. Ingresos, pedidos, ticket medio, unidades, evolución mensual, desglose por producto y por artista, y la lista de pedidos.",
     "El merch se asigna a cada artista por el nombre del producto («ROOMTRASH - …» cuenta para roomtrash), y aparece en su Bolsillo como tercera fuente junto a canciones y shows.",
@@ -2383,7 +2388,10 @@ async function loadRemote(){
   DB.sinMerch=!!mv.error;
   DB.merch=DB.sinMerch?[]:(mv.data||[]).map(r=>({id:String(r.id),tienda:r.tienda||"",numero:r.numero||"",
     fecha:r.fecha||"",email:r.email||"",comprador:r.cliente||"",total:n(r.total),moneda:r.moneda||"EUR",
-    estadoPago:r.estado_pago||"",items:Array.isArray(r.items)?r.items:[]}));
+    estadoPago:r.estado_pago||"",items:Array.isArray(r.items)?r.items:[],
+    /* v0.037: el impuesto de la venta. null = pedido importado antes de traerlo. */
+    totalImpuestos:r.total_impuestos==null?null:n(r.total_impuestos),
+    ivaIncluido:r.iva_incluido==null?true:!!r.iva_incluido}));
   if(DB.sinMerch)console.warn("Tabla «merch_ventas» no disponible:",mv.error.message);
   DB.sinEnterticketProd=!!etp.error;
   if(DB.sinEnterticketProd)console.warn("Columna «producciones.enterticket_id» no disponible:",etp.error.message);
@@ -5468,12 +5476,33 @@ function merchArtistaDe(titulo){
     .some(nm=>nm&&(t.startsWith(nm)||(pref.length>=4&&nm.startsWith(pref)))));
   return art?art.id:null;
 }
+/* Tipo por defecto del merch: 21 % (textil, vinilo, CD). Solo se usa cuando el
+   pedido viene de una sincronización ANTIGUA, sin el impuesto de Shopify. Los libros
+   van al 4 %, pero eso lo resuelve el dato real de Shopify, no esta constante. */
+const IVA_MERCH=21;
+
+/* Una línea de merch tiene DOS importes y no son lo mismo:
+     pvp   lo que pagó el comprador, con IVA dentro
+     base  el ingreso de verdad — el IVA va a Hacienda, no al artista
+
+   Mismo criterio que las entradas en calcProd (taquillaNeta = PVP / (1+iva/100)).
+   Se prefiere SIEMPRE el impuesto que manda Shopify: las ventas fuera de la UE no
+   llevan IVA y un 21 % fijo las contaría de menos. */
 function merchLineas(){
   const out=[];
   (DB.merch||[]).forEach(p=>{(p.items||[]).forEach(it=>{
+    const pvp=n(it.importe);
+    let base;
+    if(it.impuesto!=null&&p.ivaIncluido!==false)      base=pvp-n(it.impuesto);
+    else if(it.impuesto!=null)                        base=pvp;   // el precio ya era sin IVA
+    else if(it.ivaPct!=null)                          base=pvp/(1+n(it.ivaPct)/100);
+    else                                              base=pvp/(1+IVA_MERCH/100);
     out.push({pedidoId:p.id,numero:p.numero,tienda:p.tienda,fecha:p.fecha,mes:(p.fecha||"").slice(0,7),
       email:p.email,comprador:p.comprador,titulo:it.titulo||"—",cantidad:n(it.cantidad),
-      importe:n(it.importe),artistaId:merchArtistaDe(it.titulo)});
+      pvp,importe:base,impuesto:pvp-base,
+      /* si no hay dato de Shopify se ha estimado, y conviene poder decirlo */
+      estimado:it.impuesto==null,
+      artistaId:merchArtistaDe(it.titulo)});
   })});
   return out;
 }
@@ -5744,6 +5773,11 @@ function viewMerch(el,ta){
   const nPed=pedidos.length;
   const ticket=nPed?ingresos/nPed:0;
   const unidades=lin.reduce((a,l)=>a+l.cantidad,0);
+  /* La base imponible: lo que de verdad es ingreso. «Ingresos (pedidos)» incluye
+     envío e impuestos, así que no cuadra con el desglose por producto — y no debe. */
+  const base=lin.reduce((a,l)=>a+l.importe,0);
+  const impuesto=lin.reduce((a,l)=>a+l.impuesto,0);
+  const hayEstimado=lin.some(l=>l.estimado);
 
   const porProducto=Object.values(lin.reduce((m,l)=>{
     const k=l.titulo;(m[k]=m[k]||{titulo:k,artistaId:l.artistaId,uds:0,imp:0});m[k].uds+=l.cantidad;m[k].imp+=l.importe;return m;
@@ -5772,6 +5806,8 @@ function viewMerch(el,ta){
   <div class="strip">
     <div class="cell"><div class="lab">Ingresos (pedidos)</div><div class="val v-malo">${eur0(ingresos)}</div>
       <div class="note">con envío e impuestos</div></div>
+    <div class="cell"><div class="lab">Base de producto</div><div class="val">${eur0(base)}</div>
+      <div class="note">sin IVA (${eur0(impuesto)} de impuesto)${hayEstimado?" · parte estimada":""}</div></div>
     <div class="cell"><div class="lab">Pedidos</div><div class="val">${nPed}</div></div>
     <div class="cell"><div class="lab">Ticket medio</div><div class="val">${eur0(ticket)}</div></div>
     <div class="cell"><div class="lab">Unidades</div><div class="val v-artist">${unidades}</div></div>
