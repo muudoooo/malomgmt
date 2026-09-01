@@ -21,6 +21,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 TSV = os.path.join(AQUI, "isrc_encontrados.tsv")
 CLIENTES = os.path.join(AQUI, "clientes_malo.tsv")
 SALIDA = os.path.abspath(os.path.join(AQUI, "..", "..", "supabase", "canciones-externas.sql"))
+REVISAR = os.path.join(AQUI, "revisar_externas.tsv")
 
 # nombre artistico en Deezer -> como se llama en clientes
 ALIAS = {"8belial": "8belial", "yyy891": "Ynestrosa", "roomtrash6": "roomtrash6",
@@ -52,15 +53,15 @@ def main():
         isrc = (r.get("isrc") or "").strip()
         art = (r.get("artista_deezer") or "").strip()
         if not isrc or not art:
-            descartadas.append((r["titulo_umpg"], "sin ISRC en Deezer"))
+            descartadas.append((r, "sin ISRC en Deezer"))
             continue
         # solo si el artista es del roster: si no, es un tema de otro con el mismo titulo
         clave = next((k for k in ALIAS if k in art.lower()), None)
         if not clave:
-            descartadas.append((r["titulo_umpg"], "otro artista: %s" % art))
+            descartadas.append((r, "AUTORIA EXTERNA? el track en Deezer es de %s" % art))
             continue
         if isrc.startswith("BK4DA"):
-            descartadas.append((r["titulo_umpg"], "es de ADA, ya deberia estar"))
+            descartadas.append((r, "es de ADA, ya deberia estar"))
             continue
         cid = clientes.get(ALIAS[clave].lower())
         if not cid:
@@ -79,12 +80,35 @@ def main():
 
     print("altas a generar : %d" % len(altas))
     print("descartadas     : %d" % len(descartadas))
-    for t, m in descartadas[:8]:
-        print("   %-30s %s" % (t[:30], m))
+    for r, m in descartadas[:8]:
+        print("   %-30s %s" % (r["titulo_umpg"][:30], m))
     if len(descartadas) > 8:
         print("   ... y %d mas" % (len(descartadas) - 8))
     if sin_cliente:
         print("SIN ficha de cliente: %s" % sorted(set(sin_cliente)))
+
+    # Los descartes NO se tiran: se dejan en un TSV para mirarlos a mano.
+    #
+    # El motivo de fondo: cuando el track que Deezer devuelve es de otro artista, el
+    # caso interesante NO es que la busqueda fallara — es que un autor del roster haya
+    # escrito para un tema de OTRO. Eso es autoria externa que la app no tiene fichada,
+    # y es justo lo que este proyecto queria encontrar. Meterlo solo en un print se
+    # perdia al cerrar la terminal.
+    #
+    # Siguen sin entrar solos en la base: hay que revisarlos y decidir uno por uno.
+    with io.open(REVISAR, "w", encoding="utf-8") as fh:
+        fh.write("motivo\tcod_obra\ttitulo_umpg\tartista_deezer\tisrc\talbum\tfecha\turl\n")
+        for r, m in sorted(descartadas, key=lambda x: x[1]):
+            fh.write("\t".join([
+                m,
+                r.get("cod_obra", ""), r.get("titulo_umpg", ""),
+                r.get("artista_deezer", ""), r.get("isrc", ""),
+                r.get("album", ""), r.get("fecha_lanzamiento", ""),
+                r.get("url", "")]) + "\n")
+    print("descartes para revisar -> %s" % REVISAR)
+    externas = [x for x in descartadas if x[1].startswith("AUTORIA EXTERNA")]
+    if externas:
+        print("   de los cuales %d son posible AUTORIA EXTERNA (mirar primero)" % len(externas))
 
     L = ["-- Canciones distribuidas FUERA de ADA.",
          "--",

@@ -15,7 +15,7 @@ Diferencias con ADA que hay que respetar:
   - liquidacion SEMESTRAL, y el devengo va aparte del periodo de pago
 """
 
-import io, os, csv, json, glob, zipfile, collections
+import io, os, re, csv, json, glob, zipfile, collections
 
 RAIZ = os.path.expanduser("~/MALO/UMPG PUBLISHING")
 SALIDA = "/tmp/malopatch"
@@ -36,12 +36,34 @@ def num(s):
         return 0.0
 
 
+# Avisos del deal, para sacarlos juntos al final en vez de por cada fila.
+AVISOS = set()
+
+
 def deal_del_nombre(nombre):
-    """'Marcos ... (DISOBEY) 75/25' -> 0.75. Si no aparece, DEAL_POR_DEFECTO."""
-    for trozo in (nombre or "").replace("/", " ").split():
-        if trozo.isdigit() and 1 <= int(trozo) <= 100:
-            return int(trozo) / 100.0
-    return DEAL_POR_DEFECTO
+    """'Marcos ... (DISOBEY) 75/25' -> 0.75. Si no aparece, DEAL_POR_DEFECTO.
+
+    Busca el patron NN/NN explicitamente. La version anterior cogia el PRIMER numero
+    entre 1 y 100 que hubiera en el nombre, asi que un cliente con un numero suelto
+    delante del deal habria dado un deal inventado y en silencio: el share_obra que
+    sale de dividir por el deal habria quedado mal en todas sus filas.
+
+    Ahora, si no hay patron NN/NN o los dos lados no suman 100, se avisa por pantalla.
+    """
+    m = re.search(r"(?<!\d)(\d{1,3})\s*/\s*(\d{1,3})(?!\d)", nombre or "")
+    if not m:
+        AVISOS.add("sin deal NN/NN en %r -> se asume %d%%"
+                   % (nombre, round(DEAL_POR_DEFECTO * 100)))
+        return DEAL_POR_DEFECTO
+    autor, editor = int(m.group(1)), int(m.group(2))
+    if not 1 <= autor <= 100:
+        AVISOS.add("deal fuera de rango en %r: %d/%d -> se asume %d%%"
+                   % (nombre, autor, editor, round(DEAL_POR_DEFECTO * 100)))
+        return DEAL_POR_DEFECTO
+    if autor + editor != 100:
+        AVISOS.add("deal que no suma 100 en %r: %d/%d (se usa %d%%)"
+                   % (nombre, autor, editor, autor))
+    return autor / 100.0
 
 
 def parte_procedencia(p):
@@ -151,6 +173,12 @@ def main():
     # los shares deben salir redondos; si no, el deal esta mal deducido
     raros = sorted(set(x["share_obra"] for x in filas if abs(x["share_obra"] * 100 - round(x["share_obra"] * 100)) > 0.5))
     print("shares no redondos    :", raros if raros else "ninguno (deal correcto)")
+
+    if AVISOS:
+        print()
+        print("AVISOS DEL DEAL (el share_obra de esas filas puede estar mal):")
+        for a in sorted(AVISOS):
+            print("   !", a)
 
     if not os.path.isdir(SALIDA):
         os.makedirs(SALIDA)

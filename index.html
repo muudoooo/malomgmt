@@ -7041,10 +7041,21 @@ function edIngresos(el,obras){
       <code>herramientas/umpg/umpg_ingresos.py</code>.</p></div></div>`;return;
   }
   const per=filtro.edPeriodo||periodos[0];
-  const ing=edIngresosDe(per);
+  const todo=edIngresosDe(per);
+  /* Obras sin cancion enlazada: no sabemos aun a que tema del catalogo corresponden,
+     asi que NO entran en los totales ni en los desgloses — saldrian mezcladas con
+     dinero que si esta identificado. Se listan aparte, con su importe, para que se
+     vea que estan ahi y cuanto hay aparcado. En cuanto se enlace una, entra sola. */
+  const conLink=new Set((DB.obraCanciones||[]).map(x=>x.obraId));
+  const ing=todo.filter(i=>conLink.has(i.obraId));
+  const revisar=todo.filter(i=>!conLink.has(i.obraId));
+  const revNeto=revisar.reduce((a,i)=>a+(+i.importeNeto||0),0);
+  const revBruto=revisar.reduce((a,i)=>a+(+i.importeBruto||0),0);
+  const revObras=[...new Set(revisar.map(i=>i.obraId))];
   const bruto=ing.reduce((a,i)=>a+(+i.importeBruto||0),0);
   const neto=ing.reduce((a,i)=>a+(+i.importeNeto||0),0);
   const tit=new Map(obras.map(o=>[o.id,o.titulo||o.workCode]));
+  const obraDe=new Map(obras.map(o=>[o.id,o]));
 
   const agrupa=(campo)=>{
     const m=new Map();
@@ -7071,6 +7082,27 @@ function edIngresos(el,obras){
     <p class="hint">Devengo real: <strong>${devengos.map(esc).join(", ")}</strong> — o sea, lo que sonó entonces
     se cobra ahora. El desfase es normal en editorial y conviene tenerlo en cuenta al proyectar.</p>
   </div></div>
+  ${!revObras.length?"":`
+  <div class="card" style="border-left:4px solid #d97706">
+    <div class="body">
+      <h4 style="margin-top:0">⚠️ ${revObras.length} obra${revObras.length===1?"":"s"} sin identificar — ${eur(revNeto)} fuera del total</h4>
+      <p class="hint">UMPG liquida estas obras pero todavía no sabemos a qué canción del catálogo
+      corresponden, así que <strong>no se suman arriba</strong>. El dinero no se pierde: se le sigue
+      pagando a su cliente en la pestaña de Liquidación. En cuanto se enlace una obra con su canción,
+      entra en los totales sola.</p>
+      <table><thead><tr><th>Obra</th><th>Grabada por (UMPG)</th><th style="text-align:right">Neto</th></tr></thead>
+      <tbody>${revObras.map(id=>{
+        const o=obraDe.get(id)||{};
+        const v=revisar.filter(x=>x.obraId===id).reduce((a,x)=>a+(+x.importeNeto||0),0);
+        return `<tr><td class="strong">${esc(o.titulo||id)}<span class="dim"> · ${esc(o.workCode||"")}</span></td>
+          <td class="dim">${esc(o.recordedBy||"—")}</td>
+          <td style="text-align:right">${eur(v)}</td></tr>`;
+      }).join("")}</tbody></table>
+      <p class="hint">Para enlazarlas: <code>herramientas/umpg/umpg_mapeo.py</code> deja el mapeo en
+      <code>mapeo_umpg.tsv</code>; las que salen HUERFANA son estas. El <em>Recorded By</em> de UMPG
+      es más fiable que la búsqueda por título para saber de quién es cada obra.</p>
+    </div>
+  </div>`}
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px">
     ${[["Por tipo de uso","tipoUso"],["Por plataforma","dsp"],["Por territorio","territorio"]].map(([lab,campo])=>`
       <div class="card"><div class="body">
@@ -7116,6 +7148,13 @@ function edLiquidacion(el,obras){
   }).sort((a,b)=>b.neto-a.neto);
   const tNeto=filas.reduce((a,f)=>a+f.neto,0);
   const tCom=filas.reduce((a,f)=>a+f.comision,0);
+  /* Aqui SI entran las obras sin identificar: ese dinero es del cliente, tenga o no
+     enlazada la obra con una cancion del catalogo. Lo que hacemos es avisarlo, no
+     descontarlo — dejar de pagarlo por no saber a que tema corresponde seria peor. */
+  const cl_=new Set((DB.obraCanciones||[]).map(x=>x.obraId));
+  const cl_rev=ing.filter(i=>!cl_.has(i.obraId));
+  const cl_revNeto=cl_rev.reduce((a,i)=>a+(+i.importeNeto||0),0);
+  const cl_revObras=new Set(cl_rev.map(i=>i.obraId)).size;
 
   el.innerHTML=`
   <div class="filters">
@@ -7127,6 +7166,10 @@ function edLiquidacion(el,obras){
     a MALO le corresponden <strong>${eur(tCom)}</strong> de comisión de management.</p>
     <p class="hint">El porcentaje sale de la ficha de cada cliente (Clientes → Comisiones → Management).
     Un cliente al 0 % es alguien de quien ya no se lleva management pero a quien sí hay que pagarle su autoría.</p>
+    ${!cl_revObras?"":`<p class="hint" style="border-left:3px solid #d97706;padding-left:10px">
+      ⚠️ Incluye <strong>${eur(cl_revNeto)}</strong> de ${cl_revObras} obra${cl_revObras===1?"":"s"}
+      sin identificar. Se paga igual —el dinero es del cliente— pero en la pestaña de Ingresos
+      queda fuera de los totales hasta saber a qué canción corresponde.</p>`}
   </div></div>
   <div class="card"><div class="body flush">
   <table><thead><tr><th>Cliente</th><th style="text-align:right">Obras</th><th style="text-align:right">Le llega</th>
