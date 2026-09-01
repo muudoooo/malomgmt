@@ -43,7 +43,17 @@ else
 fi
 
 RUN="$DIR/humo.js"
-cat herramientas/humo.js > "$RUN"
+# jsc trae print() como funcion global; node no, y sin esto el arnes se cae con
+# "ReferenceError: print is not defined" y el pre-commit lo lee como que una
+# vista revienta. Va antes de todo y no pisa el print de jsc.
+cat > "$RUN" <<'SHIM'
+if (typeof globalThis.print !== "function") {
+  globalThis.print = function () {
+    console.log(Array.prototype.map.call(arguments, String).join(" "));
+  };
+}
+SHIM
+cat herramientas/humo.js >> "$RUN"
 cat "$TMP" >> "$RUN"
 cat herramientas/humo-casos.js >> "$RUN"
 
