@@ -76,6 +76,12 @@ async function agg(endpoint: string, campo: string): Promise<number> {
 const soloFecha = (s: unknown) => (s ? String(s).slice(0, 10) : null);
 const hoy = () => new Date().toISOString().slice(0, 10);
 
+// Mismo criterio que el botón «Traer ventas» de la app (formProduccion):
+// concepto sin tildes ni mayúsculas, espacios colapsados.
+const norm = (s: unknown) =>
+  String(s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+const num = (v: unknown) => { const n = Number(v); return isFinite(n) ? n : 0; };
+
 async function recinto(cid: number, id: unknown, cache: Map<number, any>) {
   const rid = Number(id || 0);
   if (!rid) return { recinto: null, ciudad: null };
@@ -143,7 +149,61 @@ Deno.serve(async (req) => {
       const { error } = await admin.from("et_eventos").upsert(filas, { onConflict: "id" });
       if (error) throw new Error("upsert et_eventos: " + error.message);
     }
-    return json({ ok: true, eventos: filas.length, ids: filas.map((f) => f.id) });
+
+    // ── Actualizar las producciones a la par ─────────────────────────────────
+    // Cada producción enlazada (producciones.enterticket_id) recibe las ventas
+    // frescas: mismo criterio que el botón «Traer ventas» (vendidas siempre;
+    // precio/cupo solo si estaban vacíos). Además auto-enlaza una producción sin
+    // enlace cuando hay UN solo evento con su misma fecha (fecha_ini), para no
+    // arriesgar un cruce erróneo si dos eventos caen el mismo día.
+    const evPorId = new Map(filas.map((f) => [f.id, f]));
+    const porFecha = new Map<string, string[]>();
+    for (const f of filas) {
+      if (!f.fecha_ini) continue;
+      const arr = porFecha.get(f.fecha_ini) || [];
+      arr.push(f.id);
+      porFecha.set(f.fecha_ini, arr);
+    }
+
+    let prodActualizadas = 0, prodEnlazadas = 0;
+    const { data: prods } = await admin
+      .from("producciones").select("id, fecha, enterticket_id, entradas");
+    for (const p of (prods || [])) {
+      let etId: string | null = p.enterticket_id || null;
+      if (!etId && p.fecha) {
+        const cand = porFecha.get(soloFecha(p.fecha)!);
+        if (cand && cand.length === 1) { etId = cand[0]; prodEnlazadas++; }
+      }
+      if (!etId) continue;
+      const ev = evPorId.get(etId);
+      if (!ev || !ev.entradas?.length) continue;
+
+      const entradas = Array.isArray(p.entradas)
+        ? JSON.parse(JSON.stringify(p.entradas)) : [];
+      for (const te of ev.entradas) {
+        let fila = entradas.find((e: any) => norm(e.concepto) === norm(te.concepto));
+        if (!fila) {
+          fila = { concepto: te.concepto || "", precio: num(te.precio), cupo: num(te.cupo) || "", vendidas: "" };
+          entradas.push(fila);
+        }
+        fila.vendidas = num(te.vendidas);
+        if (!num(fila.cupo) && num(te.cupo)) fila.cupo = num(te.cupo);
+        if (!num(fila.precio) && num(te.precio)) fila.precio = num(te.precio);
+      }
+
+      const upd: Record<string, unknown> = { entradas };
+      if (p.enterticket_id !== etId) upd.enterticket_id = etId;
+      const { error } = await admin.from("producciones").update(upd).eq("id", p.id);
+      if (!error) prodActualizadas++;
+    }
+
+    return json({
+      ok: true,
+      eventos: filas.length,
+      prod_actualizadas: prodActualizadas,
+      prod_enlazadas: prodEnlazadas,
+      ids: filas.map((f) => f.id),
+    });
   } catch (e) {
     return json({ error: String((e as Error).message || e) }, 500);
   }
