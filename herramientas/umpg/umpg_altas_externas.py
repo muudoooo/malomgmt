@@ -69,7 +69,9 @@ def main():
             continue
         altas.append({
             "id": uid("can", "umpg", r["cod_obra"]),
-            "titulo": r["titulo_umpg"].strip(),
+            # el titulo publicado si lo tenemos; si no, el que cataloga UMPG
+            "titulo": (r.get("titulo_deezer") or "").strip() or r["titulo_umpg"].strip(),
+            "titulo_umpg": r["titulo_umpg"].strip(),
             "artista_id": cid,
             "isrc": isrc,
             "mixtape": (r.get("album") or "").strip(),
@@ -133,7 +135,10 @@ def main():
             q(a["id"]), q(a["titulo"]), q(a["artista_id"]), q(a["isrc"]),
             q(a["fecha"]) if a["fecha"] else "null",
             q(a["mixtape"]), q(a["portada"]),
-            q("Obra UMPG %s. Distribuida fuera de ADA; ISRC y release de Deezer." % a["cod_obra"])))
+            q("Obra UMPG %s%s. Distribuida fuera de ADA; ISRC y release de Deezer." % (
+                a["cod_obra"],
+                "" if a["titulo"].upper() == a["titulo_umpg"].upper()
+                   else " (UMPG lo cataloga como «%s»)" % a["titulo_umpg"]))))
     L.append(",\n".join(filas_sql))
     L.append("on conflict (id) do update set")
     L.append("  isrc = excluded.isrc, mixtape = excluded.mixtape,")

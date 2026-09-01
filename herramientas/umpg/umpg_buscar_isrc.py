@@ -12,7 +12,7 @@ NO escribe nada en la base. Deja un TSV para revisar a mano:
 Uso:  python3 umpg_buscar_isrc.py
 """
 
-import io, os, csv, glob, json, time, re, unicodedata, urllib.parse, urllib.request
+import io, os, csv, glob, json, time, re, difflib, unicodedata, urllib.parse, urllib.request
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 MAPEO = os.path.join(AQUI, "mapeo_umpg.tsv")
@@ -31,6 +31,60 @@ def norm(s):
     return re.sub(r"\s+", " ", s).strip()
 
 
+# El titulo que UMPG cataloga NO es el que se publico. Los tres casos que se han
+# visto de verdad (1 sep 2026), y que antes se descartaban en silencio:
+#
+#   «SIMON, EL»       se publico como «el simón»          articulo al final
+#   «GLOCK CHAMPIONS» se publico como «GlockChampions»    sin espacio
+#   «SOUTSHIDE»       se publico como «Southside»         una letra transpuesta
+#
+# Por eso la comparacion es por niveles y no por igualdad.
+
+ARTICULOS = ("el", "la", "los", "las", "un", "una")
+
+
+def desinvierte(s):
+    """'SIMON, EL' -> 'EL SIMON'. UMPG cataloga con el articulo al final."""
+    if "," in s:
+        izq, der = s.rsplit(",", 1)
+        if der.strip().lower() in ARTICULOS:
+            return "%s %s" % (der.strip(), izq.strip())
+    return s
+
+
+def variantes(titulo):
+    """El titulo tal cual y, si aplica, desinvertido. Para buscar por las dos formas."""
+    v = [titulo]
+    d = desinvierte(titulo)
+    if norm(d) != norm(titulo):
+        v.append(d)
+    return v
+
+
+def sinesp(s):
+    return s.replace(" ", "")
+
+
+def casa_titulo(umpg, deezer_tit):
+    """Nivel de coincidencia entre el titulo de UMPG y el de Deezer.
+
+    3 = identico (o identico ignorando espacios)
+    2 = uno contiene al otro
+    1 = casi igual, una o dos letras de diferencia
+    0 = nada que ver
+    """
+    a, b = norm(umpg), norm(deezer_tit)
+    if not a or not b:
+        return 0
+    if a == b or sinesp(a) == sinesp(b):
+        return 3
+    if a in b or b in a or sinesp(a) in sinesp(b) or sinesp(b) in sinesp(a):
+        return 2
+    if difflib.SequenceMatcher(None, sinesp(a), sinesp(b)).ratio() >= 0.88:
+        return 1
+    return 0
+
+
 def deezer(url):
     try:
         with urllib.request.urlopen(url, timeout=15) as r:
@@ -40,28 +94,41 @@ def deezer(url):
 
 
 def busca(titulo, artistas):
-    """Devuelve el mejor candidato o None. Prioriza que el artista sea de los nuestros."""
-    consultas = []
-    for a in artistas[:3]:
-        consultas.append("%s %s" % (titulo, a))
-    consultas.append(titulo)
+    """Devuelve el mejor candidato o None. Prioriza que el artista sea de los nuestros.
 
+    Se busca por todas las variantes del titulo (tal cual y desinvertido) cruzadas con
+    los nombres artisticos de los autores.
+
+    Regla dura: si el artista NO es del roster solo se acepta un titulo IDENTICO. Antes
+    valia que uno contuviese al otro, y asi es como «GLOCK CHAMPIONS» acabo apuntando a
+    un tema de BLACKPINK. Una coincidencia aproximada solo se admite cuando el artista
+    si es nuestro.
+    """
+    tits = variantes(titulo)
+    consultas = []
+    for t in tits:
+        for a in artistas[:3]:
+            consultas.append("%s %s" % (t, a))
+    consultas.extend(tits)
+
+    MAXIMO = 13  # artista del roster (10) + titulo identico (3)
     mejor = None
     for q in consultas:
         d = deezer("https://api.deezer.com/search?q=%s&limit=8" % urllib.parse.quote(q))
         for t in d.get("data", []):
             art = norm(t.get("artist", {}).get("name", ""))
-            tit = norm(t.get("title", ""))
-            mismo_tit = tit == norm(titulo) or norm(titulo) in tit or tit in norm(titulo)
             nuestro = any(n in art for n in NUESTROS)
-            if not mismo_tit:
+            nivel = max(casa_titulo(x, t.get("title", "")) for x in tits)
+            if not nivel:
                 continue
-            punt = (2 if nuestro else 0) + (1 if tit == norm(titulo) else 0)
+            if not nuestro and nivel < 3:
+                continue
+            punt = (10 if nuestro else 0) + nivel
             if mejor is None or punt > mejor[0]:
                 mejor = (punt, t)
-            if punt == 3:
+            if punt == MAXIMO:
                 break
-        if mejor and mejor[0] == 3:
+        if mejor and mejor[0] == MAXIMO:
             break
         time.sleep(0.25)
     return mejor[1] if mejor else None
@@ -117,22 +184,26 @@ def main():
             det = deezer("https://api.deezer.com/track/%s" % t["id"])
             isrc = det.get("isrc", "")
             alb = det.get("album", {}) or t.get("album", {})
+            # El titulo PUBLICADO, que no siempre es el que cataloga UMPG:
+            # «SIMON, EL» se publico como «el simón». En el catalogo de la app tiene
+            # que aparecer el publicado, que es el que ve el artista.
             out.append([cod, tit, isrc, t.get("artist", {}).get("name", ""),
                         alb.get("title", ""), det.get("release_date", ""),
                         alb.get("cover_medium", "") or alb.get("cover", ""),
-                        "https://www.deezer.com/track/%s" % t["id"]])
+                        "https://www.deezer.com/track/%s" % t["id"],
+                        det.get("title", "") or t.get("title", "")])
             hallados += 1
             print("  %3d/%d  %-30s %-14s %s" % (i, len(huer), tit[:30], isrc or "(sin isrc)",
                                                 alb.get("title", "")[:28]))
         else:
-            out.append([cod, tit, "", "", "", "", "", ""])
+            out.append([cod, tit, "", "", "", "", "", "", ""])
             print("  %3d/%d  %-30s --" % (i, len(huer), tit[:30]))
         time.sleep(0.3)
 
     with io.open(SALIDA, "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh, delimiter="\t")
         w.writerow(["cod_obra", "titulo_umpg", "isrc", "artista_deezer", "album",
-                    "fecha_lanzamiento", "portada", "url"])
+                    "fecha_lanzamiento", "portada", "url", "titulo_deezer"])
         w.writerows(out)
 
     print()
