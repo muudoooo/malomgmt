@@ -9075,6 +9075,10 @@ function buscable(id){
   sel.style.position="absolute";sel.style.opacity="0";sel.style.height="1px";
   sel.style.width="1px";sel.style.pointerEvents="none";sel.tabIndex=-1;
 
+  /* Restos de un combo anterior: si un render() destruye el wrap con la lista
+     abierta (y por tanto colgada del body), el nodo se queda huerfano. */
+  document.querySelectorAll("body > .buscable-lista[data-portal]").forEach(x=>x.remove());
+
   const wrap=document.createElement("div");
   wrap.className="buscable-wrap";
   const input=document.createElement("input");
@@ -9088,6 +9092,29 @@ function buscable(id){
   const opcionesDe=()=>[...sel.options].map(o=>({value:o.value,label:o.textContent}));
   const labelDe=v=>{const o=opcionesDe().find(o=>o.value===v);return o?o.label:""};
   const sincroniza=()=>{input.value=labelDe(sel.value)};
+
+  /* La lista se cuelga del <body> mientras esta abierta, en vez de quedarse
+     dentro de .filters. Dentro de la barra tenia dos problemas que el z-index
+     no puede resolver:
+       · #view.anima > * anima cada hijo de la vista con un transform, y un
+         ancestro con transform hace que position:fixed deje de medirse desde la
+         ventana: la lista aparecia desplazada respecto al campo.
+       · z-index solo ordena DENTRO del contexto de apilamiento del ancestro,
+         asi que por alto que fuera, el menu de al lado seguia tapandola.
+     Colgada del body no hay ancestro que la desplace, ni contexto que la
+     encierre, ni overflow que la recorte. */
+  const alBody=()=>{
+    if(lista.parentElement!==document.body){
+      lista.dataset.portal="1";
+      document.body.appendChild(lista);
+    }
+  };
+  const alWrap=()=>{
+    if(lista.parentElement===document.body){
+      delete lista.dataset.portal;
+      wrap.appendChild(lista);
+    }
+  };
 
   /* Al ser fixed, la lista se coloca a mano bajo el campo. Si abajo no cabe y
      arriba sí, se abre hacia arriba en vez de salirse de la pantalla. */
@@ -9123,7 +9150,7 @@ function buscable(id){
     window.removeEventListener("resize",siguiendo);
     siguiendo=null;
   }
-  const cierra=()=>{lista.style.display="none";lista.innerHTML="";desengancha()};
+  const cierra=()=>{lista.style.display="none";lista.innerHTML="";desengancha();alWrap()};
   let activo=-1;
   function pinta(q){
     const filtro=(q||"").toLowerCase();
@@ -9131,10 +9158,10 @@ function buscable(id){
     activo=-1;
     if(!ops.length){
       lista.innerHTML=`<div class="buscable-vacio">Sin resultados</div>`;
-      lista.style.display="block";situaLista();engancha();return;
+      alBody();lista.style.display="block";situaLista();engancha();return;
     }
     lista.innerHTML=ops.map(o=>`<div class="buscable-op ${o.value===sel.value?"sel":""}" data-v="${esc(o.value)}">${esc(o.label)||"—"}</div>`).join("");
-    lista.style.display="block";
+    alBody();lista.style.display="block";
     situaLista();engancha();
     [...lista.children].forEach(el=>el.addEventListener("mousedown",e=>{
       e.preventDefault();
