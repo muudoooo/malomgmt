@@ -4043,6 +4043,12 @@ function crearShowsDeProduccion(id){
     const gastos=[];
     if(n(x.alojImporte))gastos.push({concepto:"Alojamiento",importe:n(x.alojImporte),cargo:"promotor"});
     if(n(x.transImporte))gastos.push({concepto:"Transporte",importe:n(x.transImporte),cargo:"promotor"});
+    /* Si el artista tiene DJ habitual, su caché entra ya como gasto a cargo del
+       artista (mismo criterio que el formulario de show: djFeeBase + _dj), para
+       que el reparto salga bien sin abrir cada show a mano. */
+    const djDef=(c&&c.djDefectoId&&c.categoria!=="soundsystem")?cliente(c.djDefectoId):null;
+    if(djDef){const fee=djFeeBase(c,djDef);
+      if(fee>0)gastos.push({concepto:"Caché DJ · "+(djDef.nombre||djDef.nombreReal||""),importe:fee,cargo:"artista",_dj:true});}
     DB.shows.push({
       id:uid("shw"),clienteId:x.clienteId,promotorId:p.venueId||"",
       fecha:p.fecha,ciudad:p.ciudad||"",pais:"ES",
