@@ -33,6 +33,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 FILAS = "/tmp/malopatch/umpg_filas.json"
 CATALOGO = os.path.join(AQUI, "catalogo_malo.tsv")
 SALIDA = os.path.join(AQUI, "mapeo_umpg.tsv")
+EXCLUIDOS = os.path.join(AQUI, "enlaces_excluidos.tsv")
 UMBRAL = 0.82
 
 ARTICULOS = ("la", "el", "los", "las", "un", "una")
@@ -227,10 +228,33 @@ def main():
     def obr_id(cod):
         return "obr_" + hashlib.sha1(cod.encode("utf-8")).hexdigest()[:12]
 
-    buenos = [r for r in res if r["confianza"] in ("EXACTO", "FUERTE") and r["cancion_id"]]
+    # Enlaces vetados a mano. Existen porque el titulo puede casar y aun asi ser la
+    # obra equivocada: «INTRO» de EL PRINCIPE caso con DDJ534, que es la intro del
+    # DISOBEY VOL. I. Se borro a mano el 31 ago y la siguiente regeneracion del puente
+    # lo volvio a meter, porque el script no sabia nada de esa decision.
+    #
+    # Ahora sí lo sabe: lo que este en enlaces_excluidos.tsv no vuelve a entrar.
+    vetados = set()
+    if os.path.exists(EXCLUIDOS):
+        for r in csv.DictReader(io.open(EXCLUIDOS, encoding="utf-8"), delimiter="\t"):
+            cod, can = (r.get("cod_obra") or "").strip(), (r.get("cancion_id") or "").strip()
+            if cod and can:
+                vetados.add((cod, can))
+
+    buenos = [r for r in res if r["confianza"] in ("EXACTO", "FUERTE") and r["cancion_id"]
+              and (r["cod_obra"], r["cancion_id"]) not in vetados]
+    fuera = [r for r in res if r["confianza"] in ("EXACTO", "FUERTE") and r["cancion_id"]
+             and (r["cod_obra"], r["cancion_id"]) in vetados]
+    if fuera:
+        print()
+        print("ENLACES VETADOS A MANO (no entran en el puente):")
+        for r in fuera:
+            print("   %-8s %-28s -> %s" % (r["cod_obra"], r["titulo_umpg"][:28], r["cancion_id"]))
     L = ["-- Puente obra <-> grabacion (public.obra_canciones).",
          "-- Generado por herramientas/umpg/umpg_mapeo.py.",
          "-- Solo entradas EXACTO y FUERTE; lo dudoso se revisa a mano en mapeo_umpg.tsv.",
+         "-- Los pares de enlaces_excluidos.tsv quedan FUERA: son enlaces que casaban por",
+         "-- titulo pero apuntaban a la obra equivocada, verificado a mano.",
          "-- Idempotente: clave primaria (obra_id, cancion_id).",
          "",
          "begin;",

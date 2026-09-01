@@ -4507,6 +4507,11 @@ function viewCanciones(el,ta){
  * Por qué importa la distinción: en Colaboración no hay máster que cobrar,
  * así que el único ingreso es la autoría — y la editorial paga por semestres. */
 function esColab(c){return (c.distribuidora||"")==="Colaboración"}
+/* Retirada: la grabacion ya no esta en plataformas, pero la OBRA sigue cobrando
+   autoria durante años. Necesita ficha para que ese dinero no se caiga de los
+   totales de Editorial, y necesita distinguirse: no esta «distribuida por otro»,
+   esta fuera de las plataformas. */
+function esRetirada(c){return (c.distribuidora||"")==="Retirada"}
 function esExterna(c){const d=c.distribuidora||"";return d!=="ADA"&&d!==""&&d!=="Colaboración"}
 
 function viewExternas(el,ta){
@@ -4538,6 +4543,9 @@ function viewExternas(el,ta){
   <div class="card"><div class="body">
     <p><strong>${list.length} canciones que no distribuye MALO.</strong>
     Salieron por otro distribuidor antes del contrato con ADA${portal?"":", y aparecieron al cruzar la editorial con el catálogo"}.</p>
+    ${(()=>{const r=list.filter(esRetirada).length;return !r?"":`<p class="hint" style="border-left:3px solid #d97706;padding-left:10px">
+      ⚠️ ${r} ${r===1?"está retirada":"están retiradas"} de plataformas. La grabación ya no se puede escuchar,
+      pero <strong>la obra sigue cobrando autoría</strong>: por eso mantiene ficha y su editorial cuenta.</p>`})()}
     <p class="hint">Se reconocen por el ISRC: las de ADA empiezan por <code>BK4DA</code> y estas no.
     ${portal?"":"Aquí no hay ingresos porque ese dinero no pasa por MALO."}</p>
   </div></div>
@@ -4557,6 +4565,7 @@ function viewExternas(el,ta){
                 style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;display:block">`
               :`<div style="width:100%;aspect-ratio:1;border-radius:6px;background:var(--panel);border:1px solid var(--rule-2)"></div>`}
             <div class="strong tiny" style="margin-top:6px">${esc(c.titulo||"")}</div>
+            ${esRetirada(c)?`<div class="tiny" style="color:#d97706">⚠️ Retirada de plataformas</div>`:""}
             ${c.mixtape?`<div class="dim tiny">${esc(c.mixtape)}</div>`:""}
             <div class="dim tiny">${c.fechaLanzamiento?fecha(c.fechaLanzamiento):""}${c.isrc?` · ${esc(c.isrc)}`:""}</div>
           </div>`).join("")}

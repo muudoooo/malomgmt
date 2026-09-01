@@ -1,6 +1,8 @@
 -- Puente obra <-> grabacion (public.obra_canciones).
 -- Generado por herramientas/umpg/umpg_mapeo.py.
 -- Solo entradas EXACTO y FUERTE; lo dudoso se revisa a mano en mapeo_umpg.tsv.
+-- Los pares de enlaces_excluidos.tsv quedan FUERA: son enlaces que casaban por
+-- titulo pero apuntaban a la obra equivocada, verificado a mano.
 -- Idempotente: clave primaria (obra_id, cancion_id).
 
 begin;
@@ -51,7 +53,6 @@ insert into public.obra_canciones (obra_id, cancion_id, confianza) values
   ('obr_c95a18ee7438', 'can_5aca7e823519', 'exacto'),
   ('obr_84d5d0080fcc', 'can_6dy9c83s2yhf', 'exacto'),
   ('obr_b87b91db7eb9', 'can_730be78c4285', 'exacto'),
-  ('obr_2047bc5498a3', 'can_j6vri8f2rc95', 'exacto'),
   ('obr_eb6eb18651fb', 'can_30cf03fd3173', 'exacto'),
   ('obr_d8c1c71ab2ea', 'can_42cd4bf26c70', 'exacto'),
   ('obr_e50ac0539176', 'can_6a0677e3fa60', 'exacto'),
