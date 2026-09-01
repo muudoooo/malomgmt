@@ -6,9 +6,17 @@
 # pagina, y entonces NO SE EJECUTA NADA: la app se queda en "Conectando...".
 # Ya paso una vez, en produccion.
 #
-# Este hook saca el <script> de index.html y se lo da a JavaScriptCore (el
-# motor de Safari, que viene con macOS) para que lo parsee. Si no compila,
-# el commit no sale. Tarda menos de un segundo. No hace falta instalar node.
+# Este hook saca el <script> de index.html y se lo da a un motor de JavaScript
+# para que lo parsee. Si no compila, el commit no sale.
+#
+# Funciona en macOS y en Linux. Busca con que parsear, en este orden:
+#   1. node --check          (lo mas rapido y un parser de verdad)
+#   2. jsc                   (viene con macOS, la via original de este hook)
+#   3. osascript -l JavaScript
+#   4. respaldo en python3   (solo estructura: llaves, comillas y plantillas)
+# El respaldo NO es un parser completo, pero pilla justo lo que motivo este
+# hook —una llave o una comilla sin cerrar— y evita que en una maquina sin
+# ningun motor JS el hook cancele todos los commits por no poder comprobar.
 #
 # Instalar:  git config core.hooksPath .githooks
 # Saltarselo una vez (solo si sabes lo que haces):  git commit --no-verify
@@ -18,7 +26,13 @@ cd "$(git rev-parse --show-toplevel)"
 
 [ -f index.html ] || exit 0
 
-TMP=$(mktemp -t malo-check).js
+# mktemp portable: en macOS "-t prefijo" basta, pero GNU/coreutils exige que la
+# plantilla acabe en XXXXXX y aborta con "insuficiente numero de X". Con set -e
+# eso tumbaba el hook entero en Linux y cancelaba el commit sin haber
+# comprobado nada. Un directorio temporal se comporta igual en los dos.
+DIR=$(mktemp -d "${TMPDIR:-/tmp}/malo.XXXXXX")
+trap 'rm -rf "$DIR"' EXIT INT TERM
+TMP="$DIR/check.js"
 
 python3 - "$TMP" <<'PY'
 import re, sys
@@ -30,18 +44,123 @@ if not bloques:
 open(sys.argv[1], "w", encoding="utf-8").write("\n".join(bloques))
 PY
 
-CHECK=$(mktemp -t malo-runner).js
-cat > "$CHECK" <<EOF
+JSC_MAC=/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc
+MOTOR=""
+RES=""
+
+if command -v node >/dev/null 2>&1; then
+  MOTOR="node"
+  if OUT=$(node --check "$TMP" 2>&1); then RES="OK"; else RES="FALLO: $OUT"; fi
+
+elif [ -x "$JSC_MAC" ]; then
+  MOTOR="jsc"
+  cat > "$DIR/runner.js" <<'EOF'
+try { new Function(read(arguments[0] || "")); print("OK"); }
+catch (e) { print("FALLO: " + e.message); }
+EOF
+  RES=$("$JSC_MAC" "$DIR/runner.js" -- "$TMP" 2>&1 || true)
+  [ -n "$RES" ] || RES="FALLO: jsc no devolvio nada"
+
+elif command -v osascript >/dev/null 2>&1; then
+  MOTOR="osascript"
+  cat > "$DIR/runner.js" <<EOF
 ObjC.import('Foundation');
 var s = \$.NSString.stringWithContentsOfFileEncodingError('$TMP', \$.NSUTF8StringEncoding, null).js;
 try { new Function(s); console.log('OK'); }
 catch (e) { console.log('FALLO: ' + e.message); }
 EOF
+  # 2>&1 no es decorativo: en JXA console.log escribe por stderr, no por stdout.
+  # Sin esto RES sale siempre vacio y el hook bloquea hasta los commits buenos.
+  RES=$(osascript -l JavaScript "$DIR/runner.js" 2>&1)
 
-# 2>&1 no es decorativo: en JXA console.log escribe por stderr, no por stdout.
-# Sin esto RES sale siempre vacio y el hook bloquea hasta los commits buenos.
-RES=$(osascript -l JavaScript "$CHECK" 2>&1)
-rm -f "$TMP" "$CHECK"
+else
+  MOTOR="python (solo estructura)"
+  RES=$(python3 - "$TMP" <<'PY'
+import io, re, sys
+# Recorre el archivo entendiendo comentarios, cadenas, plantillas (con sus
+# ${...} anidados) y expresiones regulares, y comprueba que todo lo que se abre
+# se cierra. No valida gramatica: valida estructura, que es donde estaba el
+# fallo que dejo la app en blanco.
+s = io.open(sys.argv[1], encoding="utf-8").read()
+i, n, linea = 0, len(s), 1
+pila, plantillas, previo = [], [], ""
+ANTES_REGEX = {"", "(", ",", "=", ":", "[", "!", "&", "|", "?", "{", "}", ";", "return", "typeof", "`"}
+
+def salir(msg):
+    print("FALLO: " + msg); sys.exit(0)
+
+while i < n:
+    c = s[i]
+    if c == "\n": linea += 1; i += 1; continue
+    if c in " \t\r": i += 1; continue
+    if s.startswith("//", i):
+        j = s.find("\n", i); i = n if j < 0 else j; continue
+    if s.startswith("/*", i):
+        j = s.find("*/", i + 2)
+        if j < 0: salir("comentario /* sin cerrar, linea %d" % linea)
+        linea += s.count("\n", i, j); i = j + 2; continue
+    if c in "'\"":
+        q, j = c, i + 1
+        while j < n:
+            if s[j] == "\\": j += 2; continue
+            if s[j] == q: break
+            if s[j] == "\n": salir("cadena sin cerrar, linea %d" % linea)
+            j += 1
+        if j >= n: salir("cadena sin cerrar, linea %d" % linea)
+        i = j + 1; previo = "x"; continue
+    if c == "`":
+        plantillas.append(linea); i += 1; previo = "`"
+        while i < n:
+            if s[i] == "\\": i += 2; continue
+            if s[i] == "\n": linea += 1; i += 1; continue
+            if s[i] == "`": plantillas.pop(); i += 1; previo = "x"; break
+            if s.startswith("${", i): pila.append(("${", linea)); i += 2; previo = ""; break
+            i += 1
+        else: salir("plantilla ` sin cerrar, linea %d" % plantillas[-1])
+        continue
+    if c == "/" and previo in ANTES_REGEX:
+        j, clase = i + 1, False
+        while j < n:
+            if s[j] == "\\": j += 2; continue
+            if s[j] == "[": clase = True
+            elif s[j] == "]": clase = False
+            elif s[j] == "/" and not clase: break
+            elif s[j] == "\n": salir("expresion regular sin cerrar, linea %d" % linea)
+            j += 1
+        if j >= n: salir("expresion regular sin cerrar, linea %d" % linea)
+        i = j + 1
+        while i < n and s[i] in "gimsuyd": i += 1
+        previo = "x"; continue
+    if c in "([{":
+        pila.append((c, linea)); i += 1; previo = c; continue
+    if c in ")]}":
+        if not pila: salir("cierra %s de mas, linea %d" % (c, linea))
+        abre, l = pila.pop()
+        if abre == "${" and c == "}":
+            i += 1; previo = ""
+            while i < n:
+                if s[i] == "\\": i += 2; continue
+                if s[i] == "\n": linea += 1; i += 1; continue
+                if s[i] == "`":
+                    if plantillas: plantillas.pop()
+                    i += 1; previo = "x"; break
+                if s.startswith("${", i): pila.append(("${", linea)); i += 2; previo = ""; break
+                i += 1
+            continue
+        pareja = {"(": ")", "[": "]", "{": "}"}[abre]
+        if pareja != c:
+            salir("se abre %s en la linea %d y se cierra %s en la %d" % (abre, l, c, linea))
+        i += 1; previo = c; continue
+    m = re.match(r"[A-Za-z_$][\w$]*", s[i:])
+    if m: previo = m.group(0); i += len(m.group(0)); continue
+    previo = c; i += 1
+
+if pila: salir("se queda sin cerrar %s, abierto en la linea %d" % (pila[-1][0], pila[-1][1]))
+if plantillas: salir("plantilla ` sin cerrar, linea %d" % plantillas[-1])
+print("OK")
+PY
+)
+fi
 
 if [ "$RES" != "OK" ]; then
   echo ""
@@ -54,7 +173,13 @@ if [ "$RES" != "OK" ]; then
   exit 1
 fi
 
-echo "  OK  index.html compila"
+echo "  OK  index.html compila  ($MOTOR)"
+
+if [ "$MOTOR" = "python (solo estructura)" ]; then
+  echo "  ..  sin motor de JavaScript en esta maquina: solo se ha comprobado la"
+  echo "      estructura. Con 'node' instalado se parsea de verdad y ademas se"
+  echo "      ejecuta la prueba de humo (en Arch/CachyOS: sudo pacman -S nodejs)."
+fi
 
 # ── Prueba de humo: ejecutar, no solo compilar ───────────────────────────────
 # Compilar no basta. Han pasado a produccion dos fallos que compilaban bien y
