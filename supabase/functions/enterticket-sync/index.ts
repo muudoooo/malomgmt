@@ -178,18 +178,24 @@ Deno.serve(async (req) => {
       const ev = evPorId.get(etId);
       if (!ev || !ev.entradas?.length) continue;
 
-      const entradas = Array.isArray(p.entradas)
-        ? JSON.parse(JSON.stringify(p.entradas)) : [];
-      for (const te of ev.entradas) {
-        let fila = entradas.find((e: any) => norm(e.concepto) === norm(te.concepto));
-        if (!fila) {
-          fila = { concepto: te.concepto || "", precio: num(te.precio), cupo: num(te.cupo) || "", vendidas: "" };
-          entradas.push(fila);
-        }
-        fila.vendidas = num(te.vendidas);
-        if (!num(fila.cupo) && num(te.cupo)) fila.cupo = num(te.cupo);
-        if (!num(fila.precio) && num(te.precio)) fila.precio = num(te.precio);
-      }
+      // "A la par": la producción refleja EXACTAMENTE los tipos de entrada del
+      // evento en Enterticket (que es la fuente de verdad de lo vendido). Así se
+      // evita el doble conteo cuando MALO nombró un tipo distinto a como lo llama
+      // Enterticket (p. ej. "Anticipada" vs "Entrada General"). Se conserva el
+      // precio que tecleó MALO cuando el concepto coincide (normalizado); si no,
+      // se usa el precio de Enterticket.
+      const viejas: any[] = Array.isArray(p.entradas) ? p.entradas : [];
+      const entradas = ev.entradas.map((te: any) => {
+        const prev = viejas.find((e: any) => norm(e.concepto) === norm(te.concepto));
+        const precio = prev && num(prev.precio) ? num(prev.precio)
+          : (te.precio != null ? num(te.precio) : "");
+        return {
+          concepto: te.concepto || "",
+          precio,
+          cupo: num(te.cupo) || "",
+          vendidas: num(te.vendidas),
+        };
+      });
 
       const upd: Record<string, unknown> = { entradas };
       if (p.enterticket_id !== etId) upd.enterticket_id = etId;
