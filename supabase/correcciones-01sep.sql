@@ -82,6 +82,51 @@ insert into public.obra_canciones (obra_id, cancion_id, confianza) values
   ((select id from public.obras where work_code = 'DDJ523'), 'can_retirada_cancha1', 'manual')
 on conflict (obra_id, cancion_id) do update set confianza = excluded.confianza;
 
+-- ── D · INTRO MR. FINO: la obra DHM320 y el release mal puesto
+--
+-- Malo: «es la intro de MR FINO, es una mixtape de belial, la misma donde esta ORILLA».
+--
+-- Verificado en los extractos de ADA: las 3.652 filas de BK4DA2504946 «INTRO» llevan
+-- TODAS Project Title = «Mr. Fino album», el mismo proyecto que ORILLA, NEW MONEY,
+-- CASH FEELING, OTRA VEZ y GYAL ARMA LETAL. No hay ni una fila que la ponga en
+-- EL PRINCIPE.
+--
+-- Asi que can_j6vri8f2rc95 es la intro de Mr. Fino, y su mixtape esta mal.
+-- (La nota de correcciones-disobey.sql la llamaba «INTRO de EL PRINCIPE» fiandose de
+--  ese mismo campo equivocado. La conclusion de alli seguia siendo correcta: DDJ534 es
+--  la intro del DISOBEY VOL. I, no esta.)
+
+update public.canciones
+   set mixtape = 'Mr. Fino Riddim The Mixtape',
+       editado_en = now()
+ where isrc = 'BK4DA2504946';
+
+insert into public.obra_canciones (obra_id, cancion_id, confianza) values
+  ((select id from public.obras where work_code = 'DHM320'), 'can_j6vri8f2rc95', 'manual')
+on conflict (obra_id, cancion_id) do update set confianza = excluded.confianza;
+
+-- ── E · la INTRO de EL PRINCIPE, que faltaba en el catalogo
+--
+-- Salio al comprobar lo anterior: EL PRINCIPE tiene SU PROPIA intro,
+-- BK4DA2609588, con 223,30 EUR de bruto en ADA — y no estaba fichada. El catalogo
+-- salta de BK4DA2609589 (VICTORIO & LUCCHINO) a BK4DA2609601 (CHAMPAGNE).
+--
+-- Sus ingresos NO estan en cancion_ingresos: son 223,30 EUR de master sin atribuir a
+-- ninguna cancion. Al darla de alta, la siguiente carga de ADA los recogera.
+--
+-- Mismos porcentajes que el resto de EL PRINCIPE: fee 30 / mgmt 21.
+
+insert into public.canciones
+  (id, titulo, artista_id, isrc, distribuidora, fee_distribucion_pct, mgmt_pct,
+   fecha_lanzamiento, mixtape, notas) values
+  ('can_princ_intro0001',
+   'INTRO EL PRÍNCIPE',
+   (select id from public.clientes where nombre = '8belial'),
+   'BK4DA2609588', 'ADA', 30, 21, '2026-02-27', 'EL PRÍNCIPE',
+   'Faltaba en el catalogo: 223,30 EUR de bruto en ADA sin atribuir. Detectada el 1 sep 2026 al separar esta intro de la de Mr. Fino, que se habia quedado con el release EL PRINCIPE por error. Titulo en ADA: «INTRO».')
+on conflict (id) do update set
+  isrc = excluded.isrc, mixtape = excluded.mixtape, notas = excluded.notas;
+
 commit;
 
 -- ── comprobaciones
@@ -94,3 +139,11 @@ select 'obras con ingresos y sin cancion', count(distinct o.id)
  where not exists (select 1 from public.obra_canciones oc where oc.obra_id = o.id);
 
 select distribuidora, count(*) from public.canciones group by 1 order by 2 desc;
+
+-- las dos INTRO, cada una en su release y con su obra
+select c.titulo, c.isrc, c.mixtape,
+       coalesce((select string_agg(o.work_code||' '||o.titulo, ', ')
+                   from public.obra_canciones oc join public.obras o on o.id = oc.obra_id
+                  where oc.cancion_id = c.id), '-- sin obra') obras
+  from public.canciones c
+ where c.isrc in ('BK4DA2504946','BK4DA2609588');
