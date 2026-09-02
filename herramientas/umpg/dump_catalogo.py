@@ -5,30 +5,22 @@ Por que existe: catalogo_malo.tsv y clientes_malo.tsv se hicieron a mano y se
 quedaron rancios (118 canciones cuando ya habia 177). Cualquier script que los use
 para cruzar da falsos «HUERFANA». Esto los regenera en 2 segundos.
 
-Credenciales: de ~/.royalties-keys (SUPABASE_URL y SUPABASE_KEY). No se imprimen.
+Credenciales: del Keychain de macOS, via herramientas/claves.py. No se imprimen.
 Solo lee: hace GET a la API REST, nunca escribe.
 
 Uso:  python3 dump_catalogo.py
 """
 
-import io, os, csv, json, re, urllib.parse, urllib.request
+import io, os, sys, csv, json, urllib.parse, urllib.request
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-CLAVES = os.path.expanduser("~/.royalties-keys")
+sys.path.insert(0, os.path.dirname(AQUI))          # herramientas/
+from claves import clave                            # noqa: E402
 
 
 def credenciales():
-    if not os.path.exists(CLAVES):
-        raise SystemExit("No existe %s" % CLAVES)
-    d = {}
-    for ln in io.open(CLAVES, encoding="utf-8"):
-        m = re.match(r"\s*(?:export\s+)?(\w+)\s*=\s*(.*)", ln)
-        if m:
-            d[m.group(1)] = m.group(2).strip().strip("'\"")
-    url, key = d.get("SUPABASE_URL"), d.get("SUPABASE_KEY")
-    if not url or not key:
-        raise SystemExit("Faltan SUPABASE_URL o SUPABASE_KEY en %s" % CLAVES)
-    return url.rstrip("/"), key
+    """Del Keychain. Antes se leian de ~/.royalties-keys en texto plano."""
+    return clave("SUPABASE_URL").rstrip("/"), clave("SUPABASE_KEY")
 
 
 def trae(url, key, tabla, campos):
