@@ -798,6 +798,18 @@ body.portal #addGasto,body.portal #addAdj{display:none!important}
 /* Distribuir canción SÍ deja escribir al artista: su botón de acción va en el
    cuerpo (topActions está oculto en el portal) y se marca .portal-ok. */
 body.portal .distrib-nueva{display:block;margin-bottom:14px}
+/* Tracker del pipeline de distribución (tipo seguimiento de pedido) */
+.dist-track{display:flex;margin:8px 0 4px;flex-wrap:wrap;row-gap:10px}
+.dist-track .dt-step{flex:1;min-width:84px;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;padding:0 4px}
+.dist-track .dt-step::before{content:"";position:absolute;top:6px;left:-50%;width:100%;height:2px;background:var(--rule-2)}
+.dist-track .dt-step:first-child::before{display:none}
+.dist-track .dt-step.hecho::before,.dist-track .dt-step.actual::before{background:var(--malo)}
+.dist-track .dt-dot{width:13px;height:13px;border-radius:50%;background:var(--panel-3);border:2px solid var(--rule-2);z-index:1;box-sizing:border-box}
+.dist-track .dt-step.hecho .dt-dot{background:var(--malo);border-color:var(--malo)}
+.dist-track .dt-step.actual .dt-dot{border-color:var(--malo);box-shadow:0 0 0 3px color-mix(in srgb,var(--malo) 28%,transparent)}
+.dist-track .dt-lab{font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute-2);text-align:center}
+.dist-track .dt-step.actual .dt-lab{color:var(--malo)}
+.dist-track .dt-step.hecho .dt-lab{color:var(--mute)}
 
 /* Cruz de registro arriba a la derecha */
 .rt-cross{position:absolute;z-index:1;right:8.8mm;top:4.5mm;width:18mm;height:14mm;pointer-events:none}
@@ -3650,6 +3662,15 @@ function viewInicioPortal(el,ta){
       <div style="flex:1;min-width:220px"><strong>Tus royalties de ${esc(nom)} ya están listos</strong>
         <div class="dim tiny">Bruto, descuentos aplicados y tu parte, canción a canción.</div></div>
       <button class="btn primary sm portal-ok" id="irReporte" data-mes="${m}">Ver mi reporte</button></div></div>`})()}
+  ${(()=>{const en=(DB.canciones||[]).filter(x=>x.artistaId===c.id&&enDistribucion(x)&&distEstado(x)!=="distribuida");
+    if(!en.length)return "";
+    return `<div class="card" style="margin-top:14px"><header><h3>Tus lanzamientos en curso</h3><div class="spacer"></div>
+      <button class="btn ghost sm" data-ir="canciones">Ver todo</button></header><div class="body flush"><table><tbody>
+      ${en.map(x=>`<tr class="click" data-distrib="${x.id}">
+        <td class="strong">${esc(x.titulo||"(sin título)")}</td>
+        <td class="tiny dim" style="width:1%;white-space:nowrap">${x.fechaLanzamiento?fecha(x.fechaLanzamiento):"—"}</td>
+        <td style="width:1%;white-space:nowrap"><span class="pill ${distPill(distEstado(x))}">${esc(distEstadoLabel(distEstado(x)))}</span></td></tr>`).join("")}
+      </tbody></table></div></div>`})()}
   <div class="card" style="margin-top:14px"><header><h3>Próximas fechas</h3><div class="spacer"></div>
     <button class="btn ghost sm" data-ir="calendario">Ver agenda</button></header><div class="body">
     ${prox.length?`<table><tbody>
@@ -4467,6 +4488,14 @@ function distribEnviada(c){return !!distDe(c).enviado}
    y colaría la canción en la cola sin haberla enviado. El catálogo antiguo ya
    distribuido vive en «Mis Canciones». */
 function enDistribucion(c){const d=c&&c.distribucion;return !!(d&&typeof d==="object"&&d.enviado)}
+/* Pipeline de la solicitud (30 ago 2026): tracking tipo pedido. Las enviadas
+   antiguas sin estado cuentan como «enviada». */
+const DIST_ESTADOS=[["enviada","Enviada"],["revision","En revisión"],["subida_ada","Subida a ADA"],["aprobada","Aprobada"],["distribuida","Distribuida"]];
+function distEstado(c){const d=distDe(c);return d.estado||(d.enviado?"enviada":"")}
+function distEstadoLabel(e){const x=DIST_ESTADOS.find(p=>p[0]===e);return x?x[1]:(e||"por preparar")}
+function distPill(e){return ({enviada:"warn",revision:"violet",subida_ada:"violet",aprobada:"ok",distribuida:"ok"})[e]||""}
+function distTracker(c){const e=distEstado(c);const idx=DIST_ESTADOS.findIndex(p=>p[0]===e);
+  return `<div class="dist-track">${DIST_ESTADOS.map((p,i)=>`<div class="dt-step ${i<idx?"hecho":""} ${i===idx?"actual":""}"><span class="dt-dot"></span><span class="dt-lab">${p[1]}</span></div>`).join("")}</div>`}
 
 function viewCanciones(el,ta){
   const tab=["distribuir","externas","colabs"].includes(CANC_TAB)?CANC_TAB:"catalogo";
@@ -4622,7 +4651,7 @@ function viewDistribuir(el,ta){
         <span>${esc(c.titulo||"(sin título)")}${d.tipo&&d.tipo!=="Original"?` <span class="dim tiny">· ${esc(d.tipo)}</span>`:""}</span></span></td>
       <td>${esc(nomCliente(c.artistaId))}</td>
       <td class="tiny">${c.fechaLanzamiento?fecha(c.fechaLanzamiento):"—"}</td>
-      <td><span class="pill ${d.enviado?"ok":"warn"}">${d.enviado?"enviada":"por preparar"}</span></td>
+      <td><span class="pill ${distPill(distEstado(c))}">${esc(distEstadoLabel(distEstado(c)))}</span></td>
       ${portal?"":`<td style="width:1%;white-space:nowrap"><button class="btn ghost sm" data-act="email-distrib" data-id="${c.id}" title="Generar el email para la distribuidora">Email</button></td>`}
     </tr>`}).join("")}
   </tbody></table></div>`;
@@ -4657,7 +4686,11 @@ function formDistribuir(id){
       </select>
       <span class="hint">Elige una canción de tu catálogo para distribuirla, o créala nueva. Así no se duplica en Mis Canciones.</span></div>`:""}
     ${DB.sinDistribucion?`<p class="hint" style="margin-bottom:12px;color:var(--alert)">Falta la columna «distribucion»: se puede rellenar, pero los datos de distribución no se guardan hasta ejecutar <code>supabase/distribucion.sql</code>.</p>`:""}
-    ${portal?`<p class="hint" style="margin-bottom:14px">Rellena todo lo que puedas. Cuanta más info, más rápida la distribución. Los archivos van como <strong>enlaces</strong> (Drive, Dropbox, WeTransfer…).</p>`:""}
+    ${(portal&&id&&enDistribucion(o))?`<div class="section-title" style="margin-top:0">Estado de tu lanzamiento</div>
+    ${distTracker(o)}
+    ${distDe(o).estadoNota?`<p class="hint" style="margin:8px 0 4px"><strong>Nota del equipo:</strong> ${esc(distDe(o).estadoNota)}</p>`:""}
+    <div style="height:10px"></div>`:""}
+    ${(portal&&!(id&&enDistribucion(o)))?`<p class="hint" style="margin-bottom:14px">Rellena todo lo que puedas. Cuanta más info, más rápida la distribución. Los archivos van como <strong>enlaces</strong> (Drive, Dropbox, WeTransfer…).</p>`:""}
     <div class="section-title">La canción</div>
     <div class="fgrid">
       <div class="f s6"><label>Título</label><input id="d_tit" value="${esc(o.titulo||"")}" placeholder="Nombre de la canción" ${ro}></div>
@@ -4703,6 +4736,15 @@ function formDistribuir(id){
       <div class="f s12"><label>Materiales de promo <span class="dim" style="text-transform:none">· fotos, piezas para redes, vídeos</span></label>
         <input id="d_promo" value="${esc(d.materialesPromo||"")}" placeholder="Enlace de descarga" ${ro}></div>
     </div>
+    ${(id&&enDistribucion(o)&&!portal)?`<div class="section-title">Estado de la distribución</div>
+    ${distTracker(o)}
+    ${distDe(o).estadoNota?`<p class="hint" style="margin-top:8px"><strong>Nota para el artista:</strong> ${esc(distDe(o).estadoNota)}</p>`:""}
+    ${`<div class="fgrid" style="margin-top:12px">
+      <div class="f s4"><label>Cambiar estado</label><select id="d_estado">${DIST_ESTADOS.map(p=>`<option value="${p[0]}" ${distEstado(o)===p[0]?"selected":""}>${p[1]}</option>`).join("")}</select></div>
+      <div class="f s8"><label>Nota para el artista <span class="dim" style="text-transform:none">· opcional, la ve en su portal</span></label><input id="d_estnota" value="${esc(distDe(o).estadoNota||"")}"></div>
+      <div class="f s12"><button class="btn sm" data-act="estado-distrib" data-id="${o.id}">Actualizar estado</button>
+        <span class="hint" style="margin-left:8px">Al pasar a «Aprobada» o «Distribuida» se avisa con push solo a este artista.</span></div>
+    </div>`}`:""}
     ${(o.distribucion&&o.distribucion.enviadoEn)?`<p class="dim tiny" style="margin-top:12px">Enviada el ${fecha((o.distribucion.enviadoEn||"").slice(0,10))}.</p>`:""}
   </div>
   <footer class="fbar"><button class="btn ghost" data-act="close">Cancelar</button>
@@ -4738,7 +4780,8 @@ async function saveDistribucion(id,isNew){
     titulo:f.titulo,artistaId:f.artistaId,fechaLanzamiento:f.fechaLanzamiento,isrc:f.isrc,
     genero:f.genero,creditos:f.creditos,portadaUrl:f.portadaUrl,audioUrl:f.audioUrl,
     distribucion:Object.assign({},prevDist,f.distribucion,{
-      enviado:true, enviadoEn:prevDist.enviadoEn||new Date().toISOString()})});
+      enviado:true, enviadoEn:prevDist.enviadoEn||new Date().toISOString(),
+      estado:prevDist.estado||"enviada"})});
 
   if(esArtistaPortal()){
     /* El artista NO usa save() (está bloqueado): inserta SOLO su canción, y solo
@@ -4756,6 +4799,27 @@ async function saveDistribucion(id,isNew){
   if(isNew||!existe)DB.canciones.push(cancion); else DB.canciones=DB.canciones.map(x=>x.id===id?cancion:x);
   closeModal(); toast("Canción guardada en Mis Canciones"); touch();
   abrirEmailDistribucion(cancion);
+}
+
+/* Cambia el estado del pipeline y, si pasa a aprobada/distribuida, avisa con
+   push SOLO al artista de la canción (push-enviar v10, solo_cliente). */
+async function actualizarEstadoDistrib(id){
+  const c=(DB.canciones||[]).find(x=>x.id===id);if(!c)return;
+  const est=val("d_estado"),nota=val("d_estnota"),antes=distEstado(c);
+  c.distribucion=Object.assign({},c.distribucion,{estado:est,estadoNota:nota,estadoEn:new Date().toISOString()});
+  const {error}=await sb.from("canciones").update({distribucion:c.distribucion}).eq("id",c.id);
+  if(error){toast("No se pudo actualizar: "+error.message);return}
+  let aviso="";
+  if(est!==antes&&(est==="aprobada"||est==="distribuida")){
+    const cuerpo=est==="aprobada"
+      ?`🎉 ¡Tu lanzamiento «${c.titulo}» está aprobado! Queda listo para distribuirse.`
+      :`🚀 ¡«${c.titulo}» ya está distribuida! En breve estará en todas las plataformas.`;
+    try{
+      const r=await sb.functions.invoke("push-enviar",{body:{titulo:"MALO",cuerpo,solo_cliente:c.artistaId}});
+      aviso=(r.data&&r.data.enviados)?` · push enviado al artista (${r.data.enviados} disp.)`:" · el artista aún no tiene notificaciones activas; lo verá en su portal";
+    }catch(e){aviso=" · no se pudo enviar el push"}
+  }
+  closeModal();render();toast("Estado: "+distEstadoLabel(est)+aviso);
 }
 
 /* Compila el email para la distribuidora con la info de la canción. */
@@ -12631,6 +12695,7 @@ document.addEventListener("click",e=>{
     if(act==="canc-tab"){CANC_TAB=["distribuir","externas","colabs"].includes(el.dataset.tab)?el.dataset.tab:"catalogo";render();window.scrollTo(0,0);return}
     if(act==="new-distrib")return formDistribuir(null);
     if(act==="save-distrib")return saveDistribucion(el.dataset.id,el.dataset.new==="1");
+    if(act==="estado-distrib")return actualizarEstadoDistrib(el.dataset.id);
     if(act==="email-distrib")return abrirEmailDistribucion(el.dataset.id);
     if(act==="del-cancion"){if(!confirm("¿Eliminar esta canción, su reparto y sus ingresos?"))return;
       const idDel=el.dataset.id;
