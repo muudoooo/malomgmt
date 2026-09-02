@@ -12751,6 +12751,37 @@ function authMsg(m){
   if(/at least|too short|minimum|length/i.test(m))return"Contraseña demasiado corta: mínimo 8 caracteres.";
   return m;
 }
+/* Freno real de contrasena, no solo el medidor.
+ *
+ * Contexto: la proteccion de contrasenas filtradas de Supabase (la que consulta
+ * HaveIBeenPwned) es solo del plan Pro, asi que aqui no la tenemos. Lo unico que
+ * frenaba era length<8, y con eso «12345678» pasaba: ocho caracteres, una sola
+ * clase, y fuerzaPass() lo pintaba pero no lo impedia.
+ *
+ * La regla sigue el criterio de que la LONGITUD manda sobre la mezcla de
+ * caracteres, que es lo que recomienda el NIST:
+ *
+ *   · menos de 8            -> no
+ *   · 14 o mas              -> vale, aunque sea todo minusculas
+ *     («caballoverdegrande» es mejor contrasena que «Abc123!»)
+ *   · entre 8 y 13          -> hacen falta 2 clases distintas de caracteres
+ *
+ * Y aparte no puede contener la parte local del email: «malo» de
+ * malo@malomgmt.com es lo primero que prueba cualquiera.
+ *
+ * Devuelve null si esta bien, o el motivo del rechazo.
+ */
+function passRechazo(p,email){
+  p=String(p||"");
+  if(p.length<8) return "La contraseña debe tener al menos 8 caracteres.";
+  const local=String(email||"").split("@")[0].toLowerCase();
+  if(local.length>=3&&p.toLowerCase().includes(local))
+    return "No uses tu nombre de usuario dentro de la contraseña.";
+  if(p.length>=14) return null;
+  const clases=[/[a-z]/,/[A-Z]/,/\d/,/[^A-Za-z0-9]/].filter(r=>r.test(p)).length;
+  if(clases<2) return "Con menos de 14 caracteres, combina al menos dos de: minúsculas, mayúsculas, números o símbolos.";
+  return null;
+}
 function fuerzaPass(p){
   let n=0; if(p.length>=8)n++; if(p.length>=12)n++;
   if(/[a-z]/.test(p)&&/[A-Z]/.test(p))n++; if(/\d/.test(p))n++; if(/[^A-Za-z0-9]/.test(p))n++;
@@ -12898,10 +12929,12 @@ function showSetPassword(){ document.body.innerHTML=setPasswordScreenHTML();
   document.getElementById("pwForm").addEventListener("submit",async e=>{
     e.preventDefault();
     const err=document.getElementById("pw_err"),btn=document.getElementById("pw_btn");
-    if(val("pw_pass").length<8){ err.textContent="La contraseña debe tener al menos 8 caracteres."; return; }
+    const {data:{user:uPrev}}=await sb.auth.getUser();
+    const motivo=passRechazo(val("pw_pass"),uPrev&&uPrev.email);
+    if(motivo){ err.style.color="var(--alert)"; err.textContent=motivo; return; }
     btn.disabled=true; err.style.color="var(--mute-2)"; err.textContent="Guardando…";
     const nombre=val("pw_nombre");
-    const {data:{user}}=await sb.auth.getUser();
+    const user=uPrev;
     const {error}=await sb.auth.updateUser({password:val("pw_pass")});
     if(error){ btn.disabled=false; err.style.color="var(--alert)"; err.textContent=authMsg(error.message); return; }
     if(nombre&&user) await sb.from("miembros").update({nombre}).eq("id",user.id);
