@@ -893,6 +893,16 @@ body.portal .distrib-nueva{display:block;margin-bottom:14px}
 
 /* ── Generador de contratos ── */
 .ct-wrap{display:grid;grid-template-columns:minmax(320px,1fr) minmax(0,1.35fr);gap:22px;align-items:start}
+/* El documento son 210mm fijos = 794px. Sin esto estira su celda hasta 794 y,
+   con la rejilla a una columna en el movil, arrastra tambien al formulario: los
+   campos acababan midiendo 794px en una pantalla de 360 y se salian de ella.
+   Ademas rompia el calculo del zoom de encaja(), que mide el ancho del
+   contenedor: si el contenedor ya viene estirado por el documento, cree que
+   tiene 794px de hueco y no reduce nada. Es el mismo min-width:0 que ya llevan
+   .grid2 > * y .f, y el mismo overflow-x que ya tiene .rt (la hoja de ruta),
+   que por eso no sufria este problema. */
+.ct-wrap > *{min-width:0}
+.ct-prev{overflow-x:auto}
 .ct-form .section-title:first-child{margin-top:0}
 .ct-pago{display:grid;grid-template-columns:1fr 132px 118px 32px;gap:7px;margin-bottom:7px}
 .ct-pago input{background:var(--ink);border:1px solid var(--rule-2);border-radius:5px;padding:7px 9px;
@@ -12111,7 +12121,10 @@ function contratoShow(showId){
      documento entero hasta el hueco que haya, y al imprimir vuelve a 1. */
   function encaja(){
     const p=doc.parentElement;if(!p)return;
-    const hueco=p.clientWidth;
+    /* Igual que en la hoja de ruta: clientWidth incluye el padding y hay que
+       descontarlo, o el documento se sale por el lado. */
+    const cs=getComputedStyle(p);
+    const hueco=p.clientWidth-parseFloat(cs.paddingLeft||0)-parseFloat(cs.paddingRight||0);
     if(hueco>0)doc.style.setProperty("--ct-z",Math.min(1,hueco/(210*96/25.4)).toFixed(4));
   }
   function pinta(){
@@ -12124,7 +12137,10 @@ function contratoShow(showId){
       fuera.length?`<p class="hint" style="margin-top:10px">Fuera del PDF por estar en blanco:
         ${fuera.map(esc).join(" · ")}.</p>`:""
     ].join("");
+    /* Dos veces, como en la hoja de ruta: la primera puede caer antes de que el
+       navegador haya hecho el layout, y entonces el hueco medido no vale. */
     encaja();
+    requestAnimationFrame(encaja);
   }
   window.addEventListener("resize",encaja);
 
