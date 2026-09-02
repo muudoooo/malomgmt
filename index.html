@@ -2351,7 +2351,7 @@ async function loadRemote(){
     /* Enterticket: eventos de la ticketera sincronizados a nuestra tabla, y
        sonda de la columna que enlaza cada producción con su evento. Sin el
        SQL (supabase/enterticket.sql) la app va y el bloque lo avisa. */
-    sb.from("et_eventos").select("*"),
+    fetchTodos("et_eventos"),
     sb.from("producciones").select("enterticket_id").limit(1),
     /* Sonda: a quién pertenece cada evento y quién tocó
        (supabase/enterticket-artistas.sql). Sin ellas la Ticketera va igual. */
@@ -2359,10 +2359,15 @@ async function loadRemote(){
     /* Sonda: sección Editorial/SGAE (supabase/editorial.sql). Es SOLO LECTURA:
        los datos entran por los exports de UMPG, no se editan en la app. Sin el
        SQL la app va exactamente igual y la sección lo dice. */
-    sb.from("obras").select("*"),
-    sb.from("obra_participantes").select("*"),
-    sb.from("obra_ingresos").select("*"),
-    sb.from("obra_canciones").select("*")
+    /* Paginadas por lo mismo que las del master (ver fetchTodos): PostgREST corta
+       en 1000 filas SIN avisar. obra_participantes ya va por 736 y obra_ingresos por
+       674, y cada liquidacion de UMPG suma ~674 filas mas, asi que la siguiente se
+       pasaba de 1000 y los totales de editorial habrian empezado a salir cortos sin
+       que nada lo dijera. */
+    fetchTodos("obras"),
+    fetchTodos("obra_participantes"),
+    fetchTodos("obra_ingresos"),
+    fetchTodos("obra_canciones")
   ]);
   for(const r of [cli,prm,sho,evt,prd,sub,emp,sus,ga]) if(r.error){ toast("Error cargando datos: "+r.error.message); console.error(r.error); }
   /* Si el SQL de géneros no se ha ejecutado todavía, la app sigue funcionando:

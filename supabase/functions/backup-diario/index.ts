@@ -30,11 +30,23 @@ const json = (b, s) => new Response(JSON.stringify(b), {
 });
 
 // Tablas de negocio a respaldar. Se excluyen google_auth e ig_cuentas (tokens).
+// Si se crea una tabla nueva HAY QUE AÑADIRLA AQUI. No hay nada que lo detecte
+// solo: el backup no falla, simplemente no la copia. Las de editorial, merch y
+// Enterticket llevaban semanas fuera sin que nada avisara (revisado 2 sep 2026).
 const TABLAS = [
   "clientes", "promotores", "contactos", "shows", "eventos", "producciones",
   "canciones", "cancion_participantes", "cancion_ingresos", "redes_snapshots",
   "temas", "contexto", "tareas", "suscriptores", "mensajes", "mensajes_wa",
   "subcategorias", "generos", "localidades", "empresa", "miembros", "medios",
+  // editorial (UMPG): el catalogo de obras, el reparto de copyright, las
+  // liquidaciones y el puente con las grabaciones
+  "obras", "obra_participantes", "obra_ingresos", "obra_canciones",
+  // merch
+  "merch_articulos", "merch_ventas",
+  // Enterticket
+  "et_eventos",
+  // cuentas y avisos
+  "ig_cuentas", "push_subs",
 ];
 const DIAS_A_CONSERVAR = 30;   // se borran los backups más viejos que esto
 
