@@ -98,7 +98,14 @@ async function recinto(cid: number, id: unknown, cache: Map<number, any>) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok");
-  if (SECRET && req.headers.get("x-sync-secret") !== SECRET) return json({ error: "No autorizado" }, 401);
+  // Falla CERRADO, igual que backup-diario. Antes decia «if (SECRET && ...)», que
+  // significa: si ENTERTICKET_SYNC_SECRET no esta puesta en el entorno, no se
+  // comprueba nada. Y esta funcion se despliega con --no-verify-jwt y usa
+  // service_role, asi que un olvido al configurar la dejaba abierta a internet
+  // pudiendo escribir en et_eventos y producciones, y gastando la cuota de la API
+  // de Enterticket con nuestras credenciales.
+  if (!SECRET || req.headers.get("x-sync-secret") !== SECRET)
+    return json({ error: "No autorizado" }, 401);
   if (!ET_EMAIL || !ET_PASS) return json({ error: "Faltan los secretos ENTERTICKET_EMAIL / ENTERTICKET_PASSWORD" }, 400);
 
   try {

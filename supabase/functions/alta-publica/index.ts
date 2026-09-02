@@ -20,6 +20,11 @@ const SRV    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const admin  = createClient(URL_SB, SRV);
 
 // Solo se aceptan altas desde nuestras propias páginas.
+//
+// OJO con lo que esto protege y lo que no: CORS lo aplica el NAVEGADOR. Un curl
+// o un script se lo salta entero, porque ni mira la cabecera. Contra un bot lo
+// que sirve de verdad es el honeypot y el limite por IP de mas abajo; la lista
+// de origenes solo evita que otra web incruste el formulario.
 const ORIGENES = [
   "https://app.malomgmt.com",
   "https://www.malomgmt.com",
@@ -39,6 +44,18 @@ const resp = (origen: string | null, cuerpo: unknown, s = 200) =>
 
 const limpia = (v: unknown, max = 120) => String(v ?? "").trim().slice(0, max);
 const esEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(e);
+
+// ILIKE trata % y _ como comodines, y el regex de email los admite (en el buzon
+// son caracteres legales). Sin escaparlos, «%@gmail.com» pasaba la validacion y
+// se convertia en «busca cualquier gmail»:
+//
+//   · si casaba con UNA fila, se le sobreescribia el registro de consentimiento
+//     (fecha, IP, texto) y se le colaba la etiqueta del evento
+//   · si casaba con VARIAS, maybeSingle() da error, se iba por la rama de insert
+//     y entraba «%@gmail.com» como suscriptor
+//
+// Postgres usa \ como escape de LIKE por defecto, asi que basta con esto.
+const paraLike = (s: string) => s.replace(/([\\%_])/g, "\\$1");
 const uid = () => "sus_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 Deno.serve(async (req) => {
@@ -88,7 +105,7 @@ Deno.serve(async (req) => {
     // 5. Alta o actualización. Nunca se pisa un contacto existente: se le suma
     //    la etiqueta del evento nuevo y se le reactiva el consentimiento.
     const { data: ya } = await admin.from("suscriptores")
-      .select("id, etiquetas, nombre, ciudad").ilike("email", email).maybeSingle();
+      .select("id, etiquetas, nombre, ciudad").ilike("email", paraLike(email)).maybeSingle();
 
     const ahora = new Date().toISOString();
     const comun = {
