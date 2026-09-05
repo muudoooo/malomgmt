@@ -1,0 +1,25 @@
+# Cierra el acceso publico a lo que no es la app.
+#
+# Cloudflare Pages sirve TODO el repositorio desde la raiz del sitio, asi que
+# `supabase/*.sql` y `herramientas/*` eran alcanzables desde fuera. Comprobado
+# el 5 sep 2026: https://app.malomgmt.com/supabase/seguridad-rol-por-defecto.sql
+# devolvia 200 con el detalle del agujero de permisos que se cerro el 2 sep, y
+# canciones-catalogo-02sep.sql con todos los ids `cli_*` de los clientes.
+# No hay ninguna credencial literal en esos ficheros -- las Edge Functions leen
+# service_role de entorno -- pero si el esquema, los ids y la forma de las RLS.
+#
+# OJO CON LA SINTAXIS: Cloudflare NO admite 404 en _redirects, solo 301, 302,
+# 303, 307 y 308. La regla `/supabase/* /404 404` que venian recomendando los
+# documentos desde agosto es de Netlify y aqui se habria ignorado en silencio:
+# se habria dado el agujero por cerrado con el fichero sirviendose igual.
+# Por eso va un 302 a la raiz. No es un 404, pero el contenido deja de servirse,
+# que es lo que importa.
+#
+# Esto sigue siendo un parche: el cierre definitivo es que el build de
+# Cloudflare publique solo los ficheros de la app en vez del repositorio entero.
+# Eso se toca en el panel y lo tiene que hacer Malo.
+
+/supabase/*      /  302
+/herramientas/*  /  302
+/.githooks/*     /  302
+/.gitignore      /  302
