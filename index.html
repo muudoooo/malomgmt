@@ -2250,11 +2250,42 @@ const TABLE_MAP={
   redesSnapshots:{id:"id",clienteId:"cliente_id",red:"red",fecha:"fecha",seguidores:"seguidores",notas:"notas",extra:"extra"}
 };
 const NULEA_VACIO=new Set(["cliente_id","promotor_id","venue_id","fecha","fecha_alta","dj_id","dj_defecto_id","asignado_a","vence","autor","creado_por","hecha_en","promotor_id","ultimo_contacto","artista_id","cancion_id","fecha_lanzamiento","enterticket_id"]);
+/* Columnas NO textuales (numeric/date/bool): Postgres rechaza "" en ellas con
+   «invalid input syntax for type numeric: ""». El problema es que fromRow()
+   convierte cualquier NULL de la base en "", así que una sola fila con un
+   numérico nulo —p.ej. merch_articulos.iva_pct— volvía a subir "" en el
+   siguiente guardado y tumbaba TODO el save(), porque save() sube todas las
+   tablas juntas: se editaba un show y el error venía de merch. El valor de aquí
+   es con qué se sustituye el "": null si la columna acepta NULL, y el neutro
+   (0 / 1 / false) si es NOT NULL. Va por tabla porque el mismo nombre cambia de
+   reglas según dónde: iva_pct es NOT NULL en clientes y shows, y nullable en
+   merch_articulos (ahí null significa «usa el IVA general», no 0%). */
+const VACIO_NO_TEXTO={
+  clientes:{activo:false,iva_pct:0,irpf_pct:0},
+  promotores:{aforo:null},
+  shows:{cache_bruto:0,tipo_cambio:1,retencion_origen:0,iva_pct:0,comision_pct:0,
+    all_in:false,dj_invitado_incluir:false},
+  eventos:{recurrente:null},
+  medios:{creado_en:null},
+  merchArticulos:{coste_unitario:0,iva_pct:null,unidades_producidas:null},
+  producciones:{aforo:null,iva_entrada:0,modo_fee:false,fee_fijo:0,sponsor_aportacion:0},
+  temas:{bpm:null,fecha_envio:null,fecha_salida:null},
+  tareas:{hecha:false},
+  suscriptores:{baja:false,consentimiento:false},
+  canciones:{fee_distribucion_pct:0,mgmt_pct:0},
+  cancionParticipantes:{pct:0},
+  cancionIngresos:{bruto:0,unidades:null},
+  redesSnapshots:{seguidores:0},
+  obraParticipantes:{cont_pct:null,mecanico_pct:null,ejecucion_pct:null,controlada:null},
+  obraIngresos:{importe_bruto:0,importe_neto:0,unidades:null}
+};
 const CON_AUTORIA=new Set(["clientes","promotores","shows","producciones","canciones"]);
 function toRow(tabla,obj){
   const map=TABLE_MAP[tabla],row={};
   for(const k in map){ if(obj[k]!==undefined) row[map[k]]=obj[k]; }
   for(const col of NULEA_VACIO){ if(row[col]==="") row[col]=null; }
+  const vacios=VACIO_NO_TEXTO[tabla]||{};
+  for(const col in vacios){ if(row[col]==="") row[col]=vacios[col]; }
   if(CON_AUTORIA.has(tabla)&&CURRENT_USER){ row.editado_por=CURRENT_USER.id; row.editado_en=new Date().toISOString(); }
   return row;
 }
