@@ -1,0 +1,23 @@
+# Lo que Cloudflare NO debe subir. Esto es el cierre de verdad: los ficheros de
+# aqui no llegan a los servidores de Cloudflare, asi que no hay nada que servir.
+#
+# El log del build lo confirmo el 7 sep 2026: wrangler se autogenera la config
+# (no hay wrangler.toml en el repo) con "assets": { "directory": "." }, o sea
+# la raiz del repositorio, y subia 145 ficheros -- entre ellos .git/objects/pack
+# ENTERO. Comprobado: app.malomgmt.com/.git/objects/pack/pack-*.pack devolvia
+# 200 con 916 KB. Con eso cualquiera se clona el historial completo del
+# repositorio: todo el codigo, todos los SQL y toda su historia.
+#
+# _redirects tapaba /supabase, /herramientas, /.githooks y /.gitignore, pero
+# NO /.git/ -- y aunque lo tapara, el fichero seguiria subido. Esto lo corta en
+# origen.
+#
+# Formato tipo .gitignore. Ojo: NO anadir aqui _headers ni _redirects, que
+# Cloudflare los necesita.
+
+.git/
+.githooks/
+.gitignore
+.assetsignore
+supabase/
+herramientas/

@@ -22,4 +22,5 @@
 /supabase/*      /  302
 /herramientas/*  /  302
 /.githooks/*     /  302
+/.git/*          /  302
 /.gitignore      /  302

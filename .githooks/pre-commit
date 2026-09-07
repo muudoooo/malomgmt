@@ -271,15 +271,25 @@ PUBLICO = {
 archivos = subprocess.run(["git", "ls-files"], capture_output=True, text=True).stdout.split()
 raiz = sorted({a.split("/")[0] for a in archivos if a})
 
-try:
-    reglas = open("_redirects", encoding="utf-8").read()
-except FileNotFoundError:
-    reglas = ""
-# solo las lineas de regla, no los comentarios
-origenes = [l.split()[0] for l in reglas.splitlines()
+def lee(f):
+    try:
+        return open(f, encoding="utf-8").read()
+    except FileNotFoundError:
+        return ""
+
+# _redirects: tapa la ruta, pero el fichero SI se sube a Cloudflare
+origenes = [l.split()[0] for l in lee("_redirects").splitlines()
             if l.strip() and not l.lstrip().startswith("#") and l.split()]
 
+# .assetsignore: el fichero NO se sube siquiera. Es el cierre de verdad.
+# Aplica porque esto es un Worker con static assets y wrangler se autogenera
+# la config con assets.directory = "." (la raiz del repo).
+sin_subir = [l.strip().rstrip("/") for l in lee(".assetsignore").splitlines()
+             if l.strip() and not l.lstrip().startswith("#")]
+
 def tapado(nombre):
+    if nombre in sin_subir:
+        return True
     return any(o == "/" + nombre or o == "/" + nombre + "/*" or o.startswith("/" + nombre + "/")
                for o in origenes)
 
@@ -299,8 +309,8 @@ if [ "${PUBLICO_OK#SUELTOS:}" != "$PUBLICO_OK" ]; then
   echo "     Cloudflare sirve el repo entero: eso serian URLs publicas en"
   echo "     https://app.malomgmt.com/ desde el proximo push."
   echo ""
-  echo "     Si es interno, tapalo en _redirects:"
-  echo "       /loquesea/*  /  302"
+  echo "     Si es interno, la forma buena es .assetsignore (asi ni se sube"
+  echo "     a Cloudflare); _redirects solo tapa la ruta, el fichero sigue ahi."
   echo "     Si de verdad es publico, anadelo a PUBLICO en este hook."
   echo ""
   echo "     Ojo: Cloudflare NO admite 404 en _redirects (solo 301/302/303/"
