@@ -995,6 +995,14 @@ body.portal .distrib-nueva{display:block;margin-bottom:14px}
   .rt input:focus,.rt textarea:focus{outline:none!important}
 }
 
+/* El dato y su boton de copiar van juntos y el boton solo se nota al pasar por
+   encima: la ficha se lee mas que se pulsa. */
+.kv-cop{display:inline-flex;align-items:center;gap:6px}
+/* user-select:none para que el rotulo del boton no entre en la seleccion: sin
+   esto, arrastrar por la fila copiaba «butanoclubb@gmail.comcopiar». */
+.kv-cop-b{padding:1px 7px;font-size:10px;font-family:var(--mono);letter-spacing:.04em;
+  text-transform:uppercase;opacity:.35;transition:opacity .12s ease;user-select:none}
+.kv-cop:hover .kv-cop-b,.kv-cop-b:focus-visible{opacity:1}
 .notebox{background:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;font-size:12.5px;white-space:pre-wrap;color:var(--bone);line-height:1.6}
 
 @media(max-width:900px){
@@ -11736,6 +11744,25 @@ function cierraAsomo(){
   NT_ASOMO_ANCLA=null;
   if(NT_ASOMO){NT_ASOMO.remove();NT_ASOMO=null}
 }
+/* Una fila de ficha con varios datos: el guion es para cuando NO hay ninguno,
+   no para hacer de hueco entre los que si estan. Escrito a mano salia
+   «— · butanoclubb@gmail.com», y al seleccionar el email te llevabas el guion
+   pegado delante. */
+function kvUnidos(...trozos){
+  const hay=trozos.filter(t=>t!==null&&t!==undefined&&String(t).trim()!=="");
+  return hay.length?hay.join(' <span class="dim">·</span> '):"—";
+}
+/* Email y telefono: copiables de un toque, que es para lo que se abre la ficha.
+   Seleccionar a mano dentro de un panel es incomodo y facil de hacer mal. */
+function kvCopiable(v,tipo){
+  if(!v)return "";
+  const t=String(v).trim(); if(!t)return "";
+  const href=tipo==="email"?"mailto:"+esc(t):"tel:"+esc(telLimpio(t)||t);
+  return `<span class="kv-cop"><a href="${href}">${esc(t)}</a>`
+    +`<button class="btn ghost sm kv-cop-b" data-act="copiar" data-txt="${esc(t)}" `
+    +`title="Copiar ${tipo==="email"?"el email":"el teléfono"}" aria-label="Copiar">copiar</button></span>`;
+}
+
 function asomaNota(ancla,valor,pie){
   const html=aNT(valor);
   if(!html)return;
@@ -12406,7 +12433,7 @@ function fichaCliente(id){
       <dt>Nombre / Empresa</dt><dd>${esc(c.razonSocial||"—")}</dd>
       <dt>Dirección</dt><dd>${esc([c.direccion,[c.codigoPostal,c.ciudad].filter(Boolean).join(" ")].filter(Boolean).join(", ")||"—")}</dd>
       <dt>IBAN</dt><dd style="font-family:var(--mono)">${esc(c.iban||"—")}</dd>
-      <dt>Contacto</dt><dd>${esc(c.email||"—")}${c.telefono?" · "+esc(c.telefono):""}</dd>
+      <dt>Contacto</dt><dd>${kvUnidos(kvCopiable(c.email,"email"),kvCopiable(c.telefono,"tel"))}</dd>
       <dt>Factura</dt><dd>${fx.label} · IVA ${n(c.ivaPct)}% · IRPF ${n(c.irpfPct)}%</dd>
       <dt>Comisiones</dt><dd>${(c.servicios||[]).map(s=>`${s} ${n(c.comisiones&&c.comisiones[s])}%`).join(" · ")||"—"} <span class="dim">(sobre ${c.baseComision==="neto"?"neto":"bruto"})</span></dd>
       <dt>Redes</dt><dd>${redes.length?redes.map(k=>`<a href="${esc(redUrl(k,c.redes[k]))}" target="_blank" rel="noopener" class="pill violet" style="margin-right:4px">${REDES[k].label}</a>`).join(""):"<span class='dim'>Sin redes</span>"}</dd>
@@ -12568,12 +12595,12 @@ function fichaPromotor(id){
     <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
   <div class="mbody">
     <dl class="kv">
-      <dt>Plaza</dt><dd>${esc(p.ciudad||"—")}${p.pais?" · "+esc(p.pais):""}</dd>
+      <dt>Plaza</dt><dd>${kvUnidos(p.ciudad?esc(p.ciudad):"",p.pais?esc(p.pais):"")}</dd>
       <dt>Aforo</dt><dd>${p.aforo?n(p.aforo).toLocaleString("es-ES"):"—"}</dd>
-      <dt>Contacto</dt><dd>${esc(p.contacto||"—")}${p.email?" · "+esc(p.email):""}${p.telefono?" · "+esc(p.telefono):""}</dd>
+      <dt>Contacto</dt><dd>${kvUnidos(p.contacto?esc(p.contacto):"",kvCopiable(p.email,"email"),kvCopiable(p.telefono,"tel"))}</dd>
       <dt>CIF</dt><dd>${esc(p.cif||"—")}</dd>
       ${p.web?`<dt>Web</dt><dd><a href="${esc(p.web)}" target="_blank" rel="noopener">${esc(p.web)}</a></dd>`:""}
-      <dt>Caché medio</dt><dd>${med?eur(med):"—"} <span class="dim">· ${act.length} shows</span></dd>
+      <dt>Caché medio</dt><dd>${act.length?kvUnidos(med?eur(med):"",`<span class="dim">${act.length} ${act.length===1?"show":"shows"}</span>`):"—"}</dd>
       <dt>Pago</dt><dd>${r.dias!==null?`Media de ${Math.round(r.dias)} días sobre la fecha prevista, en ${r.n} pagos`:"Sin pagos cerrados todavía"}</dd>
     </dl>
     ${p.notas?`<div class="section-title">Notas</div><div class="notebox">${esc(p.notas)}</div>`:""}
@@ -14573,6 +14600,13 @@ document.addEventListener("click",e=>{
   const act=el.dataset.act;
   if(act){
     e.preventDefault();
+    if(act==="copiar"){
+      const t=el.dataset.txt||"";
+      if(!t)return;
+      navigator.clipboard.writeText(t).then(()=>toast("Copiado: "+t))
+        .catch(()=>toast("No se pudo copiar"));
+      return;
+    }
     if(act==="notas-abrir")return abrirNotasDe(el);
     if(act==="nota-show")return abrirNotasDeShow(el.dataset.id,el);
     if(act==="notas-cerrar")return cerrarNotas();
