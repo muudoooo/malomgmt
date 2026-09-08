@@ -1731,7 +1731,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.041";
+const APP_VERSION="0.042";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1740,6 +1740,11 @@ const APP_VERSION="0.041";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-09-08",v:"0.042",cambios:[
+    "La hoja de ruta y el contrato ya se archivan solos: nuevo botón «Guardar en Documentos» que genera el PDF, lo sube a Drive (carpetas HOJAS DE RUTA y CONTRATOS bajo la carpeta madre) y deja el enlace como documento del show. Sin pasar por el diálogo de imprimir.",
+    "Esos PDF aparecen al momento en la sección Documentos, y las hojas de ruta llevan su propio tipo para poder filtrarlas.",
+    "Archivar dos veces no acumula: el enlace del show apunta siempre al último PDF (los anteriores quedan en Drive por si acaso).",
+    "Ojo: el PDF automático es una foto del documento — se ve idéntico pero el texto no se puede seleccionar. Para un PDF de texto, «Generar PDF» sigue igual que siempre."]},
   {fecha:"2026-09-01",v:"0.041",cambios:[
     "Arreglada la sección Merch, que desde ayer se quedaba en blanco al abrirla. El cambio del «Precio medio por artículo» leía las unidades una línea antes de calcularlas, y eso corta la vista entera."]},
   {fecha:"2026-08-31",v:"0.039",cambios:[
@@ -1937,7 +1942,7 @@ const CHANGELOG=[
    porque APP_VERSION no se subió en cada publicación (la 0.016 abarca del 25
    al 27 de agosto, y la 0.017 es la primera que se sube junto a su entrada).
    La «v» de cada bloque es la que estaba publicada ese día. */
-const TIPO_ADJUNTO=["ingreso","gasto","contrato","otro"];
+const TIPO_ADJUNTO=["ingreso","gasto","contrato","hoja de ruta","otro"];
 /* Estado de la producción. En borrador no sale en el calendario ni suma en el
    panel: es un presupuesto que aún estás montando, no una fecha real. */
 const ESTADO_PROD={
@@ -6885,7 +6890,7 @@ function formLocalidades(){
 }
 
 /* ════════ DOCUMENTOS ════════ */
-const DOC_COLOR={ingreso:"var(--ok)",gasto:"var(--alert)",contrato:"var(--violet)",otro:"var(--mute)"};
+const DOC_COLOR={ingreso:"var(--ok)",gasto:"var(--alert)",contrato:"var(--violet)","hoja de ruta":"var(--warn)",otro:"var(--mute)"};
 function docsAll(){
   const out=[];
   DB.shows.forEach(sh=>(sh.adjuntos||[]).forEach(a=>out.push({
@@ -11563,6 +11568,7 @@ function hojaRuta(showId){
     ${tienePlantilla(s.clienteId)?`<button class="btn sm" id="rtPlantilla" title="Rellena los huecos con lo de siempre de este artista">Aplicar plantilla</button>`:""}
     <button class="btn sm" id="rtLimpio" title="Enseña el documento tal como va a salir el PDF: sin las filas vacías">Ocultar vacíos</button>
     <button class="btn sm" id="rtGuardar">Guardar</button>
+    <button class="btn sm" id="rtDrive" title="Genera el PDF, lo sube a Drive y lo deja en Documentos">Guardar en Documentos</button>
     <button class="btn primary sm" id="rtPdf">Generar PDF</button>
     <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
   <div class="mbody">
@@ -11779,6 +11785,8 @@ function hojaRuta(showId){
   /* Antes de imprimir se activa el modo limpio: lo que ve en pantalla al abrirse
      el diálogo es exactamente el PDF que se va a guardar. */
   document.getElementById("rtPdf").addEventListener("click",()=>{guardar();modoLimpio(true);setTimeout(()=>window.print(),60)});
+  const rtDrive=document.getElementById("rtDrive");
+  rtDrive.addEventListener("click",()=>{guardar();modoLimpio(true);archivarDocPdf(rtDrive,s,"hoja")});
   document.getElementById("rtAddH").addEventListener("click",()=>{
     const r=guardar();r.horarios.push({concepto:"",inicio:"",fin:"",notas:""});
     DB.shows=DB.shows.map(x=>x.id===s.id?Object.assign({},x,{ruta:r}):x);save();closeModal();hojaRuta(s.id)});
@@ -12069,6 +12077,7 @@ function contratoShow(showId){
     <div class="spacer"></div>
     <button class="btn sm" id="ctMail" title="Copia al portapapeles el email para mandar el contrato">Copiar email</button>
     <button class="btn sm" id="ctGuardar">Guardar</button>
+    <button class="btn sm" id="ctDrive" title="Genera el PDF, lo sube a Drive y lo deja en Documentos">Guardar en Documentos</button>
     <button class="btn primary sm" id="ctPdf">Generar PDF</button>
     <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
   <div class="mbody">
@@ -12248,6 +12257,8 @@ function contratoShow(showId){
   }
   document.getElementById("ctGuardar").addEventListener("click",()=>{guardar();toast("Contrato guardado")});
   document.getElementById("ctPdf").addEventListener("click",()=>{guardar();setTimeout(()=>window.print(),60)});
+  const ctDrive=document.getElementById("ctDrive");
+  ctDrive.addEventListener("click",()=>{guardar();archivarDocPdf(ctDrive,s,"contrato")});
   document.getElementById("ctMail").addEventListener("click",()=>{
     const K=ctCalc(C);
     const txt=`Asunto: Contrato de actuación · ${C.artista||""} · ${C.ciudad||""} · ${C.fechaAct||""}
@@ -13618,6 +13629,162 @@ const DRIVE_AVISO_MB=50;
 /* El archivo va DIRECTO a Google, no a traves de la Edge Function: la funcion
    solo pide la URL de sesion. Asi no hay base64, no se gasta el limite de CPU
    de la funcion y el tamano deja de importar. */
+/* ── «Guardar en Documentos»: PDF automático a Drive (hoja de ruta y contrato) ──
+   El PDF se genera en el navegador rasterizando el documento (html2canvas +
+   jsPDF, servidos desde vendor/ y cargados solo al usarse): sale clavado a la
+   vista previa, a cambio de que el texto no sea seleccionable. Se sube a Drive
+   y se registra como adjunto del show, que es de donde bebe Documentos. */
+let _pdfLibs=null;
+function cargarPdfLibs(){
+  if(window.html2canvas&&window.jspdf)return Promise.resolve();
+  if(_pdfLibs)return _pdfLibs;
+  const uno=ruta=>new Promise((ok,ko)=>{
+    const sc=document.createElement("script");
+    sc.src=ruta;sc.onload=ok;
+    sc.onerror=()=>ko(new Error("no se pudo cargar "+ruta+" (¿sin conexión?)"));
+    document.head.appendChild(sc);
+  });
+  _pdfLibs=uno("vendor/html2canvas.min.js").then(()=>uno("vendor/jspdf.umd.min.js"))
+    .catch(e=>{_pdfLibs=null;throw e});
+  return _pdfLibs;
+}
+
+/* Carpeta HOJAS DE RUTA / CONTRATOS bajo la carpeta madre: se crea una vez y
+   se recuerda en empresa.ajustes — mismo patrón que la carpeta CANCIONES. */
+async function docsGenFolderId(clave,nombre){
+  const ya=((DB.empresa||{}).ajustes||{})[clave];
+  if(ya)return ya;
+  const raiz=driveRaiz();
+  if(!raiz)throw new Error("conecta primero la carpeta de Drive (Documentos → Conectar carpeta de Drive)");
+  const r=await driveFn("crearCarpeta",{carpetaId:raiz.id,nombre:nombre});
+  DB.empresa=Object.assign({},DB.empresa||{},
+    {ajustes:Object.assign({},(DB.empresa||{}).ajustes||{},{[clave]:r.id})});
+  await save();
+  return r.id;
+}
+
+/* Copia el documento a una caja oculta a tamaño A4 real (zoom 1) y convierte
+   inputs y textareas en texto plano con sus mismos estilos: html2canvas pinta
+   los campos de formulario a su manera y sin esto el PDF no calca la vista. */
+function clonarParaPdf(nodo){
+  const caja=document.createElement("div");
+  caja.style.cssText="position:absolute;left:-99999px;top:0;background:#fff";
+  const clon=nodo.cloneNode(true);
+  clon.style.setProperty("zoom","1","important");
+  clon.style.setProperty("--rt-z","1");clon.style.setProperty("--ct-z","1");
+  const vivos=nodo.querySelectorAll("input,textarea");
+  clon.querySelectorAll("input,textarea").forEach((el,i)=>{
+    const o=vivos[i];if(!o){el.remove();return}
+    const sp=document.createElement("span"),cs=getComputedStyle(o);
+    ["font-family","font-size","font-weight","font-style","letter-spacing",
+     "text-transform","color","text-align","line-height","padding","width","display"]
+      .forEach(k=>sp.style.setProperty(k,cs.getPropertyValue(k)));
+    sp.style.boxSizing="border-box";
+    sp.style.whiteSpace=o.tagName==="TEXTAREA"?"pre-wrap":"nowrap";
+    sp.style.overflow="hidden";
+    sp.textContent=o.value||"";
+    el.replaceWith(sp);
+  });
+  clon.querySelectorAll(".noprint").forEach(x=>x.remove());
+  caja.appendChild(clon);
+  document.body.appendChild(caja);
+  return {clon:clon,quitar:()=>caja.remove()};
+}
+
+/* La hoja de ruta ya viene paginada (.rt-page = un A4 exacto): una captura
+   por página, saltándose las que el modo limpio deja vacías. */
+async function pdfDeHoja(doc){
+  const {clon,quitar}=clonarParaPdf(doc);
+  try{
+    clon.classList.add("rt-limpio");
+    const pdf=new jspdf.jsPDF({unit:"mm",format:"a4",compress:true});
+    const pgs=[...clon.querySelectorAll(".rt-page")].filter(pg=>!pg.classList.contains("rt-vacia"));
+    for(let i=0;i<pgs.length;i++){
+      const cv=await html2canvas(pgs[i],{scale:2,backgroundColor:"#ffffff",logging:false});
+      if(i)pdf.addPage();
+      pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,210,297);
+    }
+    return pdf;
+  }finally{quitar()}
+}
+
+/* El contrato es un chorro continuo que pagina el navegador al imprimir; aquí
+   la paginación se hace a mano: se captura entero y se corta en A4 buscando el
+   borde inferior de un bloque entero (párrafo, cláusula, fila) para no partir
+   una línea por la mitad. Los epígrafes (.ct-h2) no valen como corte: dejarían
+   el título huérfano al pie de la página. */
+async function pdfDeContrato(doc){
+  const {clon,quitar}=clonarParaPdf(doc);
+  try{
+    const pxMm=clon.offsetWidth/210;
+    const base=clon.getBoundingClientRect().top;
+    const cortes=[...clon.querySelectorAll(".ct-hd,.ct-p,.ct-cl,.ct-cl p,tbody tr,.ct-firmas,.ct-cierre")]
+      .map(x=>x.getBoundingClientRect().bottom-base).sort((a,b)=>a-b);
+    const cv=await html2canvas(clon,{scale:2,backgroundColor:"#ffffff",logging:false});
+    const k=cv.width/clon.offsetWidth;
+    const pdf=new jspdf.jsPDF({unit:"mm",format:"a4",compress:true});
+    const total=clon.offsetHeight;
+    let y=0,pagina=0;
+    while(y<total-1){
+      const margen=pagina?12:0;              /* la 1ª página ya trae su propio padding */
+      const hueco=(297-margen-12)*pxMm;
+      let corte=y+hueco;
+      if(corte<total){
+        const seguros=cortes.filter(c=>c>y+hueco*.35&&c<=corte);
+        if(seguros.length)corte=seguros[seguros.length-1];
+      }else corte=total;
+      const tira=document.createElement("canvas");
+      tira.width=cv.width;tira.height=Math.max(1,Math.round((corte-y)*k));
+      const cx=tira.getContext("2d");
+      cx.fillStyle="#fff";cx.fillRect(0,0,tira.width,tira.height);
+      cx.drawImage(cv,0,Math.round(y*k),cv.width,tira.height,0,0,tira.width,tira.height);
+      if(pagina)pdf.addPage();
+      pdf.addImage(tira.toDataURL("image/jpeg",.92),"JPEG",0,margen,210,(corte-y)/pxMm);
+      y=corte;pagina++;
+    }
+    return pdf;
+  }finally{quitar()}
+}
+
+/* Genera el PDF del documento abierto, lo sube a Drive y lo deja como adjunto
+   del show. Si se re-archiva, sustituye el adjunto anterior en vez de acumular:
+   el PDF viejo sigue en Drive, pero el enlace apunta siempre al último. */
+async function archivarDocPdf(btn,s,clase){
+  if(btn.disabled)return;
+  const esHoja=clase==="hoja";
+  const rotulo=btn.textContent;
+  btn.disabled=true;
+  try{
+    btn.textContent="Generando PDF…";
+    await cargarPdfLibs();
+    const doc=document.getElementById(esHoja?"rtDoc":"ctDoc");
+    if(!doc)throw new Error("no encuentro el documento en pantalla");
+    const pdf=esHoja?await pdfDeHoja(doc):await pdfDeContrato(doc);
+    const blob=pdf.output("blob");
+    btn.textContent="Subiendo a Drive…";
+    const carpeta=await docsGenFolderId(esHoja?"driveHojasId":"driveContratosId",
+                                        esHoja?"HOJAS DE RUTA":"CONTRATOS");
+    const cli=nomCliente(s.clienteId);
+    const nombre=(esHoja?"Hoja de ruta":"Contrato")+" — "+(cli&&cli!=="—"?cli:"MALO")
+      +" — "+(s.fecha||hoy())+(s.ciudad?" "+s.ciudad:"")+".pdf";
+    const r=await driveSubirUno(new File([blob],nombre,{type:"application/pdf"}),carpeta);
+    if(!r||!r.id)throw new Error("Drive no devolvió el archivo subido");
+    await driveFn("compartir",{archivoId:r.id}).catch(()=>{});
+    const url="https://drive.google.com/file/d/"+r.id+"/view";
+    const tipo=esHoja?"hoja de ruta":"contrato";
+    const concepto=esHoja?"Hoja de ruta (PDF)":"Contrato de actuación (PDF)";
+    DB.shows=DB.shows.map(x=>{
+      if(x.id!==s.id)return x;
+      const adj=(x.adjuntos||[]).filter(a=>!(a.tipo===tipo&&a.concepto===concepto));
+      adj.push({tipo:tipo,concepto:concepto,importe:0,url:url,fecha:x.fecha||hoy()});
+      return Object.assign({},x,{adjuntos:adj});
+    });
+    await save();
+    toast("Guardado en Drive y en Documentos");
+  }catch(e){toast("No se pudo archivar: "+e.message)}
+  finally{btn.disabled=false;btn.textContent=rotulo}
+}
+
 function driveLeerBase64(file){
   return new Promise((ok,err)=>{
     const fr=new FileReader();
