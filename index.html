@@ -2337,7 +2337,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.052";
+const APP_VERSION="0.053";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -2346,6 +2346,9 @@ const APP_VERSION="0.052";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-09-10",v:"0.053",cambios:[
+    "«Nuevo show» abre ahora un formulario rápido: cliente, promotor o sala, fecha, caché, DJ, estado, cobro y liquidación — lo justo para apuntarlo. «Guardar y abrir el cierre detallado» te lleva al formulario completo de siempre (gastos, pagadores, PDF), que sigue a un click.",
+    "En el Calendario, el estado del show y su cobro se cambian en línea desde el panel del día, sin abrir la ficha."]},
   {fecha:"2026-09-10",v:"0.052",cambios:[
     "El formulario de producción pasa a dos pasos. Paso 1, lo básico: la primera pregunta es de quién es la fiesta — nuestra, o traemos a alguien (y ahí mismo eliges o das de alta al artista externo y defines el fee de MALO, en porcentaje o importe fijo). Después nombre, fecha, sala, aforo, estado, el acuerdo con la sala en texto libre, quién cobra la taquilla y la ticketera.",
     "Paso 2, cartel y números: line-up, tipos de entrada con PVP y cupo, costes, y el bloque «Cómo quedaría» que se recalcula al escribir — con el reparto entre «Para MALO» y «Contra factura del artista» cuando la fiesta es de un externo, y el aviso en rojo si el punto de equilibrio supera el aforo.",
@@ -4822,7 +4825,11 @@ function viewCalendario(el,ta){
                 return `<div class="tiny" style="margin-top:5px;display:flex;gap:10px;flex-wrap:wrap">
                   <span style="color:var(--artist)">Le corresponde ${eur0(suyo)}</span>
                   ${sh.allIn?`<span class="dim">ALL IN</span>`:`<span class="dim">+ gastos cubiertos</span>`}
-                  <span class="dim">${esc(sh.estado)}</span></div>`;})()}
+                  <select data-cal-estado="${sh.id}" onclick="event.stopPropagation()" style="font-size:10.5px;padding:2px 6px;border-radius:9px;background:var(--panel);border:1px solid var(--rule-2);color:var(--mute)">
+                    ${ESTADOS.map(ee=>`<option value="${ee}" ${sh.estado===ee?"selected":""}>${ee}</option>`).join("")}</select>
+                  <select data-cal-cobro="${sh.id}" onclick="event.stopPropagation()" style="font-size:10.5px;padding:2px 6px;border-radius:9px;background:var(--panel);border:1px solid var(--rule-2);color:var(--mute)">
+                    <option value="pendiente" ${(sh.cobro&&sh.cobro.estado)==="cobrado"?"":"selected"}>cobro pendiente</option>
+                    <option value="cobrado" ${(sh.cobro&&sh.cobro.estado)==="cobrado"?"selected":""}>cobrado</option></select></div>`;})()}
             </div>
             ${i.t==="show"?(i.esDj?`<span class="pill artist">${i.parte?eur0(i.parte):"DJ"}</span>`:`<span class="pill malo">${eur0(i.importe)}</span>`):i.t==="prod"?`<span class="pill" style="border-color:rgba(52,211,153,.5);color:#34D399">${eur0(i.importe)}</span>`:`<span class="pill">agenda</span>`}
           </div>`}).join("")
@@ -4836,6 +4843,18 @@ function viewCalendario(el,ta){
   el.querySelector('[data-cal="next"]').addEventListener("click",()=>{CAL.m++;if(CAL.m>11){CAL.m=0;CAL.y++}render()});
   el.querySelector('[data-cal="hoy"]').addEventListener("click",()=>{const d=new Date();CAL.y=d.getFullYear();CAL.m=d.getMonth();CAL.sel=hoy();render()});
   const ds=el.querySelector('[data-cal="deselect"]');if(ds)ds.addEventListener("click",()=>{CAL.sel=null;render()});
+  /* Estado y cobro en línea (handoff §6): cambiar sin abrir la ficha */
+  el.querySelectorAll("[data-cal-estado]").forEach(s0=>s0.addEventListener("change",e=>{
+    e.stopPropagation();
+    const sh=DB.shows.find(x=>x.id===s0.dataset.calEstado);if(!sh)return;
+    sh.estado=s0.value;DB.shows=DB.shows.map(x=>x.id===sh.id?sh:x);touch();
+  }));
+  el.querySelectorAll("[data-cal-cobro]").forEach(s0=>s0.addEventListener("change",e=>{
+    e.stopPropagation();
+    const sh=DB.shows.find(x=>x.id===s0.dataset.calCobro);if(!sh)return;
+    sh.cobro=Object.assign({},sh.cobro||{},{estado:s0.value});
+    DB.shows=DB.shows.map(x=>x.id===sh.id?sh:x);touch();
+  }));
   el.querySelectorAll(".day").forEach(d=>{
     d.addEventListener("click",e=>{if(e.target.closest(".ev"))return;CAL.sel=d.dataset.day;render()});
     d.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();CAL.sel=d.dataset.day;render()}});
@@ -14018,6 +14037,57 @@ function saveContexto(id,isNew){
 /* comoNuevo: el show existe en memoria pero todavía no está guardado (borrador
    que vuelve de crear un contratante). Se abre con id, pero el botón tiene que
    seguir diciendo «nuevo» o al guardar no se añade a la lista. */
+/* ── Formulario rápido de show (handoff §6): lo justo para apuntarlo.
+   El cierre detallado (gastos, pagadores, PDF) queda a un click. ── */
+function formShowRapido(){
+  if(!DB.clientes.length){toast("Primero da de alta un cliente");return}
+  const c0=cliente(CAL.cliente)||cliente(filtro.cliente)||DB.clientes[0];
+  const artistas=DB.clientes.filter(c=>(c.categoria||"artista")!=="evento");
+  openModal(`
+  <header><h3>Nuevo show</h3><div class="spacer"></div>
+    <button class="btn ghost sm" data-act="show-completo">Formulario completo</button>
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    <div class="fgrid">
+      <div class="f s6"><label>Cliente</label><select id="sr_cliente">
+        ${artistas.map(c=>`<option value="${c.id}" ${c.id===c0.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select></div>
+      <div class="f s6"><label>Promotor o sala</label><select id="sr_promotor"><option value="">— por confirmar —</option>
+        ${DB.promotores.map(x=>`<option value="${x.id}">${esc(x.nombre)}</option>`).join("")}</select></div>
+      <div class="f s3"><label>Fecha</label><input id="sr_fecha" type="date" value="${esc(CAL.sel||hoy())}"></div>
+      <div class="f s3"><label>Ciudad</label><input id="sr_ciudad" placeholder="—"></div>
+      <div class="f s3"><label>Caché bruto €</label><input id="sr_cache" type="number" min="0" step="50" placeholder="0"></div>
+      <div class="f s3"><label>DJ que acompaña</label><select id="sr_dj"><option value="">— sin DJ —</option>
+        ${artistas.map(c=>`<option value="${c.id}" ${c.id===(c0.djDefectoId||"")?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select></div>
+      <div class="f s4"><label>Estado</label><select id="sr_estado">
+        ${ESTADOS.filter(e=>e!=="cancelado").map(e=>`<option value="${e}">${e}</option>`).join("")}</select></div>
+      <div class="f s4"><label>Cobro</label><select id="sr_cobro">
+        <option value="pendiente">Pendiente</option><option value="cobrado">Cobrado</option></select></div>
+      <div class="f s4"><label>Liquidación</label>
+        <label style="display:flex;gap:7px;align-items:center;font-family:var(--sans);font-size:13px;text-transform:none;letter-spacing:0;color:var(--bone);cursor:pointer;padding-top:7px">
+          <input type="checkbox" id="sr_liq" style="width:auto"> Ya liquidado al artista</label></div>
+    </div>
+    <p class="dim tiny" style="margin-top:12px">Gastos, quién paga qué, la hoja de ruta y el contrato viven en el cierre detallado.</p>
+  </div>
+  <footer><button class="btn ghost" data-act="close">Cancelar</button>
+    <button class="btn" data-act="show-rapido" data-det="1">Guardar y abrir el cierre detallado</button>
+    <button class="btn primary" data-act="show-rapido" data-det="0">Guardar</button></footer>`,true);
+}
+function saveShowRapido(det){
+  const cid=val("sr_cliente"),c=cliente(cid);
+  if(!c){toast("Elige el cliente");return}
+  const serv0=(c.servicios&&c.servicios[0])||"booking";
+  const s={id:uid("shw"),clienteId:cid,promotorId:val("sr_promotor"),fecha:val("sr_fecha")||hoy(),
+    ciudad:val("sr_ciudad"),pais:"ES",servicio:serv0,estado:val("sr_estado")||"oferta",
+    cacheBruto:num("sr_cache"),moneda:"EUR",tipoCambio:1,retencionOrigen:0,ivaPct:21,gastos:[],
+    djId:val("sr_dj")||"",comisionPct:n(c.comisiones&&c.comisiones[serv0]),
+    baseComision:c.baseComision||"bruto",
+    cobro:{estado:val("sr_cobro"),fechaPrevista:"",fechaCobro:"",factura:""},
+    liq:{estado:document.getElementById("sr_liq").checked?"liquidado":"pendiente",fecha:"",factura:""}};
+  DB.shows.push(s);
+  touch();
+  if(det==="1"){formShow(s.id)}
+  else{closeModal();toast("Show guardado")}
+}
 function formShow(id,comoNuevo){
   if(!DB.clientes.length){toast("Primero da de alta un cliente");return}
   const esNuevo=!id||!!comoNuevo;
@@ -14568,7 +14638,9 @@ document.addEventListener("click",e=>{
       DB.promotores=DB.promotores.filter(x=>x.id!==idDel);closeModal();toast("Contacto eliminado");
       sb.from("promotores").delete().eq("id",idDel).then(({error})=>{if(error)toast("Error al eliminar en el servidor")});
       return touch()}
-    if(act==="new-show")return formShow(null);
+    if(act==="new-show")return formShowRapido();
+    if(act==="show-completo")return formShow(null);
+    if(act==="show-rapido")return saveShowRapido(el.dataset.det);
     if(act==="ver-mas"){VER_N[el.dataset.vista]=(VER_N[el.dataset.vista]||0)+PAG_TAM;return render()}
     if(act==="save-show")return saveShow(el.dataset.new==="1");
     if(act==="del-show"){if(!confirm("¿Eliminar show?"))return;
