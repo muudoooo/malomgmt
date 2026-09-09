@@ -1537,6 +1537,31 @@ body.claro .p5-est.pend{background:#F3DFB4;color:#6C4B12}
 .kb-meta{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px}
 .kb-acc{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
 .kb-vacia{padding:14px 10px;font-size:11.5px;color:var(--mute-2);line-height:1.5}
+/* Redes · seguimiento del roster (handoff §3) */
+.rav{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-weight:800;flex:none}
+.rd-aviso{display:inline-flex;align-items:center;gap:8px;border-radius:15px;padding:6px 13px;font-size:12px;
+  font-weight:600;cursor:pointer;border:none;text-align:left}
+.rd-aviso.up{background:#D6F3E1;color:#0F6A3A}
+.rd-aviso.down{background:#FCDCD0;color:#9C3308}
+body:not(.claro) .rd-aviso.up{background:color-mix(in srgb,#34D399 18%,transparent);color:#34D399}
+body:not(.claro) .rd-aviso.down{background:color-mix(in srgb,#ED5564 18%,transparent);color:#ED5564}
+.rd-mueve .m{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:12.5px;cursor:pointer}
+.rd-mueve .m .v{margin-left:auto;font-family:var(--mono);font-size:11.5px;font-weight:700}
+th.rd-sort{cursor:pointer;user-select:none;white-space:nowrap}
+th.rd-sort:hover{color:var(--bone)}
+.rd-var{font-family:var(--mono);font-size:10px;font-weight:700}
+.rd-var.up{color:var(--ok)}.rd-var.down{color:var(--alert)}
+.rd-cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:14px}
+.rd-cifras .c{background:var(--panel-2);border-radius:13px;padding:11px 13px}
+.rd-cifras .c .l{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mute-2)}
+.rd-cifras .c .v{font-family:var(--cond);font-size:21px;font-weight:800;margin-top:3px}
+.rd-bar{height:8px;border-radius:5px;background:var(--panel-3);overflow:hidden;flex:1}
+.rd-bar i{display:block;height:100%;border-radius:5px}
+/* Los modales de detalle van centrados, nunca panel lateral (handoff §1) */
+@media(min-width:901px){
+  body.claro .modal-bg{justify-content:center;align-items:flex-start;padding:0 20px}
+  body.claro .modal{margin:48px 0;max-width:860px}
+}
 /* En el panel de escritorio la cabecera es la del contenido (diseño v5):
    la topbar queda como bandeja transparente para el selector y los iconos. */
 @media(min-width:901px){
@@ -2269,7 +2294,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.048";
+const APP_VERSION="0.049";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -2278,6 +2303,11 @@ const APP_VERSION="0.048";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-09-10",v:"0.049",cambios:[
+    "Redes es ahora el seguimiento del roster completo, no una ficha por artista: arriba los avisos (hitos superados en verde, caídas de más del 3% en rojo), la gráfica de los cinco mayores a 90 días con «Quién se mueve» al lado, y una tabla comparativa con una fila por artista — cifra y variación por plataforma, total, cambio a 30 días, engagement y tendencia en minigráfico. Cualquier cabecera ordena.",
+    "Pestañas por plataforma con contador; las plataformas sin ninguna cuenta con datos no aparecen.",
+    "El detalle de cada artista se abre en una ventana centrada: cuatro cifras arriba y pestañas Resumen (por plataforma, con su historial y los botones de actualizar y añadir dato de siempre), Audiencia y Playlists. Desde ahí también sale su informe mensual en PDF.",
+    "Ni una cifra inventada: lo que no tiene dato sale como raya, y un perfil con enlace pero sin cuenta conectada sale como enlace."]},
   {fecha:"2026-09-10",v:"0.048",cambios:[
     "Tareas es ahora un tablero: cuatro columnas (Por hacer, En curso, Esperando respuesta y Hecha) y las tarjetas se arrastran de una a otra — al soltar se guarda el estado.",
     "Arrastrar a «Hecha» marca la tarea como hecha (y sacarla de ahí la reabre), así que el tablero y la lista de Equipo siempre cuentan lo mismo.",
@@ -3828,7 +3858,7 @@ let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",doc
   cancionTipo:"",cancionPortada:"release",cancionDesde:"",cancionHasta:"",
   bolsilloArtista:"",bolsilloMerch:true,bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
   merchTienda:"",merchArtista:"",
-  redesArtista:"",etDesde:"2026",panelFuente:""};
+  redesArtista:"",redesTab:"",redesOrden:"total_desc",etDesde:"2026",panelFuente:""};
 const _n=new Date();
 let CAL={y:_n.getFullYear(),m:_n.getMonth(),sel:null,cliente:"",categoria:"",sub:"",tipo:""};
 
@@ -7061,184 +7091,332 @@ function viewMerch(el,ta){
   const sa2=document.getElementById("mrArt");
   if(sa2)sa2.addEventListener("change",e=>{filtro.merchArtista=e.target.value;render()});
 }
-function viewRedes(el,ta){
-  const artistas=DB.clientes.slice().filter(c=>(c.categoria||"artista")!=="evento")
+/* ════════ REDES · seguimiento del roster (handoff §3) ════════
+   Comparar y detectar movimiento, como las plataformas del sector para
+   carteras de varios artistas. Nada de cifras inventadas: raya cuando no
+   hay dato, enlace cuando solo hay perfil. */
+const REDES_COLOR={instagram:"#E1306C",tiktok:"#69C9D0",youtube:"#FF4444",spotify:"#1DB954"};
+const RD_UMBRALES=[1e3,5e3,1e4,2.5e4,5e4,1e5,2.5e5,5e5,1e6];
+function avatarTonoDe(nombre){let h=0;for(const ch of (nombre||"?"))h=(h*31+ch.charCodeAt(0))%360;return h}
+function avatarHTML(c,size){
+  const nom=(c&&(c.nombre||c.nombreReal))||"?";const h=avatarTonoDe(nom);
+  return `<span class="rav" style="width:${size}px;height:${size}px;background:hsl(${h} 60% 84%);color:hsl(${h} 55% 26%);font-size:${Math.round(size*.42)}px">${esc(nom[0].toUpperCase())}</span>`;
+}
+function redesArtistas(){
+  return DB.clientes.filter(c=>(c.categoria||"artista")!=="evento")
     .sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
-  if(!filtro.redesArtista&&artistas.length)filtro.redesArtista=artistas[0].id;
-  ta.innerHTML=`<select id="rdArt" style="background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;padding:6px 10px">
-    ${artistas.map(a=>`<option value="${a.id}" ${filtro.redesArtista===a.id?"selected":""}>${esc(a.nombre||a.nombreReal)}</option>`).join("")}</select>`;
-
-  if(!artistas.length){
-    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Todavía no hay clientes de artista/DJ.</strong><br>
-      En cuanto haya uno dado de alta, aparece aquí para llevarle el seguimiento de seguidores.</p></div></div>`;
-    return;
-  }
-  document.getElementById("viewSub").textContent="Instagram · TikTok · YouTube · Spotify";
-  if(DB.sinRedes){
-    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Falta ejecutar el SQL de «redes_snapshots».</strong><br>
-      Pide al desarrollador que ejecute <code>supabase/redes_snapshots.sql</code> y recarga la app.</p></div></div>`;
-    return;
-  }
-  const cli=filtro.redesArtista,c=DB.clientes.find(x=>x.id===cli);
-  const NOM=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-
-  const tarjetas=REDES_CRECIMIENTO.map(red=>{
-    const ult=ultimoSnapshot(cli,red),ant=snapshotAnterior(cli,red);
-    const handle=(c&&c.redes&&c.redes[red])||"";
-    const serie=crecimientoMensualRed(cli,red);
-    let deltaMes=null;
-    for(let i=serie.length-1;i>=0;i--){if(serie[i].delta!==null){deltaMes=serie[i].delta;break}}
-    const max=Math.max(1,...serie.map(m=>Math.abs(m.delta||0)));
-    const automatizable=red==="instagram"||red==="youtube";
-    const extraPares=formatoExtra(red,ult&&ult.extra);
-    return `<div class="card" data-red="${red}"><header><h3>${REDES[red].label}</h3><div class="spacer"></div>
-        ${red==="instagram"?`<button class="btn ghost sm" data-act="ig-enlace" data-cliente="${cli}" title="Copia el enlace personal para que este artista conecte su Instagram (una sola vez). Después, «Actualizar ahora» lee sus seguidores al momento.">Enlace conexión</button>`:""}
-        ${automatizable?`<button class="btn ghost sm" data-act="act-red-ahora" data-cliente="${cli}" data-red="${red}" data-handle="${esc(handle)}" title="Consulta el dato público en vivo (YouTube/Instagram)">Actualizar ahora</button>`:""}
-        <button class="btn ghost sm" data-act="new-red-snap" data-cliente="${cli}" data-red="${red}">+ Añadir dato</button></header>
-      <div class="body">
-        ${handle?`<a href="${esc(redUrl(red,handle))}" target="_blank" rel="noopener" class="dim tiny">${esc(handle)}</a>`
-          :`<div class="dim tiny">Sin usuario/canal guardado en la ficha del cliente</div>`}
-        <div style="display:flex;align-items:baseline;gap:10px;margin:8px 0 2px">
-          <div class="val" style="font-size:28px">${ult?n(ult.seguidores).toLocaleString("es-ES"):"—"}</div>
-          ${deltaMes!==null?`<div class="note rd-delta ${deltaMes>=0?"up":"down"}">${deltaMes>=0?"↑":"↓"} ${Math.abs(deltaMes).toLocaleString("es-ES")} este mes</div>`:""}
-        </div>
-        ${ult?`<div class="dim tiny">Último dato: ${fecha(ult.fecha)}${ant?` · antes ${n(ant.seguidores).toLocaleString("es-ES")} (${fecha(ant.fecha)})`:""}</div>`
-          :`<div class="dim tiny">Sin datos todavía.</div>`}
-        <div style="display:flex;gap:4px;align-items:flex-end;height:70px;margin-top:12px">
-          ${serie.map(m=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end">
-            <div style="width:100%;background:${m.delta==null?"var(--panel-2)":m.delta>=0?"var(--artist,#34D399)":"var(--alert)"};
-              border-radius:2px 2px 0 0;height:${m.delta?Math.max(3,Math.abs(m.delta)/max*50):3}px"
-              title="${NOM[+m.mes.slice(5,7)-1]}: ${m.delta==null?"sin dato":(m.delta>=0?"+":"")+m.delta}"></div>
-            <div class="tiny dim" style="font-size:9px">${NOM[+m.mes.slice(5,7)-1]}</div>
-          </div>`).join("")}
-        </div>
-        ${extraPares.length?`<dl class="redes-extra" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--rule-2);display:grid;grid-template-columns:1fr auto;gap:4px 8px">
-          ${extraPares.map(p=>`<dt class="dim tiny">${esc(p.label)}</dt><dd class="tiny strong" style="text-align:right;margin:0">${esc(p.valor)}</dd>`).join("")}
-        </dl>`:""}
-      </div></div>`;
-  }).join("");
-
-  /* Total agregado 6 meses: último dato de cada red hasta el fin de cada mes
-     (si un mes no tiene dato nuevo se arrastra el anterior). Solo se pinta
-     con al menos dos meses con algún dato. */
-  const MES12=[...Array(12)].map((_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-(11-i));
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`});
-  const serieTotal=MES12.map(mes=>{
-    let t=0,hay=false;
-    REDES_CRECIMIENTO.forEach(red=>{
-      const sn=redesSnapshotsDe(cli,red).filter(x=>(x.fecha||"").slice(0,7)<=mes)
-        .sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
-      if(sn.length){t+=n(sn[sn.length-1].seguidores);hay=true}
-    });
-    return {mes,total:hay?t:null};
+}
+/* Total de seguidores conocidos de un artista hasta una fecha (arrastrando
+   el último dato de cada red). null si no hay ni un dato. */
+function redesTotalEn(cliId,fechaISO){
+  let t=0,hay=false;
+  REDES_CRECIMIENTO.forEach(red=>{
+    const sn=redesSnapshotsDe(cliId,red).filter(x=>(x.fecha||"")<=fechaISO);
+    if(sn.length){t+=n(sn[sn.length-1].seguidores);hay=true}
   });
-  const conDatos=serieTotal.filter(x=>x.total!==null);
-  const graficaTotal=(()=>{
-    if(conDatos.length<2)return "";
-    const W=320,H=90,vmin=Math.min(...conDatos.map(x=>x.total)),vmax=Math.max(...conDatos.map(x=>x.total));
-    const rango=Math.max(1,vmax-vmin);
-    const pts=[];
-    serieTotal.forEach((x,i)=>{if(x.total!==null)pts.push([i/(serieTotal.length-1)*W,H-10-((x.total-vmin)/rango)*(H-24)])});
-    const linea=pts.map((pt,i)=>(i?"L":"M")+pt[0].toFixed(1)+","+pt[1].toFixed(1)).join(" ");
-    const area=`${linea} L${pts[pts.length-1][0].toFixed(1)},${H} L${pts[0][0].toFixed(1)},${H} Z`;
-    const ult=conDatos[conDatos.length-1].total,pri=conDatos[0].total;
-    const NOMm=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-    return `<div class="card" style="margin-bottom:16px"><header><h3>Crecimiento total · 12 meses</h3><div class="spacer"></div>
-        <span class="tiny ${ult>=pri?"v-ok":"v-alert"}" style="font-family:var(--mono)">${ult>=pri?"▲":"▼"} ${Math.abs(ult-pri).toLocaleString("es-ES")}</span></header>
-      <div class="body">
-        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
-          <div class="val" style="font-size:24px;font-family:var(--mono)">${ult.toLocaleString("es-ES")}</div>
-          <div class="dim tiny">seguidores sumando las cuatro redes</div>
-        </div>
-        <svg width="100%" height="90" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-          <defs><linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#E94F87" stop-opacity=".32"/>
-            <stop offset="1" stop-color="#E94F87" stop-opacity="0"/></linearGradient></defs>
-          <path d="${area}" fill="url(#gradTotal)"/>
-          <path d="${linea}" fill="none" stroke="var(--malo)" stroke-width="2.5" stroke-linecap="round"/>
-        </svg>
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mute-2);margin-top:6px">
-          ${serieTotal.map((x,ix)=>`<span>${ix%2?"":NOMm[+x.mes.slice(5,7)-1]}</span>`).join("")}</div>
-      </div></div>`;
-  })();
-
-  /* Mes a mes por red: una línea por plataforma con su color de marca —
-     misma excepción de paleta que los puntos de las tarjetas. Escala común
-     min-max entre todas las redes con datos; los huecos se arrastran. */
-  const REDES_COLOR={instagram:"#E1306C",tiktok:"#69C9D0",youtube:"#FF4444",spotify:"#1DB954"};
-  const seriesRed=REDES_CRECIMIENTO.map(red=>{
-    const pts=MES12.map(mes=>{
-      const sn=redesSnapshotsDe(cli,red).filter(x=>(x.fecha||"").slice(0,7)<=mes)
-        .sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
-      return sn.length?n(sn[sn.length-1].seguidores):null;
+  return hay?t:null;
+}
+function _hace(dias){const d=new Date();d.setDate(d.getDate()-dias);return d.toISOString().slice(0,10)}
+function redesVar30(cliId){
+  const a=redesTotalEn(cliId,hoy()),b=redesTotalEn(cliId,_hace(30));
+  return (a!=null&&b!=null)?{abs:a-b,pct:b>0?(a-b)/b*100:null}:null;
+}
+function redesVar30Red(cliId,red){
+  const sn=redesSnapshotsDe(cliId,red);if(!sn.length)return null;
+  const lim=_hace(30);
+  const antes=sn.filter(x=>(x.fecha||"")<=lim);
+  if(!antes.length)return null;
+  const a=n(sn[sn.length-1].seguidores),b=n(antes[antes.length-1].seguidores);
+  return {abs:a-b,pct:b>0?(a-b)/b*100:null};
+}
+/* Engagement medio: interacciones/alcance del último dato de Instagram.
+   Si no hay ambos números, no hay engagement — raya, no cero. */
+function redesEngagement(cliId){
+  const u=ultimoSnapshot(cliId,"instagram");
+  if(u&&u.extra&&n(u.extra.alcance)>0&&u.extra.interacciones!=null)
+    return n(u.extra.interacciones)/n(u.extra.alcance)*100;
+  return null;
+}
+function redesSerie90(cliId){
+  const d0=_hace(90);
+  const fechas=[...new Set(REDES_CRECIMIENTO.flatMap(r=>redesSnapshotsDe(cliId,r).map(s=>s.fecha))
+    .filter(f=>f&&f>=d0))].sort();
+  return fechas.map(f=>({fecha:f,total:redesTotalEn(cliId,f)})).filter(p=>p.total!=null);
+}
+function redesSparkline(cliId,w,h,color){
+  const serie=redesSerie90(cliId);
+  if(serie.length<2)return `<span class="dim tiny">—</span>`;
+  const min=Math.min(...serie.map(p=>p.total)),max=Math.max(...serie.map(p=>p.total));
+  const d0=new Date(_hace(90)).getTime(),dw=Date.now()-d0||1;
+  const pts=serie.map(p=>{
+    const x=((new Date(p.fecha).getTime()-d0)/dw*(w-4)+2).toFixed(1);
+    const y=(max===min?h/2:(h-4)-(p.total-min)/(max-min)*(h-8)+2).toFixed(1);
+    return `${x},${y}`;
+  }).join(" ");
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+}
+/* Hitos del mes (umbral superado) y caídas >3% en 30 días, para los avisos */
+function redesAvisos(){
+  const out=[],mes=hoy().slice(0,7);
+  redesArtistas().forEach(c=>{
+    REDES_CRECIMIENTO.forEach(red=>{
+      const sn=redesSnapshotsDe(c.id,red);if(!sn.length)return;
+      const ult=sn[sn.length-1];
+      if((ult.fecha||"").slice(0,7)===mes&&sn.length>1){
+        const prev=n(sn[sn.length-2].seguidores),ahora=n(ult.seguidores);
+        const um=RD_UMBRALES.filter(u=>prev<u&&ahora>=u).pop();
+        if(um)out.push({tipo:"up",cliId:c.id,t:`${c.nombre||c.nombreReal} ha superado los ${um>=1e6?(um/1e6)+"M":(um/1e3)+"K"} seguidores en ${REDES[red].label}`});
+      }
+      const v=redesVar30Red(c.id,red);
+      if(v&&v.pct!=null&&v.pct<=-3)out.push({tipo:"down",cliId:c.id,t:`${c.nombre||c.nombreReal} cae un ${Math.abs(v.pct).toFixed(1)}% en ${REDES[red].label} en 30 días`});
     });
-    return {red,pts,ult:[...pts].reverse().find(v=>v!==null)};
-  }).filter(s=>s.pts.some(v=>v!==null));
-  const graficaRedes=(()=>{
-    if(seriesRed.length<1||conDatos.length<2)return "";
-    const W=320,H=110,NOMr=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-    const vals=seriesRed.flatMap(s=>s.pts.filter(v=>v!==null));
-    const vmin=Math.min(...vals),vmax=Math.max(...vals),rango=Math.max(1,vmax-vmin);
-    const linea=s=>{
-      let d="",dentro=false;
-      s.pts.forEach((v,i)=>{if(v===null)return;
-        const x=(i/(MES12.length-1))*W,y=H-10-((v-vmin)/rango)*(H-22);
-        d+=(dentro?" L":"M")+x.toFixed(1)+","+y.toFixed(1);dentro=true});
-      return d;
-    };
-    return `<div class="card" style="margin-bottom:16px"><header><h3>Mes a mes por red</h3></header>
-      <div class="body">
-        <svg width="100%" height="110" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-          ${seriesRed.map(s=>`<path d="${linea(s)}" fill="none" stroke="${REDES_COLOR[s.red]||"#8A94B0"}" stroke-width="2" stroke-linecap="round" opacity=".92"/>`).join("")}
-        </svg>
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mute-2);margin-top:6px">
-          ${MES12.map((m,ix)=>`<span>${ix%2?"":NOMr[+m.slice(5,7)-1]}</span>`).join("")}</div>
-        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:12px">
-          ${seriesRed.map(s=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mute)">
-            <i style="width:9px;height:9px;border-radius:50%;background:${REDES_COLOR[s.red]||"#8A94B0"};display:inline-block"></i>
-            ${REDES[s.red].label} · <b style="color:var(--bone)">${(s.ult||0).toLocaleString("es-ES")}</b></span>`).join("")}
-        </div>
-      </div></div>`;
+  });
+  return out;
+}
+function viewRedes(el,ta){
+  ta.innerHTML="";
+  document.getElementById("viewSub").textContent="Seguimiento del roster";
+  const artistas=redesArtistas();
+  if(!artistas.length){
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Todavía no hay artistas en el roster.</strong><br>En cuanto haya uno dado de alta, aquí se sigue su audiencia.</p></div></div>`;return;
+  }
+  if(DB.sinRedes){
+    el.innerHTML=`<div class="card"><div class="empty"><p><strong>Falta ejecutar el SQL de «redes_snapshots».</strong><br>Pide al desarrollador que ejecute <code>supabase/redes_snapshots.sql</code> y recarga la app.</p></div></div>`;return;
+  }
+  /* Plataformas con alguna cuenta con datos: las demás no aparecen */
+  const plataformas=REDES_CRECIMIENTO.filter(red=>artistas.some(a=>redesSnapshotsDe(a.id,red).length));
+  if(filtro.redesTab&&!plataformas.includes(filtro.redesTab))filtro.redesTab="";
+  const cuenta=red=>artistas.filter(a=>redesSnapshotsDe(a.id,red).length).length;
+
+  /* Filas de la tabla: artistas con algún dato o algún perfil enlazado */
+  const filas=artistas.map(c=>{
+    const total=redesTotalEn(c.id,hoy());
+    const v30=redesVar30(c.id);
+    const eng=redesEngagement(c.id);
+    const porRed={};
+    REDES_CRECIMIENTO.forEach(red=>{
+      const u=ultimoSnapshot(c.id,red);
+      porRed[red]={seg:u?n(u.seguidores):null,v:redesVar30Red(c.id,red),handle:(c.redes&&c.redes[red])||""};
+    });
+    const tieneAlgo=total!=null||REDES_CRECIMIENTO.some(r=>porRed[r].handle);
+    return {c,total,v30,eng,porRed,tieneAlgo};
+  }).filter(f=>f.tieneAlgo);
+
+  /* Orden por cabecera */
+  const [oCampo,oDir]=(filtro.redesOrden||"total_desc").split("_");
+  const dir=oDir==="asc"?1:-1;
+  const valOrden=f=>{
+    if(oCampo==="nombre")return (f.c.nombre||f.c.nombreReal||"").toLowerCase();
+    if(oCampo==="total")return f.total==null?-1:f.total;
+    if(oCampo==="v30")return f.v30?f.v30.abs:-1e15;
+    if(oCampo==="eng")return f.eng==null?-1:f.eng;
+    if(REDES_CRECIMIENTO.includes(oCampo))return f.porRed[oCampo].seg==null?-1:f.porRed[oCampo].seg;
+    return 0;
+  };
+  filas.sort((a,b)=>{const x=valOrden(a),y=valOrden(b);return (x<y?-1:x>y?1:0)*dir});
+
+  /* Los cinco mayores, para la gráfica y sus colores */
+  const top5=filas.filter(f=>redesSerie90(f.c.id).length>=2)
+    .slice().sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,5);
+  const COLORES5=["#E7478A","#6D2C7E","#F59E01","#00B8D2","#18225B"];
+
+  const grafica=(()=>{
+    if(top5.length<1)return "";
+    const W=620,H=190;
+    const todas=top5.flatMap(f=>redesSerie90(f.c.id).map(p=>p.total));
+    if(!todas.length)return "";
+    const min=Math.min(...todas),max=Math.max(...todas);
+    const d0=new Date(_hace(90)).getTime(),dw=Date.now()-d0||1;
+    const lineas=top5.map((f,i)=>{
+      const serie=redesSerie90(f.c.id);
+      const pts=serie.map(p=>{
+        const x=((new Date(p.fecha).getTime()-d0)/dw*(W-16)+8).toFixed(1);
+        const y=(max===min?H/2:(H-14)-(p.total-min)/(max-min)*(H-28)+8).toFixed(1);
+        return `${x},${y}`;
+      }).join(" ");
+      return `<polyline points="${pts}" fill="none" stroke="${COLORES5[i]}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }).join("");
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="Seguidores a 90 días">
+      <line x1="8" y1="${H-14}" x2="${W-8}" y2="${H-14}" stroke="var(--rule-2)" stroke-width="1"/>
+      ${lineas}</svg>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px">
+        ${top5.map((f,i)=>`<span class="tiny dim" style="display:inline-flex;align-items:center;gap:6px">
+          <i style="width:9px;height:9px;border-radius:50%;background:${COLORES5[i]};display:inline-block"></i>
+          ${esc(f.c.nombre||f.c.nombreReal)} · <b style="color:var(--bone)">${(f.total||0).toLocaleString("es-ES")}</b></span>`).join("")}
+      </div>`;
   })();
 
-  const historial=REDES_CRECIMIENTO.flatMap(red=>redesSnapshotsDe(cli,red).map(s=>Object.assign({},s,{red})))
-    .sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+  const avisos=redesAvisos();
+  const movs=filas.filter(f=>f.v30&&f.v30.abs!==0).slice()
+    .sort((a,b)=>b.v30.abs-a.v30.abs);
+  const suben=movs.filter(f=>f.v30.abs>0).slice(0,3);
+  const bajan=movs.filter(f=>f.v30.abs<0).slice(-3).reverse();
 
-  /* Comparativa: última cifra de seguidores de cada artista, por red — para
-     ver de un vistazo quién va mejor sin tener que cambiar el selector uno
-     por uno. Solo entran artistas con al menos un dato guardado. */
-  const filaComparativa=artistas.map(a=>{
-    const vals=REDES_CRECIMIENTO.map(red=>{const u=ultimoSnapshot(a.id,red);return u?n(u.seguidores):null});
-    const total=vals.reduce((t,v)=>t+(v||0),0);
-    return {artista:a,vals,total};
-  }).filter(f=>f.total>0).sort((a,b)=>b.total-a.total);
+  const cab=(campo,lab,num)=>{
+    const on=oCampo===campo;
+    return `<th class="rd-sort ${num?"num":""}" data-orden="${campo}">${lab}${on?(dir>0?" ↑":" ↓"):""}</th>`;
+  };
+  const varHTML=v=>{
+    if(!v)return "";
+    if(v.abs===0)return `<div class="rd-var dim">=</div>`;
+    return `<div class="rd-var ${v.abs>0?"up":"down"}">${v.abs>0?"↑":"↓"}${Math.abs(v.abs).toLocaleString("es-ES")}${v.pct!=null?` · ${Math.abs(v.pct).toFixed(1)}%`:""}</div>`;
+  };
+  const redsVisibles=filtro.redesTab?[filtro.redesTab]:plataformas;
 
   el.innerHTML=`
-  ${graficaTotal}
-  ${graficaRedes}
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">${tarjetas}</div>
-  ${filaComparativa.length>1?`<div class="card" style="margin-top:16px"><header><h3>Comparativa entre artistas</h3></header>
-  <div class="body flush"><table><thead><tr><th>Artista</th>${REDES_CRECIMIENTO.map(r=>`<th class="num">${REDES[r].label}</th>`).join("")}</tr></thead>
-  <tbody>${filaComparativa.map(f=>`<tr${f.artista.id===cli?' style="background:var(--panel-2)"':''}>
-    <td>${esc(f.artista.nombre||f.artista.nombreReal)}</td>
-    ${f.vals.map(v=>`<td class="num">${v==null?'<span class="dim">—</span>':v.toLocaleString("es-ES")}</td>`).join("")}
-  </tr>`).join("")}</tbody></table></div></div>`:""}
-  <div class="card" style="margin-top:16px"><header><h3>Historial</h3></header><div class="body flush">
-    ${historial.length?`<table><thead><tr><th>Fecha</th><th>Red</th><th class="num">Seguidores</th><th>Detalle</th><th></th></tr></thead>
-    <tbody>${historial.map(s=>{
-      const extraPares=formatoExtra(s.red,s.extra);
-      return `<tr>
-      <td class="tiny dim" style="font-family:var(--mono)">${fecha(s.fecha)}</td>
-      <td><span class="pill">${REDES[s.red].label}</span></td>
-      <td class="num strong">${n(s.seguidores).toLocaleString("es-ES")}</td>
-      <td class="tiny dim">${extraPares.length?esc(extraPares.map(p=>`${p.label}: ${p.valor}`).join(" · ")):""}</td>
-      <td style="width:1%"><button class="x" data-act="del-red-snap" data-id="${s.id}" type="button">×</button></td>
-    </tr>`;}).join("")}</tbody></table>`
-    :`<div class="empty"><p>Todavía no hay ningún dato guardado. Usa «+ Añadir dato» en cualquiera de las tres tarjetas.</p></div>`}
+  ${avisos.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+    ${avisos.map(a=>`<button type="button" class="rd-aviso ${a.tipo}" data-act="redes-art" data-id="${a.cliId}">${a.tipo==="up"?"▲":"▼"} ${esc(a.t)}</button>`).join("")}
+  </div>`:""}
+  ${grafica?`<div class="p5-grid" style="margin-bottom:16px">
+    <div class="card" style="margin:0;grid-column:span 1"><header><h3>Los cinco mayores · 90 días</h3></header><div class="body">${grafica}</div></div>
+    <div class="card rd-mueve" style="margin:0"><header><h3>Quién se mueve · 30 días</h3></header><div class="body">
+      ${suben.length?suben.map(f=>`<div class="m" data-act="redes-art" data-id="${f.c.id}">${avatarHTML(f.c,26)}<span>${esc(f.c.nombre||f.c.nombreReal)}</span><span class="v" style="color:var(--ok)">+${f.v30.abs.toLocaleString("es-ES")}</span></div>`).join(""):`<div class="dim tiny">Nadie sube todavía este mes.</div>`}
+      ${bajan.length?`<div style="border-top:1px solid var(--rule);margin:8px 0"></div>`+bajan.map(f=>`<div class="m" data-act="redes-art" data-id="${f.c.id}">${avatarHTML(f.c,26)}<span>${esc(f.c.nombre||f.c.nombreReal)}</span><span class="v" style="color:var(--alert)">${f.v30.abs.toLocaleString("es-ES")}</span></div>`).join(""):""}
+    </div></div>
+  </div>`:""}
+  <div class="chips">
+    <button class="chip ${!filtro.redesTab?"on":""}" data-rdtab="">Todas</button>
+    ${plataformas.map(r=>`<button class="chip ${filtro.redesTab===r?"on":""}" data-rdtab="${r}">${REDES[r].label} <span style="opacity:.65">${cuenta(r)}</span></button>`).join("")}
+  </div>
+  <div class="card"><div class="body flush">
+    ${filas.length?`<table><thead><tr>
+      ${cab("nombre","Artista")}
+      ${redsVisibles.map(r=>cab(r,REDES[r].label,1)).join("")}
+      ${cab("total","Total",1)}${cab("v30","30 días",1)}${cab("eng","Engagement",1)}<th>90 días</th>
+    </tr></thead>
+    <tbody>${filas.map((f,ix)=>`<tr class="click" data-act="redes-art" data-id="${f.c.id}">
+      <td><span style="display:inline-flex;align-items:center;gap:9px">${avatarHTML(f.c,26)}<b>${esc(f.c.nombre||f.c.nombreReal)}</b></span></td>
+      ${redsVisibles.map(r=>{
+        const pr=f.porRed[r];
+        if(pr.seg!=null)return `<td class="num">${pr.seg.toLocaleString("es-ES")}${varHTML(pr.v)}</td>`;
+        if(pr.handle)return `<td class="num"><a href="${esc(redUrl(r,pr.handle))}" target="_blank" rel="noopener" class="tiny" onclick="event.stopPropagation()" title="Perfil enlazado, sin cuenta conectada">perfil ↗</a></td>`;
+        return `<td class="num dim">—</td>`;
+      }).join("")}
+      <td class="num strong">${f.total!=null?f.total.toLocaleString("es-ES"):"—"}</td>
+      <td class="num">${f.v30?varHTML(f.v30):'<span class="dim">—</span>'}</td>
+      <td class="num">${f.eng!=null?f.eng.toFixed(1)+"%":'<span class="dim">—</span>'}</td>
+      <td style="width:96px">${redesSparkline(f.c.id,88,26,"var(--malo)")}</td>
+    </tr>`).join("")}</tbody></table>`
+    :`<div class="empty"><p><strong>Todavía no hay ninguna cuenta con datos.</strong><br>Abre un artista y usa «+ Añadir dato», o conecta su Instagram con el enlace de conexión.</p></div>`}
   </div></div>`;
 
-  const sa=document.getElementById("rdArt");
-  if(sa)sa.addEventListener("change",e=>{filtro.redesArtista=e.target.value;render()});
+  el.querySelectorAll("[data-rdtab]").forEach(b=>b.addEventListener("click",()=>{filtro.redesTab=b.dataset.rdtab;render()}));
+  el.querySelectorAll("th.rd-sort").forEach(th=>th.addEventListener("click",()=>{
+    const campo=th.dataset.orden;
+    filtro.redesOrden=(oCampo===campo&&oDir==="desc")?`${campo}_asc`:`${campo}_desc`;
+    render();
+  }));
+}
+
+/* ── Detalle de audiencia de un artista, en modal (handoff §3) ── */
+let RD_CLI=null,RD_TAB="resumen";
+function modalRedesArtista(cliId){RD_CLI=cliId;RD_TAB="resumen";pintaModalRedes()}
+function pintaModalRedes(){
+  const cliId=RD_CLI,c=DB.clientes.find(x=>x.id===cliId);
+  if(!c)return;
+  const total=redesTotalEn(cliId,hoy());
+  const v30=redesVar30(cliId);
+  const eng=redesEngagement(cliId);
+  const sp=ultimoSnapshot(cliId,"spotify");
+  const oyentes=sp&&sp.extra&&sp.extra.oyentesMensuales!=null?n(sp.extra.oyentesMensuales):null;
+  const cifra=v=>v==null?"—":Math.round(v).toLocaleString("es-ES");
+  const tab=(k,lab)=>`<button class="chip ${RD_TAB===k?"on":""}" data-act="redes-tab" data-tab="${k}">${lab}</button>`;
+
+  let cuerpo="";
+  if(RD_TAB==="resumen"){
+    cuerpo=REDES_CRECIMIENTO.map(red=>{
+      const sn=redesSnapshotsDe(cliId,red);
+      const handle=(c.redes&&c.redes[red])||"";
+      if(!sn.length&&!handle)return "";
+      const u=sn.length?sn[sn.length-1]:null;
+      const v=redesVar30Red(cliId,red);
+      const extraPares=u?formatoExtra(red,u.extra):[];
+      const automatizable=red==="instagram"||red==="youtube";
+      return `<div style="padding:13px 0;border-top:1px solid var(--rule)">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <i style="width:9px;height:9px;border-radius:50%;background:${REDES_COLOR[red]};flex:none"></i>
+          <b>${REDES[red].label}</b>
+          ${handle?`<a href="${esc(redUrl(red,handle))}" target="_blank" rel="noopener" class="tiny dim">${esc(handle)}</a>`:`<span class="tiny dim">sin perfil en la ficha</span>`}
+          <span class="spacer" style="flex:1"></span>
+          ${red==="instagram"?`<button class="btn ghost sm" data-act="ig-enlace" data-cliente="${cliId}">Enlace conexión</button>`:""}
+          ${automatizable&&handle?`<button class="btn ghost sm" data-act="act-red-ahora" data-cliente="${cliId}" data-red="${red}" data-handle="${esc(handle)}">Actualizar ahora</button>`:""}
+          <button class="btn ghost sm" data-act="new-red-snap" data-cliente="${cliId}" data-red="${red}">+ Añadir dato</button>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:12px;margin-top:7px">
+          <span style="font-family:var(--cond);font-size:22px;font-weight:800">${u?n(u.seguidores).toLocaleString("es-ES"):"—"}</span>
+          ${v?`<span class="rd-var ${v.abs>=0?"up":"down"}">${v.abs>=0?"↑":"↓"}${Math.abs(v.abs).toLocaleString("es-ES")} en 30 días</span>`:""}
+          ${u?`<span class="tiny dim">último dato ${fecha(u.fecha)}</span>`:""}
+        </div>
+        ${extraPares.length?`<div class="tiny dim" style="margin-top:5px">${extraPares.map(p=>`${esc(p.label)}: <b style="color:var(--bone)">${esc(p.valor)}</b>`).join(" · ")}</div>`:""}
+        ${sn.length?`<details style="margin-top:7px"><summary class="tiny dim" style="cursor:pointer">Historial (${sn.length})</summary>
+          <table style="margin-top:6px"><tbody>${sn.slice().reverse().map(s=>`<tr>
+            <td class="tiny dim" style="font-family:var(--mono)">${fecha(s.fecha)}</td>
+            <td class="num">${n(s.seguidores).toLocaleString("es-ES")}</td>
+            <td style="width:1%"><button class="x" data-act="del-red-snap" data-id="${s.id}" type="button">×</button></td>
+          </tr>`).join("")}</tbody></table></details>`:""}
+      </div>`;
+    }).join("")||`<div class="empty"><p>Este artista no tiene todavía ni perfiles ni datos. Añade sus redes en la ficha del cliente.</p></div>`;
+  }else if(RD_TAB==="audiencia"){
+    const ex=(sp&&sp.extra)||{};
+    const tiene=ex.generoTop||ex.edadTop||ex.topPais||ex.topCiudad;
+    cuerpo=tiene?`<div class="rd-cifras">
+        ${ex.generoTop?`<div class="c"><div class="l">Género</div><div class="v" style="font-size:15px">${esc(ex.generoTop)}</div></div>`:""}
+        ${ex.edadTop?`<div class="c"><div class="l">Edad principal</div><div class="v" style="font-size:15px">${esc(ex.edadTop)}</div></div>`:""}
+        ${ex.topPais?`<div class="c"><div class="l">País top</div><div class="v" style="font-size:15px">${esc(ex.topPais)}</div></div>`:""}
+        ${ex.topCiudad?`<div class="c"><div class="l">Ciudad top</div><div class="v" style="font-size:15px">${esc(ex.topCiudad)}</div></div>`:""}
+      </div><p class="tiny dim">De la ficha de Spotify for Artists (se apunta con «+ Añadir dato» en Spotify).</p>`
+      :`<div class="empty"><p>Todavía no hay datos de audiencia. Se apuntan desde Spotify for Artists con «+ Añadir dato» en la pestaña Resumen.</p></div>`;
+  }else{
+    cuerpo=`<div class="empty"><p>Todavía no hay datos de playlists. Entrarán cuando se conecte la fuente de distribución.</p></div>`;
+  }
+
+  openModal(`
+  <header><span style="display:inline-flex;align-items:center;gap:10px">${avatarHTML(c,34)}<h3>${esc(c.nombre||c.nombreReal)}</h3></span>
+    <div class="spacer"></div>
+    <button class="btn ghost sm" data-act="redes-pdf" data-id="${cliId}">Informe PDF</button>
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    <div class="rd-cifras">
+      <div class="c"><div class="l">Seguidores</div><div class="v">${cifra(total)}</div></div>
+      <div class="c"><div class="l">Oyentes Spotify</div><div class="v">${cifra(oyentes)}</div></div>
+      <div class="c"><div class="l">Crecimiento 30 días</div><div class="v">${v30?`${v30.abs>=0?"+":""}${v30.abs.toLocaleString("es-ES")}`:"—"}</div></div>
+      <div class="c"><div class="l">Engagement medio</div><div class="v">${eng!=null?eng.toFixed(1)+"%":"—"}</div></div>
+    </div>
+    <div class="chips" style="margin-bottom:10px">${tab("resumen","Resumen")}${tab("audiencia","Audiencia")}${tab("playlists","Playlists")}</div>
+    ${cuerpo}
+  </div>`,false);
+}
+/* Informe mensual del artista, imprimible (el diálogo de imprimir hace el PDF) */
+function informeRedesPDF(cliId){
+  const c=DB.clientes.find(x=>x.id===cliId);if(!c)return;
+  const total=redesTotalEn(cliId,hoy()),v30=redesVar30(cliId),eng=redesEngagement(cliId);
+  const filas=REDES_CRECIMIENTO.map(red=>{
+    const u=ultimoSnapshot(cliId,red);if(!u)return "";
+    const v=redesVar30Red(cliId,red);
+    return `<tr><td>${REDES[red].label}</td><td style="text-align:right">${n(u.seguidores).toLocaleString("es-ES")}</td>
+      <td style="text-align:right">${v?`${v.abs>=0?"+":""}${v.abs.toLocaleString("es-ES")}`:"—"}</td>
+      <td>${fecha(u.fecha)}</td></tr>`;
+  }).join("");
+  const w=window.open("","_blank");
+  if(!w){toast("El navegador ha bloqueado la ventana del informe");return}
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Informe de redes · ${esc(c.nombre||c.nombreReal)}</title>
+  <style>body{font-family:Archivo,'Helvetica Neue',Arial,sans-serif;color:#331028;padding:40px;max-width:720px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 2px}p.sub{color:#8d7a87;margin:0 0 24px;font-size:12px}
+  .kpis{display:flex;gap:24px;margin-bottom:26px}.kpis div{flex:1}.kpis .l{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#6f5a68}
+  .kpis .v{font-size:22px;font-weight:800}table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#6f5a68;padding:6px 0;border-bottom:1px solid #eae4e8}
+  td{padding:7px 0;border-bottom:1px solid #f4eff3}</style></head><body>
+  <h1>Informe de redes · ${esc(c.nombre||c.nombreReal)}</h1>
+  <p class="sub">MALO Management · ${fecha(hoy())}</p>
+  <div class="kpis">
+    <div><div class="l">Seguidores</div><div class="v">${total!=null?total.toLocaleString("es-ES"):"—"}</div></div>
+    <div><div class="l">Crecimiento 30 días</div><div class="v">${v30?`${v30.abs>=0?"+":""}${v30.abs.toLocaleString("es-ES")}`:"—"}</div></div>
+    <div><div class="l">Engagement medio</div><div class="v">${eng!=null?eng.toFixed(1)+"%":"—"}</div></div>
+  </div>
+  <table><thead><tr><th>Plataforma</th><th style="text-align:right">Seguidores</th><th style="text-align:right">30 días</th><th>Último dato</th></tr></thead>
+  <tbody>${filas||`<tr><td colspan="4">Sin datos todavía.</td></tr>`}</tbody></table>
+  <script>window.print()<\/script></body></html>`);
+  w.document.close();
 }
 /* Convierte redes_snapshots.extra (jsonb) en pares {label,valor} listos para
    pintar, en el mismo orden que REDES_EXTRA_CAMPOS+COMUN. Números con
@@ -14045,6 +14223,9 @@ document.addEventListener("click",e=>{
     if(act==="ed-vista"){filtro.edVista=el.dataset.v||"alertas";render();window.scrollTo(0,0);return}
     if(act==="save-marticulo")return saveMerchArticulo(el.dataset.titulo);
     if(act==="tema"){toggleTema();return}
+    if(act==="redes-art")return modalRedesArtista(el.dataset.id);
+    if(act==="redes-tab"){RD_TAB=el.dataset.tab;pintaModalRedes();return}
+    if(act==="redes-pdf")return informeRedesPDF(el.dataset.id);
     if(act==="avisos"){
       if(VIEW!=="panel"){VIEW="panel";render()}
       const c=document.getElementById("p5atencion");
