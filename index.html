@@ -1731,7 +1731,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.042";
+const APP_VERSION="0.043";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -1740,6 +1740,13 @@ const APP_VERSION="0.042";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-09-09",v:"0.043",cambios:[
+    "Mailing ya tiene campañas: dejas en la lista a quien quieras con los filtros de siempre y pulsas «Guardar como campaña». Queda guardada con su nombre, su asunto y a quién va — y no manda nada.",
+    "Una campaña guarda el criterio, no la lista: si mañana entran veinte de Barcelona, la campaña «Barcelona» los incluye sola. Por eso el número de destinatarios se recalcula cada vez que la abres.",
+    "Al abrir una campaña se pone sus filtros, así que los recuentos, el mapa de plazas, «Copiar emails» y «Exportar CSV» siguen funcionando igual sobre su segmento.",
+    "Y se puede afinar a mano: con la campaña abierta, cada contacto tiene un botón para quitarlo o volverlo a meter, sin tocar los filtros.",
+    "Quien no tiene consentimiento no entra en una campaña por mucho que encaje con los filtros. Ese filtro no se puede desactivar.",
+    "Las campañas se pueden duplicar (para reusar un segmento que ya funcionó) y borrar; borrar una campaña no borra ningún contacto."]},
   {fecha:"2026-09-08",v:"0.042",cambios:[
     "La hoja de ruta y el contrato ya se archivan solos: nuevo botón «Guardar en Documentos» que genera el PDF, lo sube a Drive (carpetas HOJAS DE RUTA y CONTRATOS bajo la carpeta madre) y deja el enlace como documento del show. Sin pasar por el diálogo de imprimir.",
     "Esos PDF aparecen al momento en la sección Documentos, y las hojas de ruta llevan su propio tipo para poder filtrarlas.",
@@ -1982,7 +1989,7 @@ const DOW=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
 function blank(){return {version:6,miembros:{},localidades:{},creado:new Date().toISOString(),empresa:{nombre:"MALO",logo:""},
   clientes:[],promotores:[],shows:[],eventos:[],producciones:[],suscriptores:[],medios:[],contexto:[],mensajes:[],tareas:[],
   temas:[],canciones:[],cancionParticipantes:[],cancionIngresos:[],
-  obras:[],obraParticipantes:[],obraIngresos:[],obraCanciones:[],merchArticulos:[],
+  obras:[],obraParticipantes:[],obraIngresos:[],obraCanciones:[],merchArticulos:[],campanas:[],
   subcategorias:JSON.parse(JSON.stringify(SUBCAT_DEFAULT)),generos:GENERO_DEFAULT.slice()}}
 let DB=blank();
 
@@ -2241,6 +2248,9 @@ const TABLE_MAP={
   suscriptores:{id:"id",email:"email",nombre:"nombre",telefono:"telefono",ciudad:"ciudad",
     clienteId:"cliente_id",etiquetas:"etiquetas",origen:"origen",consentimiento:"consentimiento",
     fechaAlta:"fecha_alta",baja:"baja",notas:"notas"},
+  campanas:{id:"id",nombre:"nombre",asunto:"asunto",notas:"notas",filtros:"filtros",
+    excluidos:"excluidos",estado:"estado",destinatariosN:"destinatarios_n",
+    creadoPor:"creado_por",creadoEn:"creado_en",actualizadoEn:"actualizado_en"},
   producciones:{id:"id",nombre:"nombre",fecha:"fecha",ciudad:"ciudad",venueId:"venue_id",aforo:"aforo",
     ivaEntrada:"iva_entrada",modoFee:"modo_fee",feeFijo:"fee_fijo",entradas:"entradas",otrosIngresos:"otros_ingresos",lineup:"lineup",costes:"costes",notas:"notas",
     estado:"estado",horario:"horario",sponsor:"sponsor",sponsorAportacion:"sponsor_aportacion",
@@ -2277,6 +2287,7 @@ const VACIO_NO_TEXTO={
   temas:{bpm:null,fecha_envio:null,fecha_salida:null},
   tareas:{hecha:false},
   suscriptores:{baja:false,consentimiento:false},
+  campanas:{estado:"borrador",filtros:{},excluidos:[],destinatarios_n:0},
   canciones:{fee_distribucion_pct:0,mgmt_pct:0},
   cancionParticipantes:{pct:0},
   cancionIngresos:{bruto:0,unidades:null},
@@ -2562,6 +2573,14 @@ async function loadRemote(){
     if(x){x._editadoPor=r.editado_por;x._editadoEn=r.editado_en}});
   DB.tareas=(tar.data||[]).map(r=>{const t=fromRow("tareas",r);t.hecha=!!t.hecha;return t});
   DB.suscriptores=(sus.data||[]).map(r=>normalizaEntidad("suscriptores",fromRow("suscriptores",r)));
+  /* campanas: tabla nueva (9 sep 2026). Peticion aparte a proposito, para no tocar
+     el Promise.all posicional de arriba -- anadir un elemento ahi obliga a tocar el
+     destructuring y es justo el tipo de cambio que se lleva cosas por delante. Con
+     sonda: si la tabla no existe, la app va igual y solo se queda sin campanas. */
+  const cmp=await sb.from("campanas").select("*").order("creado_en",{ascending:false});
+  DB.sinCampanas=!!cmp.error;
+  DB.campanas=DB.sinCampanas?[]:(cmp.data||[]).map(r=>normalizaEntidad("campanas",fromRow("campanas",r)));
+  if(DB.sinCampanas)console.warn("Tabla «campanas» no disponible:",cmp.error.message);
   DB.clientes=(cli.data||[]).map(r=>normalizaEntidad("clientes",fromRow("clientes",r)));
   DB.promotores=(prm.data||[]).map(r=>fromRow("promotores",r));
   DB.shows=(sho.data||[]).map(r=>normalizaEntidad("shows",fromRow("shows",r)));
@@ -2630,6 +2649,7 @@ async function save(){
       DB.producciones.length&&sb.from("producciones").upsert(DB.producciones.map(p=>{
         const r=toRow("producciones",p);if(DB.sinEnterticketProd)delete r.enterticket_id;return r})),
       DB.suscriptores.length&&sb.from("suscriptores").upsert(DB.suscriptores.map(x=>toRow("suscriptores",x))),
+      (!DB.sinCampanas&&(DB.campanas||[]).length)&&sb.from("campanas").upsert(DB.campanas.map(x=>toRow("campanas",x))),
       (!DB.sinMedios&&(DB.medios||[]).length)&&sb.from("medios").upsert(DB.medios.map(x=>toRow("medios",x))),
       /* merch_articulos si se guarda (lo edita el equipo). merch_ventas NO: la llena
          shopify-sync y aqui es de solo lectura. */
@@ -3209,7 +3229,7 @@ let CANC_TAB="catalogo";
 let VIEW_PREV_ANIM=null;
 let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",docTipo:"",docAnio:"",mailCliente:"",mailEtiqueta:"",mailPlaza:"",mailSoloConsent:false,verAntiguos:false,mapaCliente:"",mapaAnio:"",mapaCom:"",
   ordenShows:"fecha_asc",ordenClientes:"cat",ordenContactos:"cat",relBD:"",ordenDocs:"fecha_desc",
-  ordenMailing:"alpha",ordenMapa:"n_desc",anio:String(new Date().getFullYear()),
+  ordenMailing:"alpha",ordenMapa:"n_desc",campanaId:"",anio:String(new Date().getFullYear()),
   temaQ:"",temaCliente:"",temaEstado:"",ordenTemas:"envio_desc",
   edVista:"alertas",edQ:"",edAutor:"",edSoloProblema:false,edPeriodo:"",extQ:"",extArtista:"",
   cancionQ:"",cancionArtista:"",ordenCanciones:"artista",cancionVista:"galeria",cancionGrupo:"artista",
@@ -7913,6 +7933,151 @@ async function estadoTicket(id,estado){
   recargaSoporte();
 }
 
+/* ════════ CAMPAÑAS ════════
+   Guardar un segmento con nombre para poder volver a él, retocarlo y tenerlo
+   listo para cuando toque escribir. Aquí NO se envía nada: una campaña es el
+   QUIÉN, no el mensaje.
+
+   El segmento se guarda como FILTROS y no como lista congelada, a propósito: la
+   base crece todas las semanas, y una campaña «Barcelona» tiene que incluir a
+   quien entre mañana. Lo que se quita a mano vive aparte, en `excluidos`, para
+   poder afinar sin tocar los filtros. */
+const FILTROS_CAMPANA=["q","mailCliente","mailEtiqueta","mailPlaza","mailSoloConsent"];
+
+function filtrosActuales(){
+  const f={};
+  FILTROS_CAMPANA.forEach(k=>{if(filtro[k])f[k]=filtro[k]});
+  return f;
+}
+/* Reutiliza susFiltrados() en vez de duplicar el motor de filtros: le presta el
+   estado, lo lee y lo devuelve como estaba. Es sincrono, así que nadie ve el
+   estado prestado. Duplicar la lógica es lo que acaba dando dos resultados
+   distintos para el mismo segmento. */
+function susDeFiltros(f){
+  const previo={};
+  FILTROS_CAMPANA.forEach(k=>{previo[k]=filtro[k];filtro[k]=f&&f[k]?f[k]:""});
+  let l;
+  try{l=susFiltrados()}finally{FILTROS_CAMPANA.forEach(k=>{filtro[k]=previo[k]})}
+  return l;
+}
+/* A quién se le escribiría hoy: el segmento, menos los quitados a mano, menos
+   quien no tenga consentimiento. Ese último filtro no es negociable. */
+function destinatariosCampana(c){
+  const ex=new Set((c.excluidos||[]).map(e=>String(e||"").toLowerCase()));
+  return susDeFiltros(c.filtros).filter(x=>x.consentimiento&&!ex.has((x.email||"").toLowerCase()));
+}
+function resumenFiltros(f){
+  const p=[];
+  if(f&&f.mailPlaza)p.push(f.mailPlaza);
+  if(f&&f.mailEtiqueta)p.push(f.mailEtiqueta);
+  if(f&&f.mailCliente)p.push(nomCliente(f.mailCliente));
+  if(f&&f.q)p.push("«"+f.q+"»");
+  if(f&&f.mailSoloConsent)p.push("solo con consentimiento");
+  return p.length?p.join(" · "):"toda la lista";
+}
+const CAMP_ESTADOS={borrador:{label:"Borrador",pill:""},lista:{label:"Lista para enviar",pill:"ok"}};
+
+function campanaAbierta(){
+  return filtro.campanaId?(DB.campanas||[]).find(c=>c.id===filtro.campanaId):null;
+}
+/* Abrir una campaña = ponerse sus filtros. Así todo lo que ya hay en la vista
+   (recuentos, plazas, exportar, copiar emails) funciona igual sin tocarlo. */
+function abrirCampana(id){
+  const c=(DB.campanas||[]).find(x=>x.id===id);
+  if(!c)return;
+  FILTROS_CAMPANA.forEach(k=>{filtro[k]=c.filtros&&c.filtros[k]?c.filtros[k]:""});
+  filtro.campanaId=id;
+  render();
+}
+function cerrarCampana(){
+  filtro.campanaId="";
+  FILTROS_CAMPANA.forEach(k=>{filtro[k]=""});
+  render();
+}
+function editorCampana(id){
+  if(DB.sinCampanas){toast("Falta la tabla «campanas» en la base de datos");return}
+  const esNueva=!id;
+  const c=esNueva
+    ?{id:uid("camp"),nombre:"",asunto:"",notas:"",filtros:filtrosActuales(),excluidos:[],estado:"borrador"}
+    :(DB.campanas||[]).find(x=>x.id===id);
+  if(!c)return;
+  const n=destinatariosCampana(c).length;
+  openModal(`
+  <header><h3>${esNueva?"Nueva campaña":"Editar campaña"}</h3><div class="spacer"></div>
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    <div class="f"><label>Nombre</label>
+      <input id="c_nom" value="${esc(c.nombre||"")}" placeholder="Bolo en Barcelona · noviembre"></div>
+    <div class="f"><label>Asunto del correo <span class="opt">(opcional, se puede decidir luego)</span></label>
+      <input id="c_asunto" value="${esc(c.asunto||"")}" placeholder="Volvemos a Razzmatazz"></div>
+    <div class="f"><label>Estado</label>
+      <select id="c_estado">
+        ${Object.entries(CAMP_ESTADOS).map(([k,v])=>`<option value="${k}" ${c.estado===k?"selected":""}>${v.label}</option>`).join("")}
+      </select></div>
+    <div class="f"><label>Notas <span class="opt">(qué se quiere contar, para no perder la idea)</span></label>
+      <textarea id="c_notas" rows="3">${esc(c.notas||"")}</textarea></div>
+    <div class="card" style="margin:16px 0 0"><div class="body">
+      <p class="hint" style="margin:0">
+        <strong style="color:var(--bone)">A quién va:</strong> ${esc(resumenFiltros(c.filtros))}<br>
+        Ahora mismo son <strong style="color:var(--bone)">${n} ${n===1?"contacto":"contactos"}</strong> con consentimiento${(c.excluidos||[]).length?`, tras quitar ${(c.excluidos||[]).length} a mano`:""}.
+        ${esNueva?"Se guarda el segmento que tienes puesto en los filtros.":"Para cambiarlo, abre la campaña y mueve los filtros."}
+      </p>
+    </div></div>
+  </div>
+  <footer><div class="spacer"></div>
+    <button class="btn ghost" data-act="close">Cancelar</button>
+    <button class="btn primary" id="c_save">${esNueva?"Crear campaña":"Guardar"}</button></footer>`);
+  const btn=document.getElementById("c_save");
+  if(btn)btn.addEventListener("click",()=>guardarCampana(c,esNueva));
+  const inp=document.getElementById("c_nom");
+  if(inp)inp.focus();
+}
+function guardarCampana(base,esNueva){
+  const nombre=val("c_nom").trim();
+  if(!nombre){toast("Ponle un nombre a la campaña");return}
+  const x={...base,nombre,asunto:val("c_asunto").trim(),notas:val("c_notas"),
+    estado:val("c_estado")||"borrador",actualizadoEn:new Date().toISOString()};
+  x.destinatariosN=destinatariosCampana(x).length;
+  if(esNueva){
+    x.creadoEn=new Date().toISOString();
+    DB.campanas=[x,...(DB.campanas||[])];
+    filtro.campanaId=x.id;
+  }else{
+    DB.campanas=(DB.campanas||[]).map(c=>c.id===x.id?x:c);
+  }
+  closeModal();toast(esNueva?"Campaña creada":"Campaña guardada");touch();
+}
+function duplicarCampana(id){
+  const c=(DB.campanas||[]).find(x=>x.id===id);
+  if(!c)return;
+  const copia={...c,id:uid("camp"),nombre:(c.nombre||"")+" (copia)",estado:"borrador",
+    creadoEn:new Date().toISOString(),actualizadoEn:new Date().toISOString()};
+  DB.campanas=[copia,...(DB.campanas||[])];
+  toast("Campaña duplicada");touch();render();
+}
+function borrarCampana(id){
+  const c=(DB.campanas||[]).find(x=>x.id===id);
+  if(!c)return;
+  if(!confirm(`¿Borrar la campaña «${c.nombre}»?\n\nNo se borra ningún contacto: solo el segmento guardado.`))return;
+  DB.campanas=(DB.campanas||[]).filter(x=>x.id!==id);
+  if(filtro.campanaId===id)filtro.campanaId="";
+  if(!DB.sinCampanas)sb.from("campanas").delete().eq("id",id).then(({error})=>{
+    if(error)toast("Error al borrar en el servidor")});
+  toast("Campaña borrada");touch();render();
+}
+/* Quitar o volver a meter a alguien concreto sin tocar los filtros. */
+function toggleExcluido(email){
+  const c=campanaAbierta();
+  if(!c)return;
+  const e=String(email||"").toLowerCase();
+  const ex=(c.excluidos||[]).map(v=>String(v||"").toLowerCase());
+  const fuera=ex.includes(e);
+  const x={...c,excluidos:fuera?ex.filter(v=>v!==e):[...ex,e],actualizadoEn:new Date().toISOString()};
+  x.destinatariosN=destinatariosCampana(x).length;
+  DB.campanas=(DB.campanas||[]).map(y=>y.id===x.id?x:y);
+  toast(fuera?"Vuelve a entrar en la campaña":"Fuera de esta campaña");touch();render();
+}
+
 function viewMailing(el,ta){
   ta.innerHTML=`<button class="btn sm" data-act="import-subs">Importar CSV</button>
                 <button class="btn sm" data-act="sync-resend">Enviar lista a Resend</button>
@@ -7921,6 +8086,8 @@ function viewMailing(el,ta){
   const conConsent=DB.suscriptores.filter(x=>!x.baja&&x.consentimiento).length;
   const bajas=DB.suscriptores.filter(x=>x.baja).length;
   const lista=susFiltrados();
+  const campAbierta=campanaAbierta();
+  const excluidosSet=new Set(((campAbierta&&campAbierta.excluidos)||[]).map(e=>String(e||"").toLowerCase()));
   const etiquetas=etiquetasTodas();
   const plazas=plazasTodas().filter(([p])=>p!=="Sin plaza");
   const plazasReales=plazas.filter(([,n0])=>n0>=5).length;
@@ -8003,11 +8170,52 @@ function viewMailing(el,ta){
     <button class="btn sm" id="copiarEmails">Copiar emails</button>
     <button class="btn sm" id="exportarSeg">Exportar CSV</button>
     <button class="btn sm" data-act="sync-resend">Enviar lista a Resend</button>
+    ${campAbierta
+      ?`<button class="btn sm" id="guardarCamp">Guardar cambios en la campaña</button>`
+      :`<button class="btn sm" id="nuevaCamp">Guardar como campaña</button>`}
     <button class="btn primary sm" id="redactar">Redactar envío</button></header>
     ${lista.length-escribibles>0?`<div class="body"><p class="hint" style="margin:0">
       De los ${lista.length} filtrados, <strong style="color:var(--warn)">${lista.length-escribibles} no tienen consentimiento</strong> y quedan fuera de cualquier envío.
       <button class="btn ghost sm" id="verSinConsent" style="margin-left:6px">Ver quiénes son</button></p></div>`:""}
     </div>
+
+  ${campAbierta?`<div class="card" style="border-color:var(--malo)"><header>
+      <h3>Campaña · ${esc(campAbierta.nombre)}</h3>
+      <span class="pill ${(CAMP_ESTADOS[campAbierta.estado]||{}).pill||""}">${(CAMP_ESTADOS[campAbierta.estado]||{label:campAbierta.estado}).label}</span>
+      <div class="spacer"></div>
+      <button class="btn ghost sm" id="editarCamp">Editar</button>
+      <button class="btn ghost sm" id="cerrarCamp">Cerrar campaña</button></header>
+    <div class="body">
+      <p class="hint" style="margin:0">
+        Le va a <strong style="color:var(--bone)">${destinatariosCampana(campAbierta).length}</strong>
+        de los ${lista.length} que ves${excluidosSet.size?`, porque has quitado ${excluidosSet.size} a mano`:""}.
+        ${campAbierta.asunto?`<br>Asunto: <strong style="color:var(--bone)">${esc(campAbierta.asunto)}</strong>`:""}
+        ${campAbierta.notas?`<br>${esc(campAbierta.notas)}`:""}
+        <br><span class="dim">Mueve los filtros para cambiar a quién va, o quita gente una a una en la tabla de abajo. No se envía nada desde aquí.</span>
+      </p>
+    </div></div>`:""}
+
+  ${(DB.campanas||[]).length?`<div class="card"><header><h3>Campañas</h3><div class="spacer"></div>
+      <span class="dim tiny" style="text-transform:none;letter-spacing:0">${(DB.campanas||[]).length} guardadas · ninguna se envía sola</span></header>
+    <div class="body flush"><table data-movil="Campaña,A cuántos"><thead><tr>
+        <th>Campaña</th><th>A quién va</th><th style="width:1%">A cuántos</th><th style="width:1%">Estado</th><th style="width:1%"></th></tr></thead>
+      <tbody>${(DB.campanas||[]).map(c=>{
+        const n0=destinatariosCampana(c).length;
+        const est=CAMP_ESTADOS[c.estado]||{label:c.estado,pill:""};
+        return `<tr class="click ${filtro.campanaId===c.id?"sel":""}" data-camp="${c.id}">
+          <td class="strong">${esc(c.nombre||"—")}${c.asunto?`<br><span class="dim tiny">${esc(c.asunto)}</span>`:""}</td>
+          <td class="dim tiny">${esc(resumenFiltros(c.filtros))}${(c.excluidos||[]).length?` · ${(c.excluidos||[]).length} fuera a mano`:""}</td>
+          <td class="num strong">${n0}</td>
+          <td><span class="pill ${est.pill}">${est.label}</span></td>
+          <td style="white-space:nowrap">
+            <button class="btn ghost sm" data-camp-dup="${c.id}" title="Duplicar">Duplicar</button>
+            <button class="btn ghost sm" data-camp-del="${c.id}" title="Borrar">×</button></td>
+        </tr>`}).join("")}</tbody></table>
+    </div></div>`:`<div class="card"><div class="body">
+      <p class="hint" style="margin:0"><strong style="color:var(--bone)">Todavía no hay campañas.</strong>
+      Pon los filtros para dejar en la lista a quien quieras y pulsa
+      <strong style="color:var(--bone)">«Guardar como campaña»</strong>. Queda guardada con su nombre
+      y a quién va, y no se envía nada hasta que tú lo decidas.</p></div></div>`}
 
   <div class="grid2">
     <div class="card" style="margin:0"><header><h3>De quién son</h3></header><div class="body flush">
@@ -8035,7 +8243,7 @@ function viewMailing(el,ta){
 
   <div class="card"><header><h3>Contactos</h3><div class="spacer"></div>
     <span class="dim tiny" style="text-transform:none;letter-spacing:0">${lista.length} con los filtros puestos</span></header><div class="body flush">
-      ${lista.length?`<table class="t-contactos" data-movil="Nombre,Plaza,Vino a"><thead><tr><th>Nombre</th><th>Email</th><th>Plaza</th><th>De quién es</th><th>Vino a</th><th style="width:1%">Consent.</th></tr></thead>
+      ${lista.length?`<table class="t-contactos" data-movil="Nombre,Plaza,Vino a"><thead><tr><th>Nombre</th><th>Email</th><th>Plaza</th><th>De quién es</th><th>Vino a</th><th style="width:1%">Consent.</th>${campAbierta?`<th style="width:1%">En la campaña</th>`:""}</tr></thead>
       <tbody>${lista.slice(0,300).map(x=>{const ca=x.clienteId?catDe(x.clienteId):null;
         const evs=(x.etiquetas||[]).filter(t=>esEventoTicketera(t));
         return `<tr class="click" data-sub="${x.id}" ${ca?`style="--c:${ca.color}"`:""}>
@@ -8045,6 +8253,9 @@ function viewMailing(el,ta){
           <td>${x.clienteId?`<span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(x.clienteId))}</span>`:`<span class="dim tiny">de MALO</span>`}</td>
           <td class="dim tiny">${evs.length?esc(evs.join(" · ")):"—"}${(x.etiquetas||[]).includes("repite")?` <span class="pill malo" style="margin-left:4px">repite</span>`:""}</td>
           <td>${x.consentimiento?`<span class="pill ok">sí</span>`:`<span class="pill alert">no</span>`}</td>
+          ${campAbierta?`<td>${x.consentimiento
+            ?`<button class="btn ghost sm" data-excluir="${esc(x.email)}">${excluidosSet.has((x.email||"").toLowerCase())?"Meter":"Quitar"}</button>`
+            :`<span class="dim tiny">sin consent.</span>`}</td>`:""}
         </tr>`}).join("")}</tbody></table>
       ${lista.length>300?`<p class="hint" style="padding:12px 16px">Mostrando los primeros 300 de ${lista.length}. Los filtros y la exportación usan la lista completa.</p>`:""}`
       :`<div class="empty"><p>Ningún contacto con estos filtros.</p></div>`}
@@ -8059,6 +8270,34 @@ function viewMailing(el,ta){
   document.getElementById("metq").addEventListener("change",e=>{filtro.mailEtiqueta=e.target.value;render()});
   el.querySelectorAll("[data-plaza]").forEach(b=>b.addEventListener("click",()=>{
     filtro.mailPlaza=filtro.mailPlaza===b.dataset.plaza?"":b.dataset.plaza;render()}));
+  /* Campañas. Listeners locales sobre `el` en vez de tocar el switch global de
+     data-act: es un cambio más pequeño y no puede afectar a ninguna otra vista. */
+  const bNueva=document.getElementById("nuevaCamp");
+  if(bNueva)bNueva.addEventListener("click",()=>editorCampana(""));
+  const bEdit=document.getElementById("editarCamp");
+  if(bEdit)bEdit.addEventListener("click",()=>editorCampana(filtro.campanaId));
+  const bGuardar=document.getElementById("guardarCamp");
+  if(bGuardar)bGuardar.addEventListener("click",()=>{
+    /* «Guardar cambios» = congelar en la campaña los filtros que tiene puestos
+       ahora mismo. Es el gesto que espera cualquiera tras mover los filtros. */
+    const c=campanaAbierta();if(!c)return;
+    const x={...c,filtros:filtrosActuales(),actualizadoEn:new Date().toISOString()};
+    x.destinatariosN=destinatariosCampana(x).length;
+    DB.campanas=(DB.campanas||[]).map(y=>y.id===x.id?x:y);
+    toast(`Campaña guardada · le va a ${x.destinatariosN}`);touch();render();
+  });
+  const bCerrar=document.getElementById("cerrarCamp");
+  if(bCerrar)bCerrar.addEventListener("click",cerrarCampana);
+  el.querySelectorAll("[data-camp]").forEach(tr=>tr.addEventListener("click",e=>{
+    if(e.target.closest("[data-camp-dup],[data-camp-del]"))return;
+    abrirCampana(tr.dataset.camp)}));
+  el.querySelectorAll("[data-camp-dup]").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation();duplicarCampana(b.dataset.campDup)}));
+  el.querySelectorAll("[data-camp-del]").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation();borrarCampana(b.dataset.campDel)}));
+  el.querySelectorAll("[data-excluir]").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation();toggleExcluido(b.dataset.excluir)}));
+
   const vsc=document.getElementById("verSinConsent");
   if(vsc)vsc.addEventListener("click",()=>{filtro.mailSoloConsent=false;filtro.q="";render();
     toast("Los que salen con «no» en Consent. no reciben envíos")});

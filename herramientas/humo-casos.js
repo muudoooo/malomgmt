@@ -30,7 +30,16 @@
   DB.merch=[{id:"mv1",tienda:"malo",numero:"#1001",fecha:FECHA+"T12:00:00Z",email:"c@d.e",
     comprador:"Comprador",total:31,moneda:"EUR",estadoPago:"PAID",ivaIncluido:true,
     totalImpuestos:5.38,items:[{titulo:"CAMISETA",cantidad:1,importe:25,impuesto:4.34}]}];
-  DB.suscriptores=[{id:"su1",email:"s@t.u",nombre:"Sus",etiquetas:[],consent:true}];
+  DB.suscriptores=[{id:"su1",email:"s@t.u",nombre:"Sus",etiquetas:[],consent:true},
+    {id:"su2",email:"con@sent.es",nombre:"Con Sent",ciudad:"Madrid",etiquetas:["repite"],
+      consentimiento:true,baja:false},
+    {id:"su3",email:"fuera@sent.es",nombre:"Excluido",ciudad:"Madrid",etiquetas:[],
+      consentimiento:true,baja:false}];
+  /* Una campaña con un excluido a mano: asi se ejecutan destinatariosCampana(),
+     resumenFiltros() y la rama de la tabla que pinta el boton de quitar/meter. */
+  DB.campanas=[{id:"camp1",nombre:"Bolo Madrid",asunto:"Volvemos",notas:"Aviso de fecha",
+    filtros:{mailPlaza:"Madrid"},excluidos:["fuera@sent.es"],estado:"borrador",
+    destinatariosN:1,creadoEn:FECHA+"T10:00:00Z"}];
   DB.medios=[{id:"me1",nombre:"Medio",tipo:"prensa"}];
   DB.contactos=DB.contactos||[];
   DB.soporteTickets=[{id:"tk1",asunto:"No veo mi liquidacion",cuerpo:"Falta la de agosto",
@@ -48,6 +57,11 @@
     ["contactos",typeof viewContactos!=="undefined"&&viewContactos],
     ["documentos",typeof viewDocumentos!=="undefined"&&viewDocumentos],
     ["mailing",typeof viewMailing!=="undefined"&&viewMailing],
+    /* La vista cambia bastante con una campaña abierta (aviso, columna nueva en la
+       tabla, otro boton en la cabecera), asi que se prueba como caso aparte. */
+    ["mailing (campaña abierta)",typeof viewMailing!=="undefined"&&function(el,ta){
+      var antes=filtro.campanaId;filtro.campanaId="camp1";
+      try{viewMailing(el,ta)}finally{filtro.campanaId=antes}}],
     ["medios",typeof viewMedios!=="undefined"&&viewMedios],
     ["mapa",typeof viewMapa!=="undefined"&&viewMapa],
     ["canciones",typeof viewCanciones!=="undefined"&&viewCanciones],
