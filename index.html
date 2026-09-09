@@ -1557,6 +1557,27 @@ th.rd-sort:hover{color:var(--bone)}
 .rd-cifras .c .v{font-family:var(--cond);font-size:21px;font-weight:800;margin-top:3px}
 .rd-bar{height:8px;border-radius:5px;background:var(--panel-3);overflow:hidden;flex:1}
 .rd-bar i{display:block;height:100%;border-radius:5px}
+/* Producciones propias (handoff §5) */
+.pr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.pr-card{background:var(--panel);border:1px solid var(--rule);border-radius:17px;padding:15px 17px;cursor:pointer;text-align:left}
+.pr-card .cab{display:flex;align-items:flex-start;gap:10px}
+.pr-card h4{font-size:15px;font-weight:700;flex:1;min-width:0}
+.pr-card .meta{font-size:11.5px;color:var(--mute-2);margin-top:2px}
+.pr-cartel{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.pr-tag{border-radius:15px;padding:2.5px 9px;font-size:10px;font-weight:700}
+.pr-tag.roster{background:#FBE0EB;color:#A3235C}
+.pr-tag.ext{background:#EFE0F3;color:#6D2C7E}
+.pr-tag.hueco{background:#F4EFF3;color:#8D7A87;border:1px dashed var(--rule-2)}
+body:not(.claro) .pr-tag.roster{background:color-mix(in srgb,var(--malo) 20%,transparent);color:var(--malo)}
+body:not(.claro) .pr-tag.ext{background:color-mix(in srgb,#8F79F2 20%,transparent);color:var(--artist)}
+body:not(.claro) .pr-tag.hueco{background:var(--panel-2);color:var(--mute-2);border:1px dashed var(--rule-2)}
+.pr-ocup{margin-top:12px}
+.pr-ocup .via{position:relative;height:10px;border-radius:6px;background:var(--panel-3);overflow:visible}
+.pr-ocup .via i{display:block;height:100%;border-radius:6px}
+.pr-ocup .be{position:absolute;top:-3px;bottom:-3px;width:2.5px;background:var(--bone);border-radius:2px}
+.pr-ocup .leyo{display:flex;justify-content:space-between;font-size:10.5px;color:var(--mute-2);margin-top:5px}
+.pr-pie{display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid var(--rule);margin-top:12px;padding-top:10px;font-size:11.5px;color:var(--mute)}
+.pr-pie b{color:var(--bone)}
 /* Bolsillo · panel del artista (handoff §4) */
 .bp-prev{position:relative;z-index:60;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel-2);
   border-radius:14px;padding:9px 14px;margin-bottom:16px;font-size:12.5px;color:var(--mute)}
@@ -2223,6 +2244,7 @@ const CATEGORIAS={
   dj:         {label:"DJ",                      corto:"DJ",          color:"#8F79F2"},
   soundsystem:{label:"Disobey Soundsystem",     corto:"Soundsystem", color:"#D94F8C"},
   evento:     {label:"Evento",                  corto:"Evento",      color:"#34D399"},
+  externo:    {label:"Artista externo",         corto:"Externo",     color:"#18225B"},
   creador:    {label:"Creadores de Contenido",  corto:"Creador",     color:"#6B8FE8"}
 };
 /* Punto de partida del catálogo de géneros. Se gestiona desde Datos → Géneros:
@@ -2315,7 +2337,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.050";
+const APP_VERSION="0.051";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -2324,6 +2346,11 @@ const APP_VERSION="0.050";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-09-10",v:"0.051",cambios:[
+    "Producciones propias, reconstruida hacia el control de taquilla: cifras de cabecera (producciones, entradas vendidas, taquilla y margen), pestañas Próximas · Pasadas · Artistas externos, y cada producción como tarjeta con su cartel etiquetado (rosa roster, morado externo, gris hueco libre).",
+    "La barra de ocupación colorea por tramo (verde desde el 75%, ámbar desde el 40%, naranja por debajo) y lleva la marca negra del punto de equilibrio con «Cubierto» o «Faltan N».",
+    "El detalle se abre en una ventana centrada: taquilla, gastos, margen y aforo libre, la venta por tramo de entrada, el reparto de gastos y el cartel. Editar sigue abriendo el formulario completo.",
+    "Artistas externos: los que se traen puntualmente para un hard ticket, sin comisión de management. La pestaña los lista con sus producciones, ciudades, taquilla y margen, avisa de los que no tienen ficha y la crea de un click (categoría nueva «Artista externo»)."]},
   {fecha:"2026-09-10",v:"0.050",cambios:[
     "Bolsillo cambia de concepto: ya no es una vista interna de tesorería, es el panel que ve el artista, escrito en segunda persona («Has generado», «Te corresponde», «Ya cobrado», «Pendiente»).",
     "Arriba, para el equipo, la barra de previsualización: «Estás viendo el panel de…» con un desplegable con avatar y categoría, más los accesos a la ficha interna y al extracto en PDF. El artista, en su portal, no la ve.",
@@ -3889,7 +3916,7 @@ let filtro={q:"",cliente:"",estado:"",categoria:"",sub:"",genero:"",catBD:"",doc
   cancionTipo:"",cancionPortada:"release",cancionDesde:"",cancionHasta:"",
   bolsilloArtista:"",bolsilloMerch:true,bolsilloModo:"mes",bolsilloAnio:String(new Date().getFullYear()),bolsilloMes:String(new Date().getMonth()+1).padStart(2,"0"),bolsilloTrim:String(Math.floor(new Date().getMonth()/3)+1),
   merchTienda:"",merchArtista:"",
-  redesArtista:"",redesTab:"",redesOrden:"total_desc",bolsilloTab:"resumen",etDesde:"2026",panelFuente:""};
+  redesArtista:"",redesTab:"",redesOrden:"total_desc",bolsilloTab:"resumen",prodTab:"proximas",etDesde:"2026",panelFuente:""};
 const _n=new Date();
 let CAL={y:_n.getFullYear(),m:_n.getMonth(),sel:null,cliente:"",categoria:"",sub:"",tipo:""};
 
@@ -4989,47 +5016,177 @@ function etBloque(){
         </tr>`}).join("")}</tbody></table></div></div>`;
 }
 
+/* ════════ PRODUCCIONES PROPIAS · control de taquilla (handoff §5) ════════ */
+function prodOcupacionHTML(p,c){
+  if(c.modoFee)return `<div class="pr-ocup"><div class="leyo"><span>Fee fijo pactado</span><b>${eur0(c.feeFijo)}</b></div></div>`;
+  const aforo=c.aforo||c.cupo;
+  if(!aforo)return `<div class="pr-ocup"><div class="leyo"><span class="dim">Sin aforo declarado</span></div></div>`;
+  const pctOc=Math.min(100,c.vendidas/aforo*100);
+  const color=pctOc>=75?"var(--ok)":pctOc>=40?"#F59E01":"#E85011";
+  const bePos=(c.beEntradas!==null&&aforo)?Math.min(100,c.beEntradas/aforo*100):null;
+  const cubierto=c.beEntradas!==null?c.vendidas>=c.beEntradas:null;
+  return `<div class="pr-ocup">
+    <div class="via"><i style="width:${pctOc.toFixed(1)}%;background:${color}"></i>
+      ${bePos!==null?`<span class="be" style="left:${bePos.toFixed(1)}%" title="Punto de equilibrio: ${c.beEntradas} entradas"></span>`:""}</div>
+    <div class="leyo"><span>${c.vendidas.toLocaleString("es-ES")} de ${aforo.toLocaleString("es-ES")} entradas</span>
+      ${cubierto===null?"":(cubierto?`<b style="color:var(--ok)">Cubierto</b>`:`<b>Faltan ${(c.beEntradas-c.vendidas).toLocaleString("es-ES")}</b>`)}</div>
+  </div>`;
+}
+function prodCartelHTML(p){
+  const tags=(p.lineup||[]).map(x=>{
+    if(x.clienteId&&cliente(x.clienteId))return `<span class="pr-tag roster">${esc(nomCliente(x.clienteId))}</span>`;
+    const nom=(x.nombre||"").trim();
+    return nom?`<span class="pr-tag ext">${esc(nom)}</span>`:`<span class="pr-tag hueco">hueco libre</span>`;
+  });
+  return tags.length?`<div class="pr-cartel">${tags.join("")}</div>`:"";
+}
+function externosDeProducciones(){
+  const m=new Map();
+  DB.producciones.forEach(p=>{(p.lineup||[]).forEach(x=>{
+    if(x.clienteId&&cliente(x.clienteId))return;
+    const nom=(x.nombre||"").trim();if(!nom)return;
+    const k=nom.toLowerCase();
+    if(!m.has(k))m.set(k,{nombre:nom,prods:new Set(),ciudades:new Set(),ultima:"",taq:0,margen:0});
+    const e=m.get(k);
+    if(!e.prods.has(p.id)){
+      e.prods.add(p.id);
+      if(p.ciudad)e.ciudades.add(p.ciudad);
+      if((p.fecha||"")>e.ultima)e.ultima=p.fecha||"";
+      const c=calcProd(p);e.taq+=c.taquillaNeta;e.margen+=c.beneficio;
+    }
+  })});
+  return [...m.values()].map(e=>{
+    const cli=DB.clientes.find(c=>String(c.nombre||c.nombreReal||"").trim().toLowerCase()===e.nombre.toLowerCase());
+    return Object.assign(e,{fichaId:cli?cli.id:""});
+  }).sort((a,b)=>(b.ultima||"").localeCompare(a.ultima||""));
+}
+function crearFichaExterno(nombre){
+  const nom=String(nombre||"").trim();if(!nom)return;
+  if(DB.clientes.some(c=>String(c.nombre||c.nombreReal||"").trim().toLowerCase()===nom.toLowerCase())){toast("Ya hay una ficha con ese nombre");render();return}
+  DB.clientes.push({id:uid("cli"),nombre:nom,categoria:"externo",activo:true,
+    facturacion:"autonomo_sin_irpf",servicios:[],comisiones:{},redes:{}});
+  toast(`Ficha creada para ${nom} — complétala en Clientes (NIF, contacto…)`);
+  touch();
+}
 function viewEventos(el,ta){
   ta.innerHTML=`<button class="btn primary" data-act="new-prod">Nueva producción</button>`;
   document.getElementById("viewSub").textContent="Hard ticket";
   const list=DB.producciones.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
-  /* Los borradores y cancelados no cuentan en los totales: son presupuestos que
-     aún estás montando, no dinero comprometido. */
-  const enFirme=list.filter(p=>p.estado!=="borrador"&&p.estado!=="cancelado");
-  const nBorrador=list.filter(p=>p.estado==="borrador").length;
   if(!list.length){
     el.innerHTML=`<div class="card"><div class="empty">
       <p><strong>Producciones propias de ${laAgencia()}.</strong><br>Aquí el dinero funciona al revés que en booking: tú asumes los costes y te quedas el resultado, en vez de cobrar una comisión.</p>
       <button class="btn primary" data-act="new-prod">Crear el primero</button></div></div>`+etBloque();
     etFiltroAnio(el);return;
   }
-  const T=enFirme.reduce((t,p)=>{const c=calcProd(p);t.ing+=c.ingresos;t.cos+=c.costes;t.ben+=c.beneficio;return t},{ing:0,cos:0,ben:0});
-  document.getElementById("viewSub").textContent=`${list.length} producciones${nBorrador?` · ${nBorrador} en borrador`:""}`;
+  const enFirme=list.filter(p=>p.estado!=="borrador"&&p.estado!=="cancelado");
+  const T=enFirme.reduce((t,p)=>{const c=calcProd(p);t.vend+=c.vendidas;t.taq+=c.taquillaNeta;t.ben+=c.beneficio;return t},{vend:0,taq:0,ben:0});
+  const H=hoy();
+  const proximas=list.filter(p=>!p.fecha||p.fecha>=H);
+  const pasadas=list.filter(p=>p.fecha&&p.fecha<H);
+  const externos=externosDeProducciones();
+  const tabs=[["proximas",`Próximas`,proximas.length],["pasadas",`Pasadas`,pasadas.length],["externos",`Artistas externos`,externos.length]];
+  if(!tabs.some(t=>t[0]===filtro.prodTab))filtro.prodTab="proximas";
+  const tabAct=filtro.prodTab;
+
+  const tarjeta=p=>{
+    const c=calcProd(p);
+    const ep=ESTADO_PROD[p.estado||"borrador"]||ESTADO_PROD.borrador;
+    const flojo=p.estado==="borrador"||p.estado==="cancelado";
+    const tk=p.enterticketId?"Enterticket":"manual";
+    return `<button type="button" class="pr-card" data-prod="${p.id}"${flojo?' style="opacity:.6"':""}>
+      <div class="cab">
+        <div style="flex:1;min-width:0"><h4>${esc(p.nombre||"(sin nombre)")}</h4>
+          <div class="meta">${p.fecha?fecha(p.fecha):"sin fecha"}${nomPromotor(p.venueId)!=="—"?` · ${esc(nomPromotor(p.venueId))}`:""}${p.ciudad?` · ${esc(p.ciudad)}`:""}</div></div>
+        <span class="pill" style="border-color:${ep.color};color:${ep.color};flex:none">${ep.label}</span>
+      </div>
+      ${prodCartelHTML(p)}
+      ${prodOcupacionHTML(p,c)}
+      <div class="pr-pie"><span>Taquilla <b>${c.modoFee?eur0(c.feeFijo):eur0(c.taquillaNeta)}</b></span>
+        <span>Margen <b style="color:${c.beneficio>=0?"var(--ok)":"var(--alert)"}">${eur0(c.beneficio)}</b></span>
+        <span>Ticketera <b>${tk}</b></span></div>
+    </button>`;
+  };
+
+  let cuerpo="";
+  if(tabAct==="externos"){
+    const sinFicha=externos.filter(e=>!e.fichaId);
+    cuerpo=`
+    ${sinFicha.length?`<div class="rd-aviso down" style="background:#F6E6A8;color:#6B4E00;margin-bottom:12px;cursor:default">
+      ⚠ ${sinFicha.length===1?"1 artista externo no tiene ficha":sinFicha.length+" artistas externos no tienen ficha"} — sin ficha no hay a quién pedirle la factura de su parte.</div>`:""}
+    <div class="card" style="margin:0"><div class="body flush">
+      ${externos.length?`<table><thead><tr><th>Artista externo</th><th class="num">Producciones</th><th>Ciudades</th><th>Última</th><th class="num">Taquilla</th><th class="num">Margen</th><th>Ficha</th></tr></thead>
+      <tbody>${externos.map(e=>`<tr${e.fichaId?` class="click" data-cliente="${e.fichaId}"`:""}>
+        <td><b>${esc(e.nombre)}</b></td>
+        <td class="num">${e.prods.size}</td>
+        <td class="dim">${esc([...e.ciudades].join(", ")||"—")}</td>
+        <td class="tiny dim" style="font-family:var(--mono)">${e.ultima?fecha(e.ultima):"—"}</td>
+        <td class="num">${eur0(e.taq)}</td>
+        <td class="num ${e.margen>=0?"strong":"v-alert"}">${eur0(e.margen)}</td>
+        <td>${e.fichaId?`<span class="pill ok">Creada</span>`:`<button class="btn ghost sm" data-act="ext-ficha" data-nombre="${esc(e.nombre)}">Crear ficha</button>`}</td>
+      </tr>`).join("")}</tbody></table>`
+      :`<div class="empty"><p>Todavía no ha venido ningún artista externo. El alta se hace desde el propio formulario de producción, al montar el cartel.</p></div>`}
+    </div></div>
+    <p class="tiny dim" style="margin-top:9px">Un externo no es roster: no lleva comisión de management ni liquidación mensual — solo el acuerdo de esa producción, y nos factura su parte.</p>`;
+  }else{
+    const lista=tabAct==="proximas"?proximas.slice().sort((a,b)=>(a.fecha||"9999").localeCompare(b.fecha||"9999")):pasadas;
+    cuerpo=lista.length?`<div class="pr-grid">${lista.map(tarjeta).join("")}</div>`
+      :`<div class="card" style="margin:0"><div class="empty"><p>${tabAct==="proximas"?"No hay producciones por delante. Cuando montes la próxima fiesta, aquí estará su taquilla.":"Todavía no hay producciones pasadas."}</p></div></div>`;
+  }
+
   el.innerHTML=`
-  <div class="strip">
-    <div class="cell"><div class="lab">Ingresos${nBorrador?" · en firme":""}</div><div class="val">${eur0(T.ing)}</div><div class="note">taquilla sin IVA + otros + sponsor</div></div>
-    <div class="cell"><div class="lab">Costes</div><div class="val v-alert">${eur0(T.cos)}</div><div class="note">cachés + producción</div></div>
-    <div class="cell"><div class="lab">Resultado</div><div class="val ${T.ben>=0?"v-malo":"v-alert"}">${eur0(T.ben)}</div>
-      <div class="note">margen ${T.ing?pct(T.ben/T.ing*100):"—"}</div></div>
+  <div class="rd-cifras" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+    <div class="c"><div class="l">Producciones</div><div class="v">${enFirme.length}</div></div>
+    <div class="c"><div class="l">Entradas vendidas</div><div class="v">${T.vend.toLocaleString("es-ES")}</div></div>
+    <div class="c"><div class="l">Taquilla</div><div class="v">${eur0(T.taq)}</div></div>
+    <div class="c"><div class="l">Margen</div><div class="v" style="color:${T.ben>=0?"var(--ok)":"var(--alert)"}">${eur0(T.ben)}</div></div>
   </div>
-  <div class="card"><div class="body flush"><table>
-    <thead><tr><th>Fecha</th><th>Producción</th><th style="width:1%;white-space:nowrap">Estado</th><th>Plaza</th><th class="num">Ocupación</th><th class="num">Ingresos</th><th class="num">Costes</th><th class="num">Resultado</th><th>Equilibrio</th></tr></thead>
-    <tbody>${list.map(p=>{const c=calcProd(p);
-      const ep=ESTADO_PROD[p.estado||"borrador"]||ESTADO_PROD.borrador;
-      const flojo=p.estado==="borrador"||p.estado==="cancelado";
-      return `<tr class="click" data-prod="${p.id}"${flojo?' style="opacity:.55"':""}>
-        <td class="tiny dim" style="font-family:var(--mono);white-space:nowrap">${fecha(p.fecha)}</td>
-        <td class="strong">${esc(p.nombre||"(sin nombre)")}
-          ${(p.lineup||[]).length?`<div class="tiny dim">${(p.lineup||[]).length} en el line-up${(p.crew||[]).length?` · ${(p.crew||[]).length} de equipo`:""}</div>`:""}</td>
-        <td style="white-space:nowrap"><span class="pill" style="border-color:${ep.color};color:${ep.color};padding:2.5px 7px;font-size:9px">${ep.label}</span></td>
-        <td class="dim">${esc(nomPromotor(p.venueId)!=="—"?nomPromotor(p.venueId):(p.ciudad||"—"))}</td>
-        <td class="num dim">${c.modoFee?`<span class="pill malo" style="margin:0">fee fijo</span>`:(c.ocupacion!==null?Math.round(c.ocupacion)+" %":"—")}<div class="tiny dim">${c.modoFee?eur0(c.feeFijo):c.vendidas+" entradas"}</div></td>
-        <td class="num">${eur0(c.ingresos)}</td><td class="num v-alert">${eur0(c.costes)}</td>
-        <td class="num strong ${c.beneficio>=0?"v-malo":"v-alert"}">${eur0(c.beneficio)}</td>
-        <td>${c.modoFee?`<span class="dim tiny">no aplica</span>`:(c.beEntradas!==null?`<span class="pill ${c.vendidas>=c.beEntradas?"ok":"warn"}">${c.beEntradas} entradas</span>`:`<span class="dim tiny">sin precio</span>`)}</td>
-      </tr>`}).join("")}</tbody></table></div></div>
-  ${etBloque()}`;
+  <div class="chips">${tabs.map(([k,lab,nn])=>`<button class="chip ${tabAct===k?"on":""}" data-pr-tab="${k}">${lab} <span style="opacity:.65">${nn}</span></button>`).join("")}</div>
+  ${cuerpo}
+  ${tabAct!=="externos"?etBloque():""}`;
+  el.querySelectorAll("[data-pr-tab]").forEach(b=>b.addEventListener("click",()=>{filtro.prodTab=b.dataset.prTab;render()}));
   etFiltroAnio(el);
+}
+/* ── Detalle de una producción, en modal (handoff §5). Editar abre el formulario. ── */
+function modalProd(id){
+  const p=DB.producciones.find(x=>x.id===id);if(!p)return;
+  const c=calcProd(p);
+  const ent=(p.entradas||[]);
+  const aforoLibre=c.aforo?Math.max(0,c.aforo-c.vendidas):null;
+  const maxVend=Math.max(1,...ent.map(e=>n(e.vendidas)));
+  openModal(`
+  <header><h3>${esc(p.nombre||"(sin nombre)")}</h3><div class="spacer"></div>
+    <button class="btn sm" data-act="prod-shows" data-id="${p.id}">Crear shows</button>
+    <button class="btn primary sm" data-act="edit-prod" data-id="${p.id}">Editar</button>
+    <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
+  <div class="mbody">
+    <p class="dim tiny" style="margin-bottom:12px">${p.fecha?fecha(p.fecha):"sin fecha"}${nomPromotor(p.venueId)!=="—"?` · ${esc(nomPromotor(p.venueId))}`:""}${p.ciudad?` · ${esc(p.ciudad)}`:""}</p>
+    <div class="rd-cifras">
+      <div class="c"><div class="l">Taquilla</div><div class="v">${c.modoFee?eur0(c.feeFijo):eur0(c.taquillaNeta)}</div></div>
+      <div class="c"><div class="l">Gastos</div><div class="v">${eur0(c.costes)}</div></div>
+      <div class="c"><div class="l">Margen</div><div class="v" style="color:${c.beneficio>=0?"var(--ok)":"var(--alert)"}">${eur0(c.beneficio)}${c.margen!==null?` <span style="font-size:12px;color:var(--mute-2)">${pct(c.margen)}</span>`:""}</div></div>
+      <div class="c"><div class="l">Aforo libre</div><div class="v">${aforoLibre!==null?aforoLibre.toLocaleString("es-ES"):"—"}</div></div>
+    </div>
+    ${prodOcupacionHTML(p,c)}
+    <div class="lab" style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--mute-2);margin:16px 0 8px">Venta por tramo</div>
+    ${(!c.modoFee&&c.hayVentas&&ent.length)?ent.map(e=>{
+      const v=n(e.vendidas),cupo=n(e.cupo);
+      return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:12.5px">
+        <span style="width:130px;flex:none">${esc(e.concepto||"Entrada")}</span>
+        <span class="tiny dim" style="width:64px;flex:none">${eur0(n(e.precio))}</span>
+        <div class="rd-bar"><i style="width:${Math.round(v/maxVend*100)}%;background:#F59E01"></i></div>
+        <span class="tiny" style="width:90px;text-align:right;font-family:var(--mono)">${v.toLocaleString("es-ES")}${cupo?` / ${cupo.toLocaleString("es-ES")}`:""}</span>
+      </div>`}).join("")
+    :`<p class="dim tiny">${c.modoFee?"Fee fijo pactado: no hay venta por tramo.":"Todavía no se ha vendido ninguna entrada."}</p>`}
+    <div class="lab" style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--mute-2);margin:16px 0 8px">Reparto de gastos</div>
+    ${c.costes>0?`<table><tbody>
+      ${c.cacheArtistas?`<tr><td>Cachés del cartel</td><td class="num">${eur0(c.cacheArtistas)}</td></tr>`:""}
+      ${c.viajesLineup?`<tr><td>Viajes y alojamiento del cartel</td><td class="num">${eur0(c.viajesLineup)}</td></tr>`:""}
+      ${c.costeCrew?`<tr><td>Equipo</td><td class="num">${eur0(c.costeCrew)}</td></tr>`:""}
+      ${(p.costes||[]).map(x=>`<tr><td class="dim">${esc(x.concepto||"—")}</td><td class="num">${eur0(n(x.importe))}</td></tr>`).join("")}
+    </tbody></table>`:`<p class="dim tiny">Sin gastos apuntados todavía.</p>`}
+    <div class="lab" style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--mute-2);margin:16px 0 8px">Cartel</div>
+    ${prodCartelHTML(p)||`<p class="dim tiny">Cartel sin montar.</p>`}
+  </div>`,false);
 }
 /* El selector de año del bloque Ticketera. Se engancha después de pintar,
    igual que el resto de filtros de la app. */
@@ -14415,6 +14572,8 @@ document.addEventListener("click",e=>{
       sb.from("suscriptores").delete().eq("id",idDel).then(({error})=>{if(error)toast("Error al eliminar en el servidor")});
       return touch()}
     if(act==="prod-shows")return crearShowsDeProduccion(el.dataset.id);
+    if(act==="edit-prod")return formProduccion(el.dataset.id);
+    if(act==="ext-ficha")return crearFichaExterno(el.dataset.nombre);
     if(act==="new-prod")return formProduccion(null);
     if(act==="save-prod")return saveProd(el.dataset.new==="1");
     if(act==="del-prod"){if(!confirm("¿Eliminar esta producción?"))return;
@@ -14524,7 +14683,7 @@ document.addEventListener("click",e=>{
   if(el.dataset.marticulo)return formMerchArticulo(el.dataset.marticulo);
   if(el.dataset.medio)return formMedios(el.dataset.medio);
   if(el.dataset.ticket)return fichaTicket(el.dataset.ticket);
-  if(el.dataset.prod)return formProduccion(el.dataset.prod);
+  if(el.dataset.prod)return modalProd(el.dataset.prod);
   if(el.dataset.show){
     const tr=el.closest("tr.click");
     if(tr){document.querySelectorAll(".fila-activa").forEach(x=>x.classList.remove("fila-activa"));tr.classList.add("fila-activa")}
