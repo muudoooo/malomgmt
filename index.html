@@ -2337,7 +2337,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.051";
+const APP_VERSION="0.052";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -2346,6 +2346,12 @@ const APP_VERSION="0.051";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-09-10",v:"0.052",cambios:[
+    "El formulario de producción pasa a dos pasos. Paso 1, lo básico: la primera pregunta es de quién es la fiesta — nuestra, o traemos a alguien (y ahí mismo eliges o das de alta al artista externo y defines el fee de MALO, en porcentaje o importe fijo). Después nombre, fecha, sala, aforo, estado, el acuerdo con la sala en texto libre, quién cobra la taquilla y la ticketera.",
+    "Paso 2, cartel y números: line-up, tipos de entrada con PVP y cupo, costes, y el bloque «Cómo quedaría» que se recalcula al escribir — con el reparto entre «Para MALO» y «Contra factura del artista» cuando la fiesta es de un externo, y el aviso en rojo si el punto de equilibrio supera el aforo.",
+    "Con nombre y fecha ya se puede guardar. Al guardar una fiesta de un externo nuevo, su ficha de cliente externo se crea sola.",
+    "Campos retirados del formulario: sponsor (es un ingreso más), % de IVA (siempre el 10% cultural, se aplica por debajo), horario, «vendidas» y «recaudado» al crear (llegan de la ticketera), el bloque de crew al crear (sus viajes son un coste más) y la tabla de resultado en ceros. Lo ya guardado no se pierde: al editar una producción antigua, sus datos siguen ahí.",
+    "El acuerdo (de quién es la fiesta, fee, texto de la sala, quién cobra) se guarda en la columna nueva producciones.acuerdo — ejecutar supabase/producciones-acuerdo.sql."]},
   {fecha:"2026-09-10",v:"0.051",cambios:[
     "Producciones propias, reconstruida hacia el control de taquilla: cifras de cabecera (producciones, entradas vendidas, taquilla y margen), pestañas Próximas · Pasadas · Artistas externos, y cada producción como tarjeta con su cartel etiquetado (rosa roster, morado externo, gris hueco libre).",
     "La barra de ocupación colorea por tramo (verde desde el 75%, ámbar desde el 40%, naranja por debajo) y lleva la marca negra del punto de equilibrio con «Cubierto» o «Faltan N».",
@@ -2911,7 +2917,7 @@ const TABLE_MAP={
   producciones:{id:"id",nombre:"nombre",fecha:"fecha",ciudad:"ciudad",venueId:"venue_id",aforo:"aforo",
     ivaEntrada:"iva_entrada",modoFee:"modo_fee",feeFijo:"fee_fijo",entradas:"entradas",otrosIngresos:"otros_ingresos",lineup:"lineup",costes:"costes",notas:"notas",
     estado:"estado",horario:"horario",sponsor:"sponsor",sponsorAportacion:"sponsor_aportacion",
-    crew:"crew",showsCreados:"shows_creados",enterticketId:"enterticket_id"},
+    crew:"crew",showsCreados:"shows_creados",enterticketId:"enterticket_id",acuerdo:"acuerdo"},
   canciones:{id:"id",titulo:"titulo",artistaId:"artista_id",fechaLanzamiento:"fecha_lanzamiento",isrc:"isrc",
     distribuidora:"distribuidora",feeDistribucionPct:"fee_distribucion_pct",mgmtPct:"mgmt_pct",
     cuentaPortal:"cuenta_portal",notas:"notas",genero:"genero",creditos:"creditos",
@@ -3202,6 +3208,9 @@ async function loadRemote(){
   /* Sonda: clientes.pagos (estados de pago del Bolsillo). */
   try{const _pg=await sb.from("clientes").select("pagos").limit(1);DB.sinPagosCli=!!_pg.error}catch(e){DB.sinPagosCli=true}
   if(DB.sinPagosCli)console.warn("Columna «clientes.pagos» no disponible: falta ejecutar supabase/bolsillo-pagos.sql");
+  /* Sonda: producciones.acuerdo (de quién es la fiesta, fee del externo…) */
+  try{const _ac=await sb.from("producciones").select("acuerdo").limit(1);DB.sinAcuerdoProd=!!_ac.error}catch(e){DB.sinAcuerdoProd=true}
+  if(DB.sinAcuerdoProd)console.warn("Columna «producciones.acuerdo» no disponible: falta ejecutar supabase/producciones-acuerdo.sql");
   if(DB.sinTareaEstado)console.warn("Columna «tareas.estado» no disponible: falta ejecutar supabase/tareas-estado.sql");
   try{
     const ig=await sb.from("ig_cuentas").select("username,expira_en");
@@ -3318,7 +3327,7 @@ async function save(){
         const r=toRow("shows",s);if(DB.sinContrato)delete r.contrato;return r})),
       DB.eventos.length&&sb.from("eventos").upsert(DB.eventos.map(e=>toRow("eventos",e))),
       DB.producciones.length&&sb.from("producciones").upsert(DB.producciones.map(p=>{
-        const r=toRow("producciones",p);if(DB.sinEnterticketProd)delete r.enterticket_id;return r})),
+        const r=toRow("producciones",p);if(DB.sinEnterticketProd)delete r.enterticket_id;if(DB.sinAcuerdoProd)delete r.acuerdo;return r})),
       DB.suscriptores.length&&sb.from("suscriptores").upsert(DB.suscriptores.map(x=>toRow("suscriptores",x))),
       (!DB.sinCampanas&&(DB.campanas||[]).length)&&sb.from("campanas").upsert(DB.campanas.map(x=>toRow("campanas",x))),
       (!DB.sinMedios&&(DB.medios||[]).length)&&sb.from("medios").upsert(DB.medios.map(x=>toRow("medios",x))),
@@ -5267,12 +5276,42 @@ function formProduccion(id){
   const p=id?DB.producciones.find(x=>x.id===id):{id:uid("prd"),nombre:"",fecha:CAL.sel||hoy(),ciudad:"",venueId:"",
     aforo:0,ivaEntrada:IVA_ENTRADA,modoFee:false,feeFijo:0,entradas:[{concepto:"Anticipada",precio:0,cupo:0,vendidas:""}],
     otrosIngresos:[],lineup:[],costes:[],notas:""};
+  const A=(p.acuerdo&&typeof p.acuerdo==="object")?p.acuerdo:{};
   openModal(`
   <header><h3>${id?"Editar producción":"Nueva producción"}</h3><div class="spacer"></div>
     ${id?`<button class="btn sm" data-act="prod-shows" data-id="${p.id}">Crear shows</button>`:""}
     ${id?`<button class="btn danger sm" data-act="del-prod" data-id="${p.id}">Eliminar</button>`:""}
     <button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
   <div class="mbody">
+    <div class="chips" id="prPasos" style="margin-bottom:14px">
+      <button type="button" class="chip on" data-paso="1">1 · Lo básico</button>
+      <button type="button" class="chip" data-paso="2">2 · Cartel y números</button>
+    </div>
+    <div id="paso1">
+    <div class="section-title">¿De quién es la fiesta?</div>
+    <div class="fgrid">
+      <div class="f s12" style="flex-direction:row;gap:18px;align-items:center;padding-top:2px;flex-wrap:wrap">
+        <label style="display:flex;gap:7px;align-items:center;font-family:var(--sans);font-size:13px;text-transform:none;letter-spacing:0;color:var(--bone);cursor:pointer">
+          <input type="radio" name="p_fiesta" id="p_fiesta_n" value="nuestra" ${A.fiestaDe==="externa"?"":"checked"} style="width:auto"> Fiesta nuestra
+          <span class="dim tiny" style="font-weight:400">cartel propio; lo que quede tras la sala y los cachés es de MALO</span></label>
+        <label style="display:flex;gap:7px;align-items:center;font-family:var(--sans);font-size:13px;text-transform:none;letter-spacing:0;color:var(--bone);cursor:pointer">
+          <input type="radio" name="p_fiesta" id="p_fiesta_x" value="externa" ${A.fiestaDe==="externa"?"checked":""} style="width:auto"> Traemos a alguien</label>
+      </div>
+      <div class="f s6" id="p_ext_wrap" style="display:none"><label>Artista o colectivo externo</label>
+        <select id="p_ext"><option value="">— elige —</option>
+          ${(()=>{const exts=[...new Set([
+            ...DB.clientes.filter(c=>c.categoria==="externo").map(c=>String(c.nombre||c.nombreReal||"").trim()),
+            ...externosDeProducciones().map(e=>e.nombre)])].filter(Boolean).sort((a,b)=>a.localeCompare(b));
+            return exts.map(x=>`<option value="${esc(x)}" ${A.externo===x?"selected":""}>${esc(x)}</option>`).join("")})()}
+          <option value="__nuevo">+ Nuevo artista externo…</option></select>
+        <input id="p_ext_nuevo" placeholder="Nombre del artista o colectivo" style="display:none;margin-top:6px">
+        <span class="hint">Se creará como cliente externo: sin comisión de management — nos factura su parte</span></div>
+      <div class="f s4" id="p_fee_wrap" style="display:none"><label>Fee de MALO</label>
+        <div style="display:flex;gap:6px"><select id="p_feetipo" style="width:110px">
+          <option value="pct" ${A.feeTipo==="fijo"?"":"selected"}>% de lo que quede</option>
+          <option value="fijo" ${A.feeTipo==="fijo"?"selected":""}>importe fijo</option></select>
+        <input id="p_feeval" type="number" min="0" step="1" placeholder="0" value="${A.feeValor?n(A.feeValor):""}"></div></div>
+    </div>
     <div class="section-title">La producción</div>
     <div class="fgrid">
       <div class="f s6"><label>Nombre</label><input id="p_nombre" value="${esc(p.nombre||"")}" placeholder="Nombre de la fiesta, el ciclo o el showcase"></div>
@@ -5281,20 +5320,26 @@ function formProduccion(id){
       <div class="f s6"><label>Sala / plaza</label><select id="p_venue"><option value="">— sin asignar —</option>
         ${DB.promotores.map(x=>`<option value="${x.id}" ${p.venueId===x.id?"selected":""}>${esc(x.nombre)}</option>`).join("")}</select></div>
       <div class="f s3"><label>Aforo</label><input id="p_aforo" type="number" min="0" value="${n(p.aforo)}"></div>
-      <div class="f s3"><label>% IVA de la entrada</label><input id="p_iva" type="number" step="0.5" min="0" value="${p.ivaEntrada!==undefined?p.ivaEntrada:IVA_ENTRADA}">
+      <div class="f s3" style="display:none"><label>% IVA de la entrada</label><input id="p_iva" type="number" step="0.5" min="0" value="${p.ivaEntrada!==undefined?p.ivaEntrada:IVA_ENTRADA}">
         <span class="hint">Tipo reducido cultural</span></div>
       <div class="f s3"><label>Estado</label><select id="p_estado">
         ${Object.entries(ESTADO_PROD).map(([k,v])=>`<option value="${k}" ${(p.estado||"borrador")===k?"selected":""}>${v.label}</option>`).join("")}</select>
         <span class="hint" id="p_esthint"></span></div>
-      <div class="f s3"><label>Horario</label><input id="p_horario" value="${esc(p.horario||"")}" placeholder="0:00 - 6:00"></div>
-      <div class="f s3"><label>Sponsor</label><input id="p_sponsor" value="${esc(p.sponsor||"")}" placeholder="Red Bull, Jäger…"></div>
-      <div class="f s3"><label>Aportación del sponsor</label><input id="p_sponsorimp" type="number" step="50" min="0" value="${n(p.sponsorAportacion)}">
+      <div class="f s3" style="display:none"><label>Horario</label><input id="p_horario" value="${esc(p.horario||"")}" placeholder="0:00 - 6:00"></div>
+      <div class="f s3" style="display:none"><label>Sponsor</label><input id="p_sponsor" value="${esc(p.sponsor||"")}" placeholder="Red Bull, Jäger…"></div>
+      <div class="f s3" style="display:none"><label>Aportación del sponsor</label><input id="p_sponsorimp" type="number" step="50" min="0" value="${n(p.sponsorAportacion)}">
         <span class="hint">Reduce el coste real de la producción</span></div>
-      <div class="f s6"><label>Evento en Enterticket</label><select id="p_ett"><option value="">— sin enlazar —</option>
+      <div class="f s6"><label>Ticketera</label><select id="p_ett"><option value="">— manual (sin ticketera) —</option>
         ${(DB.etEventos||[]).map(e=>`<option value="${esc(e.id)}" ${p.enterticketId===e.id?"selected":""}>${esc(e.nombre)}${e.fechaIni?` · ${fecha(e.fechaIni)}`:""}</option>`).join("")}</select>
         <span class="hint">${DB.sinEnterticket?`Falta ejecutar <code>supabase/enterticket.sql</code>`:"Enlaza el evento y podrás traer las ventas reales por tipo de entrada"}</span></div>
+      <div class="f s8"><label>Acuerdo con la sala</label>
+        <textarea id="p_acuerdo" style="min-height:56px" placeholder="Cada sala es distinta: alquiler fijo, % de taquilla, mínimos, barra…">${esc(A.salaTexto||"")}</textarea></div>
+      <div class="f s4"><label>¿Quién cobra la taquilla?</label><select id="p_taquilla">
+        <option value="malo" ${A.taquillaCobra==="sala"?"":"selected"}>Nosotros</option>
+        <option value="sala" ${A.taquillaCobra==="sala"?"selected":""}>La sala</option></select></div>
     </div>
-
+    </div>
+    <div id="paso2" style="display:none">
     <div class="section-title">Cómo entra el dinero</div>
     <div class="fgrid">
       <div class="f s12" style="flex-direction:row;gap:16px;align-items:center;padding-top:2px">
@@ -5331,20 +5376,23 @@ function formProduccion(id){
     <div id="lineup"></div>
     <button class="btn sm" id="addLine" style="margin-top:4px">Añadir artista</button>
 
+    <div id="bloqueCrew"${id?"":' style="display:none"'}>
     <div class="section-title">Equipo · crew <div class="spacer"></div>
       <span class="dim tiny">Normalmente sin fee, pero con gastos de viaje</span></div>
     <div id="crewLista"></div>
     <button class="btn sm" id="addCrew" style="margin-top:4px">Añadir persona al equipo</button>
+    </div>
 
     <div class="section-title">Costes de producción</div>
     <div id="costes"></div>
     <button class="btn sm" id="addCoste" style="margin-top:4px">Añadir coste</button>
 
-    <div class="section-title">Resultado</div>
+    <div class="section-title">Cómo quedaría</div>
     <div id="pl"></div>
 
     <div class="section-title">Notas</div>
     <div class="fgrid"><div class="f s12"><textarea id="p_notas" style="min-height:80px">${esc(p.notas||"")}</textarea></div></div>
+    </div>
   </div>
   <footer><button class="btn ghost" data-act="close">Cancelar</button>
     <button class="btn primary" data-act="save-prod" data-id="${p.id}" data-new="${id?0:1}">Guardar producción</button></footer>`);
@@ -5357,6 +5405,33 @@ function formProduccion(id){
   document.getElementById("p_modo_ent").addEventListener("change",()=>{pintaModo();pintaPL()});
   document.getElementById("p_modo_fee").addEventListener("change",()=>{pintaModo();pintaPL()});
   pintaModo();
+  /* Dos pasos (handoff §5). Con nombre y fecha ya se puede guardar. */
+  const pasoBtns=[...document.querySelectorAll("#prPasos [data-paso]")];
+  function pintaPaso(k){
+    document.getElementById("paso1").style.display=k==="1"?"":"none";
+    document.getElementById("paso2").style.display=k==="2"?"":"none";
+    pasoBtns.forEach(b=>b.classList.toggle("on",b.dataset.paso===k));
+  }
+  pasoBtns.forEach(b=>b.addEventListener("click",()=>pintaPaso(b.dataset.paso)));
+  const fN=document.getElementById("p_fiesta_n"),fX=document.getElementById("p_fiesta_x");
+  function pintaFiesta(){
+    const ext=fX.checked;
+    document.getElementById("p_ext_wrap").style.display=ext?"":"none";
+    document.getElementById("p_fee_wrap").style.display=ext?"":"none";
+  }
+  fN.addEventListener("change",()=>{pintaFiesta();pintaPL()});
+  fX.addEventListener("change",()=>{pintaFiesta();pintaPL()});
+  const selExt=document.getElementById("p_ext");
+  selExt.addEventListener("change",()=>{
+    document.getElementById("p_ext_nuevo").style.display=selExt.value==="__nuevo"?"":"none";pintaPL();
+  });
+  document.getElementById("p_feeval").addEventListener("input",pintaPL);
+  document.getElementById("p_feetipo").addEventListener("change",pintaPL);
+  pintaFiesta();
+  if(A.externo&&![...selExt.options].some(o=>o.value===A.externo)){
+    const o=document.createElement("option");o.value=A.externo;o.textContent=A.externo;o.selected=true;
+    selExt.insertBefore(o,selExt.lastElementChild);
+  }
 
   let entradas=JSON.parse(JSON.stringify(p.entradas||[]));
   let otros=JSON.parse(JSON.stringify(p.otrosIngresos||[]));
@@ -5371,8 +5446,8 @@ function formProduccion(id){
         <label class="ent-c wide" data-l="Concepto"><input placeholder="Anticipada, taquilla, VIP…" value="${esc(e.concepto||"")}" data-e="${i}" data-k="concepto"></label>
         <label class="ent-c" data-l="PVP €"><input type="number" step="0.5" min="0" placeholder="0" value="${vac(e.precio)}" data-e="${i}" data-k="precio"></label>
         <label class="ent-c" data-l="Cupo"><input type="number" step="1" min="0" placeholder="—" value="${vac(e.cupo)}" data-e="${i}" data-k="cupo"></label>
-        <label class="ent-c" data-l="Vendidas (real)"><input type="number" step="1" min="0" placeholder="sin datos" value="${vac(e.vendidas)}" data-e="${i}" data-k="vendidas" style="border-color:var(--artist)"></label>
-        <div class="ent-c" data-l="Recaudado"><div class="dim tiny" data-sub-e="${i}" style="text-align:right;font-family:var(--mono);padding:7px 0">${n(e.vendidas)?eur0(n(e.precio)*n(e.vendidas)):"—"}</div></div>
+        ${id?`<label class="ent-c" data-l="Vendidas (real)"><input type="number" step="1" min="0" placeholder="sin datos" value="${vac(e.vendidas)}" data-e="${i}" data-k="vendidas" style="border-color:var(--artist)"></label>
+        <div class="ent-c" data-l="Recaudado"><div class="dim tiny" data-sub-e="${i}" style="text-align:right;font-family:var(--mono);padding:7px 0">${n(e.vendidas)?eur0(n(e.precio)*n(e.vendidas)):"—"}</div></div>`:""}
         <div style="display:flex;justify-content:flex-end"><button class="x" data-del-e="${i}" title="Quitar" aria-label="Quitar">×</button></div></div>`).join("")
       :`<p class="dim tiny" style="padding:4px 0">Sin entradas definidas. Sin precio no se puede calcular el punto de equilibrio.</p>`;
   }
@@ -5453,7 +5528,12 @@ function formProduccion(id){
       crew:crew.filter(x=>x.nombre||n(x.cache)||n(x.alojImporte)||n(x.transImporte)),
       showsCreados:p.showsCreados||[],
       costes:costes.filter(x=>x.concepto||n(x.importe)),notas:val("p_notas"),
-      enterticketId:val("p_ett")};
+      enterticketId:val("p_ett"),
+      acuerdo:{
+        fiestaDe:document.getElementById("p_fiesta_x").checked?"externa":"nuestra",
+        externo:(()=>{const s=document.getElementById("p_ext");return s.value==="__nuevo"?String(val("p_ext_nuevo")||"").trim():s.value})(),
+        feeTipo:val("p_feetipo"),feeValor:num("p_feeval"),
+        salaTexto:val("p_acuerdo"),taquillaCobra:val("p_taquilla")}};
   }
   function pintaPL(){
     const d=leer(),c=calcProd(d);
@@ -5503,7 +5583,26 @@ function formProduccion(id){
           <tr class="sub"><td class="lbl">Margen sobre ingresos</td><td>${c.margen!==null?pct(c.margen):"—"}</td></tr>
           <tr class="sub"><td class="lbl">Precio medio neto por entrada</td><td>${c.precioMedio?eur(c.precioMedio):"—"}</td></tr>
         </table></div>
-      </div>`;
+      </div>`
+      +(()=>{
+        /* Aviso: con estos números no sale ni llenando */
+        let out="";
+        if(!c.modoFee&&c.beEntradas!==null&&c.aforo&&c.beEntradas>c.aforo)
+          out+=`<div class="pill alert" style="font-size:11px;margin-top:14px;display:inline-block;white-space:normal">El punto de equilibrio (${c.beEntradas} entradas) queda por encima del aforo (${c.aforo}): con estos números no sale ni llenando.</div>`;
+        /* Reparto cuando la fiesta es de un externo */
+        const A2=d.acuerdo||{};
+        if(A2.fiestaDe==="externa"){
+          const L=c.beneficio;
+          const fee=A2.feeTipo==="fijo"?Math.min(n(A2.feeValor),Math.max(0,L)):Math.max(0,L)*n(A2.feeValor)/100;
+          const nomExt=A2.externo||"el artista externo";
+          out+=`<table class="cascade" style="margin-top:14px">
+            <tr><td class="lbl">Lo que queda</td><td>${eur(L)}</td></tr>
+            <tr class="total"><td class="lbl">Para MALO <span class="dim">${A2.feeTipo==="fijo"?"importe fijo":n(A2.feeValor)+" % de lo que quede"}</span></td><td>${eur(fee)}</td></tr>
+            <tr><td class="lbl">Contra factura de ${esc(nomExt)}</td><td>${eur(L-fee)}</td></tr>
+          </table>`;
+        }
+        return out;
+      })();
   }
   const root=document.querySelector(".modal");
   /* CLAVE: mientras escribes NO se repinta ningun bloque que contenga el campo
@@ -5605,7 +5704,13 @@ function formProduccion(id){
 }
 function saveProd(isNew){
   const p=window.__leerProd();
-  if(!p.fecha){toast("La producción necesita una fecha");return}
+  if(!p.nombre||!p.fecha){toast("Con el nombre y la fecha ya se puede guardar — ponlos primero");return}
+  /* La vía principal de alta de un externo es este formulario: si la fiesta
+     es de alguien que aún no tiene ficha, se le crea la ficha de externo. */
+  const ext=(p.acuerdo&&p.acuerdo.fiestaDe==="externa")?String(p.acuerdo.externo||"").trim():"";
+  if(ext&&!DB.clientes.some(c=>String(c.nombre||c.nombreReal||"").trim().toLowerCase()===ext.toLowerCase()))
+    DB.clientes.push({id:uid("cli"),nombre:ext,categoria:"externo",activo:true,
+      facturacion:"autonomo_sin_irpf",servicios:[],comisiones:{},redes:{}});
   if(isNew)DB.producciones.push(p);else DB.producciones=DB.producciones.map(x=>x.id===p.id?p:x);
   closeModal();toast("Producción guardada");touch();
 }
