@@ -1423,12 +1423,28 @@ td.v-malo,td.v-artist{color:var(--bone)}
    El tema claro es un cambio de tokens: los componentes siguen leyendo las
    mismas variables. Lo que esté en hex fijo (estados apagados, pills de
    categoría) se queda igual a propósito. */
-body.claro{color-scheme:light;
-  --ink:#F6F2E9; --panel:#FFFFFF; --panel-2:#F1ECE0; --panel-3:#E7E1D2;
-  --rule:#E7E1D2; --rule-2:#D6CEBC; --bone:#241A33; --mute:#6E6884; --mute-2:#8D87A0}
+body.claro{color-scheme:light;font-variant-numeric:tabular-nums;
+  --ink:#FBFCF6; --panel:#FFFFFF; --panel-2:#F4EFF3; --panel-3:#ECE5EA;
+  --rule:#EAE4E8; --rule-2:#DCD3DA; --bone:#331028; --mute:#5C4256; --mute-2:#8D7A87;
+  --malo:#E7478A; --artist:#6D2C7E; --violet:#6D2C7E;
+  --ok:#0F6A3A; --warn:#A16F00; --alert:#9C3308; --c-artista:#00B8D2}
+/* Estados como parejas fondo/tinta (handoff §1) */
+body.claro .pill{border-color:transparent;background:#F4EFF3;color:#6F5A68;font-weight:700}
+body.claro .pill.ok{background:#D6F3E1;color:#0F6A3A}
+body.claro .pill.warn{background:#F6E6A8;color:#6B4E00}
+body.claro .pill.alert{background:#FCDCD0;color:#9C3308}
+body.claro .pill.malo{background:#FBE0EB;color:#A3235C}
+body.claro .pill.artist,body.claro .pill.violet{background:#EFE0F3;color:#6D2C7E}
+body.claro .pill.cat{background:transparent;border:1px solid var(--rule-2);font-weight:600}
+/* Tarjetas 16–18, modales 22, sin sombras; overlay berenjena */
+body.claro .card{border-radius:17px;box-shadow:none}
+body.claro .modal{border-radius:22px;box-shadow:0 18px 44px rgba(51,16,40,.16);border-color:var(--rule)}
+body.claro .modal-bg{background:rgba(51,16,40,.46)}
+/* Filas: alterna casi imperceptible y hover rosado */
+body.claro tbody tr:nth-child(even):not(.click:hover) td{background:#FDFBFC}
+body.claro tbody tr.click:hover td,body.claro tbody tr.click:hover{background:#FBE0EB}
 body.claro .brand-logo{background:#FFF}
-body.claro nav button.on{background:#2B1F3E;color:#FFF}
-body.claro .card{box-shadow:0 1px 2px rgba(36,26,51,.05)}
+body.claro nav button.on{background:#331028;color:#FFF}
 body.claro .topbar,body.claro .dock{background:var(--ink)}
 
 /* Grupos plegables de la barra lateral */
@@ -1470,7 +1486,7 @@ nav button.nav-grupo[aria-expanded="true"] svg.fl{transform:rotate(90deg)}
   font-size:12.5px;font-weight:600;color:var(--mute);background:var(--panel);
   transition:background .12s,color .12s}
 .chip:hover{color:var(--bone)}
-.chip.on{background:#2B1F3E;color:#FFF;border-color:#2B1F3E}
+.chip.on{background:#331028;color:#FFF;border-color:#331028}
 .p5-grid{display:grid;grid-template-columns:2fr 3fr;gap:16px;align-items:start}
 @media(max-width:1100px){.p5-grid{grid-template-columns:1fr}}
 .p5-donut{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
@@ -1485,9 +1501,9 @@ nav button.nav-grupo[aria-expanded="true"] svg.fl{transform:rotate(90deg)}
 .p5-kpi .sub2{font-size:11px;opacity:.85}
 .p5-kpi .p5-var{background:rgba(255,255,255,.25);border-radius:999px;padding:2px 8px;
   font-family:var(--mono);font-size:10px;font-weight:700}
-.p5-kpi.rosa{background:#DE4E82}
-.p5-kpi.violeta{background:#5B3597}
-.p5-kpi.ambar{background:#E5A238;color:#2E2008}
+.p5-kpi.rosa{background:#E7478A}
+.p5-kpi.violeta{background:#6D2C7E}
+.p5-kpi.ambar{background:#F59E01;color:#2E2008}
 .p5-kpi.ambar .p5-var{background:rgba(46,32,8,.15)}
 .p5-alerta{display:flex;align-items:flex-start;gap:12px;padding:12.5px 16px;border-top:1px solid var(--rule)}
 .p5-alerta:first-of-type{border-top:none}
@@ -1518,7 +1534,7 @@ body.claro .brand .marca{display:block;font-size:21px;font-weight:800;letter-spa
 /* Usuario al pie del sidebar (diseño v5) */
 .storage .usuario{display:flex;align-items:center;gap:9px;margin-bottom:11px}
 .storage .usuario:empty{display:none}
-.storage .uava{width:30px;height:30px;border-radius:50%;flex:0 0 30px;background:#E5A238;color:#2E2008;
+.storage .uava{width:30px;height:30px;border-radius:50%;flex:0 0 30px;background:#F59E01;color:#2E2008;
   display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
 .storage .udat{min-width:0;line-height:1.25}
 .storage .unom{display:block;font-weight:700;font-size:12.5px;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2235,7 +2251,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.046";
+const APP_VERSION="0.047";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -2244,6 +2260,11 @@ const APP_VERSION="0.046";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-09-10",v:"0.047",cambios:[
+    "Sistema visual del handoff de diseño: paleta clara nueva (fondo hueso, tinta berenjena #331028), tarjetas más redondeadas y sin sombras, cifras tabulares para que las columnas cuadren, filas alternas y hover rosado en las tablas, y estados como parejas de fondo y tinta (verde, ámbar, rojo, neutro).",
+    "Los acentos pasan a los del handoff: rosa #E7478A, lila #6D2C7E, ámbar #F59E01 y cian #00B8D2 — donut, tarjetas del panel y pestañas incluidos.",
+    "Navegación: Merch pasa de Música a Gestión (es inventario y logística), Redes ya estaba en Día a día, y Producciones se llama «Producciones propias» con su etiqueta Hard ticket.",
+    "El tema oscuro de siempre sigue disponible con el conmutador."]},
   {fecha:"2026-09-09",v:"0.046",cambios:[
     "La campana ya hace algo también cuando estás en el Panel: te planta en «Requiere atención» y lo ilumina un instante, para que se vea a qué ha venido.",
     "La vista Tareas recupera los botones de acción de cada tarea (Reporte, WhatsApp y Email), igual que en Equipo."]},
@@ -3669,7 +3690,7 @@ const VIEWS=[
   {id:"calendario",label:"Calendario",k:"2"},
   {id:"shows",label:"Shows",k:"3"},
   {id:"tareas",label:"Tareas",k:"t"},
-  {id:"producciones",label:"Producciones",k:"4"},
+  {id:"producciones",label:"Producciones propias",k:"4"},
   {id:"clientes",label:"Clientes",k:"5"},
   {id:"contactos",label:"Contactos",k:"6"},
   {id:"documentos",label:"Documentos",k:"7"},
@@ -3721,8 +3742,8 @@ const DOCK_PRIMERO=["panel","shows","contactos","redes","calendario"];
    Deben cubrir TODOS los ids de VIEWS: lo que falte no saldría en el menú. */
 const NAV_GRUPOS=[
   ["Día a día",["panel","calendario","shows","tareas","clientes","redes"]],
-  ["Música",["canciones","editorial","bolsillo","merch"]],
-  ["Gestión",["producciones","contactos","documentos","mailing","medios","mapa","capturas"]],
+  ["Música",["canciones","editorial","bolsillo"]],
+  ["Gestión",["producciones","merch","contactos","documentos","mailing","medios","mapa","capturas"]],
   ["Sistema",["equipo","generadores","soporte","datos"]]];
 /* Qué grupos están abiertos en la barra lateral (propuesta v5: los cerrados
    enseñan un puntito por apartado). El grupo del apartado activo se abre solo. */
@@ -4175,8 +4196,8 @@ function toggleTema(){
 /* Las cuatro fuentes de ingreso del panel. El orden es el del donut y la leyenda. */
 const P5_FUENTES=[
   ["catalogo","Catálogo","var(--malo)"],
-  ["editorial","Editorial","#6D3FC4"],
-  ["shows","Shows","#E5A238"],
+  ["editorial","Editorial","#6D2C7E"],
+  ["shows","Shows","#F59E01"],
   ["merch","Merch","var(--c-artista)"]];
 function p5Color(k){const f=P5_FUENTES.find(x=>x[0]===k);return f?f[2]:"var(--mute-2)"}
 function p5Label(k){const f=P5_FUENTES.find(x=>x[0]===k);return f?f[1]:k}
@@ -4865,6 +4886,7 @@ function etBloque(){
 
 function viewEventos(el,ta){
   ta.innerHTML=`<button class="btn primary" data-act="new-prod">Nueva producción</button>`;
+  document.getElementById("viewSub").textContent="Hard ticket";
   const list=DB.producciones.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
   /* Los borradores y cancelados no cuentan en los totales: son presupuestos que
      aún estás montando, no dinero comprometido. */
