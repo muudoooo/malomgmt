@@ -1519,6 +1519,24 @@ body.claro .p5-est.pend{background:#F3DFB4;color:#6C4B12}
 .p5-abiertos{background:color-mix(in srgb,#E8622C 18%,transparent);color:#E8622C;
   border-radius:999px;padding:2.5px 10px;font-size:10.5px;font-weight:700}
 @media(max-width:600px){#topIcons .icbtn[data-goto="datos"]{display:none}}
+/* Tablero de Tareas (handoff §6) */
+.kb{display:grid;grid-template-columns:repeat(4,minmax(230px,1fr));gap:12px;align-items:start}
+@media(max-width:1050px){.kb{display:flex;overflow-x:auto;padding-bottom:12px}.kb-col{flex:0 0 250px}}
+.kb-col{background:var(--panel-2);border:1px solid var(--rule);border-radius:14px;padding:8px;min-height:120px}
+.kb-col.over{outline:2px dashed var(--malo);outline-offset:-2px}
+.kb-head{display:flex;align-items:center;gap:8px;padding:6px 8px 8px;font-size:9.5px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--mute-2)}
+.kb-n{margin-left:auto;background:var(--panel);border:1px solid var(--rule-2);border-radius:9px;
+  padding:1px 7px;font-family:var(--mono);font-size:9.5px;color:var(--mute)}
+.kb-card{background:var(--panel);border:1px solid var(--rule);border-left:3px solid var(--c,var(--rule-2));
+  border-radius:12px;padding:10px 12px;margin-bottom:8px;overflow:hidden;cursor:grab}
+.kb-card:active{cursor:grabbing}
+.kb-card.arrastrando{opacity:.45}
+.kb-card.hecha .kb-tx{text-decoration:line-through;color:var(--mute-2)}
+.kb-tx{font-size:12.5px;line-height:1.4;cursor:pointer}
+.kb-meta{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px}
+.kb-acc{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.kb-vacia{padding:14px 10px;font-size:11.5px;color:var(--mute-2);line-height:1.5}
 /* En el panel de escritorio la cabecera es la del contenido (diseño v5):
    la topbar queda como bandeja transparente para el selector y los iconos. */
 @media(min-width:901px){
@@ -2251,7 +2269,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.047";
+const APP_VERSION="0.048";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -2260,6 +2278,10 @@ const APP_VERSION="0.047";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-09-10",v:"0.048",cambios:[
+    "Tareas es ahora un tablero: cuatro columnas (Por hacer, En curso, Esperando respuesta y Hecha) y las tarjetas se arrastran de una a otra — al soltar se guarda el estado.",
+    "Arrastrar a «Hecha» marca la tarea como hecha (y sacarla de ahí la reabre), así que el tablero y la lista de Equipo siempre cuentan lo mismo.",
+    "El estado vive en una columna nueva de la tabla tareas: hay que ejecutar supabase/tareas-estado.sql. Hasta entonces el tablero funciona, pero la columna elegida no se recuerda entre sesiones (salvo Hecha, que sí)."]},
   {fecha:"2026-09-10",v:"0.047",cambios:[
     "Sistema visual del handoff de diseño: paleta clara nueva (fondo hueso, tinta berenjena #331028), tarjetas más redondeadas y sin sombras, cifras tabulares para que las columnas cuadren, filas alternas y hover rosado en las tablas, y estados como parejas de fondo y tinta (verde, ámbar, rojo, neutro).",
     "Los acentos pasan a los del handoff: rosa #E7478A, lila #6D2C7E, ámbar #F59E01 y cian #00B8D2 — donut, tarjetas del panel y pestañas incluidos.",
@@ -2795,7 +2817,7 @@ const TABLE_MAP={
     notas:"notas",origen:"origen",creadoEn:"creado_en"},
   tareas:{id:"id",texto:"texto",hecha:"hecha",prioridad:"prioridad",asignadoA:"asignado_a",
     clienteId:"cliente_id",promotorId:"promotor_id",telefono:"telefono",email:"email",
-    vence:"vence",creadoPor:"creado_por",hechaEn:"hecha_en"},
+    vence:"vence",creadoPor:"creado_por",hechaEn:"hecha_en",estado:"estado"},
   suscriptores:{id:"id",email:"email",nombre:"nombre",telefono:"telefono",ciudad:"ciudad",
     clienteId:"cliente_id",etiquetas:"etiquetas",origen:"origen",consentimiento:"consentimiento",
     fechaAlta:"fecha_alta",baja:"baja",notas:"notas"},
@@ -2836,7 +2858,7 @@ const VACIO_NO_TEXTO={
   merchArticulos:{coste_unitario:0,iva_pct:null,unidades_producidas:null},
   producciones:{aforo:null,iva_entrada:0,modo_fee:false,fee_fijo:0,sponsor_aportacion:0},
   temas:{bpm:null,fecha_envio:null,fecha_salida:null},
-  tareas:{hecha:false},
+  tareas:{hecha:false,estado:"porhacer"},
   suscriptores:{baja:false,consentimiento:false},
   campanas:{estado:"borrador",filtros:{},excluidos:[],destinatarios_n:0},
   canciones:{fee_distribucion_pct:0,mgmt_pct:0},
@@ -3090,6 +3112,10 @@ async function loadRemote(){
   if(DB.sinMerch)console.warn("Tabla «merch_ventas» no disponible:",mv.error.message);
   /* Instagram: solo para que el panel avise de la caducidad del token. Nunca
      se pide el token en sí. Si RLS no deja leer la tabla, no hay aviso y ya. */
+  /* Sonda: columna «estado» de tareas (kanban). Sin el SQL, el tablero va
+     igual pero sin recordar la columna; y sobre todo el upsert no revienta. */
+  try{const _tes=await sb.from("tareas").select("estado").limit(1);DB.sinTareaEstado=!!_tes.error}catch(e){DB.sinTareaEstado=true}
+  if(DB.sinTareaEstado)console.warn("Columna «tareas.estado» no disponible: falta ejecutar supabase/tareas-estado.sql");
   try{
     const ig=await sb.from("ig_cuentas").select("username,expira_en");
     DB.igCuentas=ig.error?[]:(ig.data||[]).map(r=>({username:r.username||"",expiraEn:r.expira_en||""}));
@@ -3212,7 +3238,7 @@ async function save(){
          shopify-sync y aqui es de solo lectura. */
       (!DB.sinMerchArticulos&&(DB.merchArticulos||[]).length)&&sb.from("merch_articulos").upsert(DB.merchArticulos.map(x=>toRow("merchArticulos",x))),
       DB.contexto.length&&sb.from("contexto").upsert(DB.contexto.map(x=>toRow("contexto",x))),
-      DB.tareas.length&&sb.from("tareas").upsert(DB.tareas.map(x=>toRow("tareas",x))),
+      DB.tareas.length&&sb.from("tareas").upsert(DB.tareas.map(x=>{const r=toRow("tareas",x);if(DB.sinTareaEstado)delete r.estado;return r})),
       (!DB.sinTemas&&(DB.temas||[]).length)&&sb.from("temas").upsert(DB.temas.map(x=>toRow("temas",x))),
       (!DB.sinCanciones&&(DB.canciones||[]).length)&&sb.from("canciones").upsert(DB.canciones.map(x=>{const r=toRow("canciones",x);if(DB.sinDistribucion)delete r.distribucion;return r})),
       (!DB.sinCanciones&&(DB.cancionParticipantes||[]).length)&&sb.from("cancion_participantes").upsert(DB.cancionParticipantes.map(x=>toRow("cancionParticipantes",x))),
@@ -4419,69 +4445,87 @@ function viewPanel(el,ta){
   document.getElementById("anioSel").addEventListener("change",e=>{filtro.anio=e.target.value;render()});
 }
 
-/* ════════ TAREAS · apartado propio (propuesta v5) ════════
-   Mismas tareas que en Equipo (misma tabla y mismos formularios); aquí a
-   pantalla completa, dentro de «Día a día». */
+/* ════════ TAREAS · tablero kanban (handoff §6) ════════
+   Cuatro columnas y arrastre entre ellas. «Hecha» es el mismo booleano de
+   siempre (el checklist de Equipo y el tablero cuentan lo mismo); las otras
+   tres viven en la columna «estado» (supabase/tareas-estado.sql). */
+const KB_COLS=[["porhacer","Por hacer"],["encurso","En curso"],["esperando","Esperando respuesta"],["hecha","Hecha"]];
+const KB_VACIAS={porhacer:"Nada por hacer. Si algo se te queda en la cabeza, apúntalo con «Nueva tarea».",
+  encurso:"Nada en marcha ahora mismo.",esperando:"No estás esperando respuesta de nadie.",
+  hecha:"Aquí irán quedando las terminadas."};
+function tareaEstado(t){
+  if(t.hecha)return "hecha";
+  return (t.estado==="encurso"||t.estado==="esperando")?t.estado:"porhacer";
+}
+function moverTarea(id,dest){
+  const t=DB.tareas.find(x=>x.id===id);
+  if(!t||tareaEstado(t)===dest)return;
+  if(dest==="hecha"){t.hecha=true;t.hechaEn=new Date().toISOString()}
+  else{t.hecha=false;t.hechaEn="";t.estado=dest}
+  DB.tareas=DB.tareas.map(x=>x.id===id?t:x);
+  touch();
+}
 function viewTareas(el,ta){
   ta.innerHTML=`<button class="btn primary sm" data-act="new-tarea">Nueva tarea</button>`;
   const pend=DB.tareas.filter(t=>!t.hecha);
   const hechas=DB.tareas.filter(t=>t.hecha).sort((a,b)=>(b.hechaEn||"").localeCompare(a.hechaEn||"")).slice(0,15);
-  const orden={alta:0,normal:1,baja:2};
-  pend.sort((a,b)=>(orden[a.prioridad]??1)-(orden[b.prioridad]??1)||(a.vence||"9999").localeCompare(b.vence||"9999"));
   const vencidas=pend.filter(t=>t.vence&&t.vence<hoy()).length;
-  document.getElementById("viewSub").textContent=`${pend.length} pendientes`;
-  el.innerHTML=`
-  <div class="card" style="max-width:860px"><header><h3>Tareas</h3><div class="spacer"></div>
-    ${vencidas?`<span class="pill alert">${vencidas} vencidas</span>`:""}
-    <span class="pill">${pend.length} pendientes</span></header>
-    <div class="body flush">
-      ${pend.length?pend.map(t=>{
-        const p=PRIORIDADES[t.prioridad]||PRIORIDADES.normal;
-        const vencida=t.vence&&t.vence<hoy();
-        const c=t.clienteId?cliente(t.clienteId):null;
-        return `<div class="agenda-item" style="--c:${p.color}">
-          <div class="bar"></div>
-          <input type="checkbox" data-tarea-ok="${t.id}" style="width:auto;margin-top:3px;cursor:pointer">
-          <div style="flex:1;min-width:0;cursor:pointer" data-tarea="${t.id}">
-            <div style="font-size:12.5px">${esc(t.texto)}</div>
-            <div class="tiny dim" style="margin-top:3px;display:flex;gap:9px;flex-wrap:wrap">
-              ${t.vence?`<span style="${vencida?"color:var(--alert)":""}">${vencida?"Venció":"Vence"} ${fecha(t.vence)}</span>`:""}
-              ${c?`<span>${esc(c.nombre||c.nombreReal)}</span>`:""}
-              ${t.promotorId?`<span>${esc(nomPromotor(t.promotorId))}</span>`:""}
-              ${t.prioridad&&t.prioridad!=="normal"?`<span style="color:${p.color}">${p.label}</span>`:""}
-            </div>
-          </div>
-          ${(()=>{const ct=contactoTarea(t);const acc=[];
-            if(t.clienteId){
-              const mp=/^tar-liq-.+-(\d{4})-(\d{2})$/.exec(t.id||"");
-              acc.push(`<a href="#" class="pill violet" data-act="reporte" data-id="${t.clienteId}"${mp?` data-anio="${mp[1]}" data-mes="${mp[2]}"`:""} title="Abrir el reporte de liquidación">Reporte</a>`);
-            }
-            const plaza=contactosDePlaza(t);
-            if(plaza.length>1){
-              acc.push(`<a href="#" class="pill" style="border-color:#25D366;color:#25D366" data-act="wa-plaza" data-id="${t.id}" title="Elige a quién escribir · ${plaza.length} contactos">WhatsApp…</a>`);
-            }else{
-              if(ct.tel)acc.push(`<a href="${waLink(ct.tel,t.texto)}" target="_blank" rel="noopener" class="pill" style="border-color:#25D366;color:#25D366" onclick="event.stopPropagation()" title="WhatsApp a ${esc(ct.de)}">WhatsApp</a>`);
-              if(ct.email)acc.push(`<a href="mailto:${esc(ct.email)}?subject=${encodeURIComponent(t.texto)}" class="pill artist" onclick="event.stopPropagation()" title="Email a ${esc(ct.de)}">Email</a>`);
-            }
-            return acc.length?`<div style="display:flex;gap:5px;align-items:flex-start;flex-shrink:0">${acc.join("")}</div>`:"";
-          })()}
-        </div>`}).join("")
-      :`<div class="empty"><p>Nada pendiente.</p><button class="btn primary sm" data-act="new-tarea">Añadir tarea</button></div>`}
-      ${hechas.length?`<div style="padding:12px 16px;border-top:1px solid var(--rule)">
-        <div class="lab" style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--mute-2);margin-bottom:9px">Hechas recientemente</div>
-        ${hechas.map(t=>`<div style="display:flex;align-items:center;gap:9px;margin-bottom:5px">
-          <input type="checkbox" checked data-tarea-ok="${t.id}" style="width:auto;cursor:pointer">
-          <span class="tiny dim" style="text-decoration:line-through;flex:1">${esc(t.texto)}</span></div>`).join("")}
-      </div>`:""}
-    </div>
-  </div>`;
-  el.querySelectorAll("[data-tarea-ok]").forEach(cb=>cb.addEventListener("click",e=>{
-    e.stopPropagation();
-    const id=cb.dataset.tareaOk,t=DB.tareas.find(x=>x.id===id);
-    if(!t)return;
-    t.hecha=cb.checked;t.hechaEn=cb.checked?new Date().toISOString():"";
-    DB.tareas=DB.tareas.map(x=>x.id===id?t:x);touch();
-  }));
+  document.getElementById("viewSub").textContent=`${pend.length} pendientes${vencidas?` · ${vencidas} vencidas`:""}`;
+  const orden={alta:0,normal:1,baja:2};
+  const tarjeta=t=>{
+    const p=PRIORIDADES[t.prioridad]||PRIORIDADES.normal;
+    const vencida=t.vence&&t.vence<hoy()&&!t.hecha;
+    const c=t.clienteId?cliente(t.clienteId):null;
+    const ct=contactoTarea(t);const acc=[];
+    if(!t.hecha){
+      if(t.clienteId){
+        const mp=/^tar-liq-.+-(\d{4})-(\d{2})$/.exec(t.id||"");
+        acc.push(`<a href="#" class="pill violet" data-act="reporte" data-id="${t.clienteId}"${mp?` data-anio="${mp[1]}" data-mes="${mp[2]}"`:""} title="Abrir el reporte de liquidación">Reporte</a>`);
+      }
+      const plaza=contactosDePlaza(t);
+      if(plaza.length>1){
+        acc.push(`<a href="#" class="pill" style="border-color:#25D366;color:#25D366" data-act="wa-plaza" data-id="${t.id}" title="Elige a quién escribir · ${plaza.length} contactos">WhatsApp…</a>`);
+      }else{
+        if(ct.tel)acc.push(`<a href="${waLink(ct.tel,t.texto)}" target="_blank" rel="noopener" class="pill" style="border-color:#25D366;color:#25D366" onclick="event.stopPropagation()" title="WhatsApp a ${esc(ct.de)}">WhatsApp</a>`);
+        if(ct.email)acc.push(`<a href="mailto:${esc(ct.email)}?subject=${encodeURIComponent(t.texto)}" class="pill artist" onclick="event.stopPropagation()" title="Email a ${esc(ct.de)}">Email</a>`);
+      }
+    }
+    return `<div class="kb-card${t.hecha?" hecha":""}" draggable="true" data-id="${t.id}" style="--c:${t.hecha?"var(--rule-2)":p.color}">
+      <div class="kb-tx" data-tarea="${t.id}">${esc(t.texto)}</div>
+      <div class="kb-meta tiny dim">
+        ${t.vence&&!t.hecha?`<span style="${vencida?"color:var(--alert);font-weight:700":""}">${vencida?"Venció":"Vence"} ${fecha(t.vence)}</span>`:""}
+        ${c?`<span>${esc(c.nombre||c.nombreReal)}</span>`:""}
+        ${t.promotorId?`<span>${esc(nomPromotor(t.promotorId))}</span>`:""}
+        ${t.prioridad&&t.prioridad!=="normal"&&!t.hecha?`<span style="color:${p.color}">${p.label}</span>`:""}
+      </div>
+      ${acc.length?`<div class="kb-acc">${acc.join("")}</div>`:""}
+    </div>`;
+  };
+  el.innerHTML=`<div class="kb">${KB_COLS.map(([k,lab])=>{
+    const list=k==="hecha"?hechas
+      :pend.filter(t=>tareaEstado(t)===k).sort((a,b)=>(orden[a.prioridad]??1)-(orden[b.prioridad]??1)||(a.vence||"9999").localeCompare(b.vence||"9999"));
+    return `<div class="kb-col" data-col="${k}">
+      <div class="kb-head">${lab}<span class="kb-n">${list.length}</span></div>
+      ${list.length?list.map(tarjeta).join(""):`<div class="kb-vacia">${KB_VACIAS[k]}</div>`}
+    </div>`;
+  }).join("")}</div>`;
+  el.querySelectorAll(".kb-card").forEach(card=>{
+    card.addEventListener("dragstart",e=>{
+      e.dataTransfer.setData("text/plain",card.dataset.id);
+      e.dataTransfer.effectAllowed="move";
+      card.classList.add("arrastrando");
+    });
+    card.addEventListener("dragend",()=>card.classList.remove("arrastrando"));
+  });
+  el.querySelectorAll(".kb-col").forEach(col=>{
+    col.addEventListener("dragover",e=>{e.preventDefault();e.dataTransfer.dropEffect="move";col.classList.add("over")});
+    col.addEventListener("dragleave",e=>{if(!col.contains(e.relatedTarget))col.classList.remove("over")});
+    col.addEventListener("drop",e=>{
+      e.preventDefault();col.classList.remove("over");
+      const id=e.dataTransfer.getData("text/plain");
+      if(id)moverTarea(id,col.dataset.col);
+    });
+  });
 }
 
 /* ════════ CALENDARIO ════════ */
