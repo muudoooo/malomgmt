@@ -889,6 +889,8 @@ body.portal .distrib-nueva{display:block;margin-bottom:14px}
 .rt-tbl td.dur{font-size:3mm;padding:1.1mm 1.6mm;white-space:nowrap;font-variant-numeric:tabular-nums}
 .rt-grain,.rt-grain-b{background-image:var(--rt-grain)}
 .rt-marca{display:block;width:100%;height:100%;background:var(--rt-logo) center/contain no-repeat}
+.rt-nom{display:block;font-family:var(--cond);font-weight:800;font-size:9pt;line-height:1.05;
+  text-align:center;text-transform:uppercase;letter-spacing:.02em;align-self:center}
 .rt-tbl-h th{width:52mm}
 .rt-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;
   padding-top:4mm;position:relative}
@@ -1637,22 +1639,40 @@ let sb=null, CURRENT_USER=null, CURRENT_NAME="";
    Cuando exista el Supabase de clientes, sustituir makeDemoClient() por un
    createClient() apuntando a ese proyecto: el resto de la app no se entera. */
 const DEMO_KEY="malo.demo.db", MODO_KEY="malo.modo";
-/* Marca que alguien ha vaciado la demo A PROPOSITO: sin ella, al recargar
-   se volveria a sembrar sola y «Vaciar demo» no serviria de nada. */
-const DEMO_VACIA_KEY="malo.demo.vacia";
 /* Ojo: se comprueba en el navegador, así que no es seguridad de verdad — sirve
    para que no entre cualquiera que dé con el enlace. */
 const DEMO_PASS="mudomudopapi123";
 function modoActual(){try{return localStorage.getItem(MODO_KEY)||"malo"}catch(e){return "malo"}}
 function setModo(m){try{localStorage.setItem(MODO_KEY,m)}catch(e){}}
+/* ── Demo neutra: ni un dato de MALO en pantalla ──
+   Vaciar la base NO basta. La app lleva informacion de MALO escrita en el
+   propio codigo, y sale aunque no haya ni una fila: el roster entero en
+   SUBCAT_DEFAULT (y por tanto en el desplegable de cada ficha de cliente), los
+   caches reales de las parejas artista/DJ en DJ_FEE_PAREJAS, las 36 versiones
+   de historial interno de CHANGELOG (con nombres de artistas de fuera y con
+   quien se trabaja), el correo del administrador fijo, el banco de MALO en el
+   generador de contratos y la marca de la barra lateral.
+   Con esto en true, en modo demo no se ensena nada de eso: el cliente entra a
+   una instancia en blanco y pone lo suyo.
+   OJO CON EL ALCANCE: esto quita lo que se VE, no lo que hay en el fichero.
+   Las constantes siguen en index.html y se leen con el inspector, igual que
+   SUPA_URL. Para una demo de la que se pueda dar el enlace a cualquiera hace
+   falta servirla desde un fichero aparte sin esas constantes. */
+const DEMO_NEUTRA=true;
+function demoNeutra(){return DEMO_NEUTRA&&modoActual()==="demo"}
+/* Lo que la demo ensena en vez de «MALO». No es "" a proposito: un hueco vacio
+   en la cabecera y en los PDF parece un fallo, y esto ademas dice que se puede
+   cambiar (Datos › Empresa). */
+const EMPRESA_DEMO="Tu agencia";
+function empresaPorDefecto(){return demoNeutra()?EMPRESA_DEMO:"MALO"}
 function makeDemoClient(){
   const cargar=()=>{try{return JSON.parse(localStorage.getItem(DEMO_KEY))||{}}catch(e){return {}}};
   const guardar=d=>{try{localStorage.setItem(DEMO_KEY,JSON.stringify(d))}catch(e){}};
+  /* La demo arranca VACIA, al 100 %: quien la abre encuentra una instancia en
+     blanco y mete lo suyo, que es como se prueba de verdad un producto. La
+     agencia de ejemplo esta a un clic, en el boton «Datos de ejemplo» de la
+     barra de arriba, para cuando lo que toca es ensenarla en vez de probarla. */
   let T=cargar();
-  /* Primera vez (o tras «Datos de ejemplo»): se siembra la agencia inventada,
-     que es lo que convierte la demo en algo que se puede ensenar. Si la demo
-     se ha vaciado a mano, se respeta y arranca en blanco. */
-  if(!Object.keys(T).length&&!localStorage.getItem(DEMO_VACIA_KEY)){T=semillaDemo();guardar(T)}
   const tab=n=>{if(!Array.isArray(T[n]))T[n]=[];return T[n]};
   const USUARIO={id:"demo-user",email:"demo@ejemplo.com"};
   /* Condiciones de un update/delete: eq, neq e in, que son las tres que usa
@@ -1738,8 +1758,8 @@ function makeDemoClient(){
   };
 }
 function borrarDemo(){
-  if(!confirm("Esto deja la demo completamente vacía, sin los datos de ejemplo. ¿Seguro?"))return;
-  try{localStorage.removeItem(DEMO_KEY);localStorage.setItem(DEMO_VACIA_KEY,"1")}catch(e){}
+  if(!confirm("Esto borra todo lo que hayas metido en la demo y la deja en blanco. ¿Seguro?"))return;
+  try{localStorage.removeItem(DEMO_KEY)}catch(e){}
   location.reload();
 }
 /* Vuelve a dejar la demo como recién estrenada. Es el boton que se usa entre
@@ -1747,7 +1767,7 @@ function borrarDemo(){
    catalogo, y esto lo devuelve todo a su sitio. */
 function sembrarDemo(){
   if(!confirm("Esto sustituye lo que haya en la demo por los datos de ejemplo. ¿Seguro?"))return;
-  try{localStorage.removeItem(DEMO_VACIA_KEY);localStorage.setItem(DEMO_KEY,JSON.stringify(semillaDemo()))}catch(e){}
+  try{localStorage.setItem(DEMO_KEY,JSON.stringify(semillaDemo()))}catch(e){}
   location.reload();
 }
 function salirDemo(){setModo("malo");location.reload()}
@@ -2041,6 +2061,37 @@ function semillaDemo(){
     contexto:[],temas:[],et_eventos:[],localidades:[],google_auth:[],push_subs:[]
   };
 }
+/* El logo que llevan los documentos que se imprimen (hoja de ruta, contrato,
+   reporte de royalties). Si la agencia ha subido el suyo en Datos › Empresa,
+   manda ese. Si no, la instancia real cae al logo de MALO —va incrustado en el
+   CSS, en --rt-logo— y la demo NO: ahi se pone el nombre de la agencia en
+   texto, que es neutro y ademas se entiende como «pon aqui el tuyo». */
+function marcaDoc(tipo){
+  const E=DB.empresa||{}, nom=E.nombre||empresaPorDefecto();
+  if(E.logo)return `<img src="${esc(E.logo)}" alt="${esc(nom)}">`;
+  if(demoNeutra())return `<span class="rt-nom">${esc(nom)}</span>`;
+  return tipo==="rt"?`<span class="rt-marca" role="img" aria-label="MALO"></span>`:`MA<br>LO`;
+}
+
+/* Quita de la pantalla lo que queda de MALO en la propia interfaz: la marca de
+   la barra lateral, el titulo de la pestana, el nombre de una categoria que es
+   una marca de la casa y el logo de los PDF. Se llama una vez, al arrancar en
+   modo demo, antes del primer render. */
+function neutralizaMarcaDemo(){
+  if(!demoNeutra())return;
+  document.title="Panel de gestión · demostración";
+  const img=document.querySelector(".brand .brand-logo");
+  if(img)img.remove();
+  const marca=document.querySelector(".brand .marca");
+  if(marca){marca.textContent="demo";marca.style.display="block";
+    marca.style.font="800 21px/1 var(--cond)";marca.style.color="var(--bone)";
+    marca.style.letterSpacing="-.02em"}
+  const tag=document.querySelector(".brand .tag");
+  if(tag)tag.innerHTML="<b>Demostración</b><br>datos de prueba";
+  /* «Disobey Soundsystem» es una marca de MALO; en la demo, una etiqueta a secas. */
+  if(CATEGORIAS.soundsystem){CATEGORIAS.soundsystem.label="Colectivo";CATEGORIAS.soundsystem.corto="Colectivo"}
+}
+
 function pintaBarraDemo(){
   const b=document.getElementById("demoBarra");
   if(!b||!sb||!sb._demo)return;
@@ -2056,6 +2107,7 @@ function pintaBarraDemo(){
   document.getElementById("demoSalir").addEventListener("click",salirDemo);
   const lg=document.getElementById("logoutBtn");
   if(lg)lg.textContent="Salir de la demo";
+  neutralizaMarcaDemo();
 }
 
 function initSupabase(){ if(modoActual()==="demo"){sb=makeDemoClient();return}
@@ -2162,7 +2214,7 @@ const ESTADO_REL={
 /* Versión de la app. Se ve abajo del todo en la barra lateral y en el menú
    del móvil. Súbela a mano cuando publiques algo: sirve para saber de un
    vistazo si el navegador de alguien tiene la última o una cacheada. */
-const APP_VERSION="0.045";
+const APP_VERSION="0.046";
 /* ── Novedades de cada versión ──────────────────────────────────────────────
    Se pinta en Configuración › Novedades y alimenta el aviso de "versión nueva"
    que salta al entrar. AL PUBLICAR: sube APP_VERSION y añade la entrada nueva
@@ -2171,6 +2223,9 @@ const APP_VERSION="0.045";
    cambia de cara al uso, no qué función se ha tocado. Campos: fecha (AAAA-MM-DD,
    se pinta como dd/mm/aaaa), v y cambios. */
 const CHANGELOG=[
+  {fecha:"2026-09-09",v:"0.046",cambios:[
+    "La campana ya hace algo también cuando estás en el Panel: te planta en «Requiere atención» y lo ilumina un instante, para que se vea a qué ha venido.",
+    "La vista Tareas recupera los botones de acción de cada tarea (Reporte, WhatsApp y Email), igual que en Equipo."]},
   {fecha:"2026-09-09",v:"0.045",cambios:[
     "El Panel se ajusta más al diseño de la propuesta: en escritorio ya no hay barra superior con el título repetido — el «Panel de control» del contenido es la única cabecera, y el selector de ejercicio y los iconos flotan arriba a la derecha.",
     "En tema claro la marca del sidebar es la palabra «malo» junto al logo, como en la propuesta (el tema oscuro conserva el logo grande de siempre).",
@@ -2429,11 +2484,16 @@ const RETENCIONES={ES:0,DE:15.825,IT:30,FR:15,PT:25,NL:0,BE:18,AT:20,CH:0,GB:0,U
 const MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const DOW=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
 
-function blank(){return {version:6,miembros:{},localidades:{},creado:new Date().toISOString(),empresa:{nombre:"MALO",logo:""},
+function blank(){return {version:6,miembros:{},localidades:{},creado:new Date().toISOString(),
+  empresa:{nombre:empresaPorDefecto(),logo:""},
   clientes:[],promotores:[],shows:[],eventos:[],producciones:[],suscriptores:[],medios:[],contexto:[],mensajes:[],tareas:[],
   temas:[],canciones:[],cancionParticipantes:[],cancionIngresos:[],
   obras:[],obraParticipantes:[],obraIngresos:[],obraCanciones:[],merchArticulos:[],campanas:[],
-  subcategorias:JSON.parse(JSON.stringify(SUBCAT_DEFAULT)),generos:GENERO_DEFAULT.slice()}}
+  /* SUBCAT_DEFAULT es el roster de MALO: en la demo se arranca sin ninguna,
+     que para eso se pueden crear desde Datos › Subcategorias. */
+  subcategorias:demoNeutra()?{artista:[],dj:[],soundsystem:[],evento:[],creador:[]}
+                            :JSON.parse(JSON.stringify(SUBCAT_DEFAULT)),
+  generos:GENERO_DEFAULT.slice()}}
 let DB=blank();
 
 /* ════════ MOTOR FINANCIERO ════════ */
@@ -2447,6 +2507,12 @@ const DJ_FEE_PAREJAS=[["ynestrosa","wiwi",300],["8belial","virtual flavor",400],
   ["cybernene","wiwi",250],["roomtrash6","johnnyfuu",250]];
 function djFeeBase(c,dj){
   if(!c||!dj)return 0;
+  /* DJ_FEE_PAREJAS son cifras reales de MALO: en la demo no se aplican. La
+     ficha del artista (comisiones.djFee) si, que ahi el dato es del cliente. */
+  if(demoNeutra()){
+    const propio=(c.djDefectoId===dj.id)?n(c.comisiones&&c.comisiones.djFee):0;
+    return propio>0?propio:0;
+  }
   if(c.djDefectoId===dj.id){
     const propio=n(c.comisiones&&c.comisiones.djFee);
     if(propio>0)return propio;
@@ -3044,7 +3110,7 @@ async function loadRemote(){
   DB.sinAjustes=!!(emp.data&&emp.data.ajustes===undefined);
   DB.empresa=emp.data
     ?{nombre:emp.data.nombre||"MALO",logo:emp.data.logo||"",ajustes:emp.data.ajustes||{}}
-    :{nombre:"MALO",logo:"",ajustes:{}};
+    :{nombre:empresaPorDefecto(),logo:"",ajustes:{}};
   /* Foto de la fila de empresa tal y como llegó del servidor: save() solo la
      manda cuando de verdad ha cambiado. Sin esto, cada guardado de cualquier
      cosa hacía un update de empresa — y con RLS (empresa solo admin) eso se
@@ -3155,7 +3221,7 @@ function migrate(d){
   o.temas=d.temas||[];
   o.temas.forEach(t=>normalizaEntidad("temas",t));
   o.version=6;
-  o.empresa=Object.assign({nombre:"MALO",logo:""},d.empresa||{});
+  o.empresa=Object.assign({nombre:empresaPorDefecto(),logo:""},d.empresa||{});
   const MAPTIPO={sala:"promotor",club:"promotor",promotora:"promotor",festival:"festival",otro:"promotor"};
   o.promotores.forEach(p=>{
     if(!p.categoria)p.categoria=MAPTIPO[p.tipo]||"promotor";
@@ -3908,7 +3974,7 @@ function render(){
      (Configuración → Integraciones) y sol/luna (tema). El portal no los ve. */
   const nAvisos=portal?0:panelAlertas().length;
   document.getElementById("topIcons").innerHTML=portal?"":`
-    <button class="icbtn" data-goto="panel" title="Avisos" aria-label="Avisos (${nAvisos})">
+    <button class="icbtn" data-act="avisos" title="Avisos" aria-label="Avisos (${nAvisos})">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 19a2 2 0 0 0 4 0"/></svg>
       ${nAvisos?`<span class="nbadge">${nAvisos>9?"9+":nAvisos}</span>`:""}</button>
     <button class="icbtn" data-goto="datos" title="Integraciones" aria-label="Integraciones">
@@ -4279,7 +4345,7 @@ function viewPanel(el,ta){
         <div class="imp">${eur0(sinConc)}</div><div class="sub2">Sin fuente asignada</div></button>
     </div>
     <div>
-      <div class="card" style="margin:0"><header><h3>Requiere atención</h3><div class="spacer"></div>
+      <div class="card" id="p5atencion" style="margin:0"><header><h3>Requiere atención</h3><div class="spacer"></div>
         ${alertas.length?`<span class="p5-abiertos">${alertas.length} ${alertas.length===1?"abierto":"abiertos"}</span>`:""}</header>
         <div class="body flush">
         ${alertas.length?alertas.map(a=>`<div class="p5-alerta">
@@ -4343,6 +4409,20 @@ function viewTareas(el,ta){
               ${t.prioridad&&t.prioridad!=="normal"?`<span style="color:${p.color}">${p.label}</span>`:""}
             </div>
           </div>
+          ${(()=>{const ct=contactoTarea(t);const acc=[];
+            if(t.clienteId){
+              const mp=/^tar-liq-.+-(\d{4})-(\d{2})$/.exec(t.id||"");
+              acc.push(`<a href="#" class="pill violet" data-act="reporte" data-id="${t.clienteId}"${mp?` data-anio="${mp[1]}" data-mes="${mp[2]}"`:""} title="Abrir el reporte de liquidación">Reporte</a>`);
+            }
+            const plaza=contactosDePlaza(t);
+            if(plaza.length>1){
+              acc.push(`<a href="#" class="pill" style="border-color:#25D366;color:#25D366" data-act="wa-plaza" data-id="${t.id}" title="Elige a quién escribir · ${plaza.length} contactos">WhatsApp…</a>`);
+            }else{
+              if(ct.tel)acc.push(`<a href="${waLink(ct.tel,t.texto)}" target="_blank" rel="noopener" class="pill" style="border-color:#25D366;color:#25D366" onclick="event.stopPropagation()" title="WhatsApp a ${esc(ct.de)}">WhatsApp</a>`);
+              if(ct.email)acc.push(`<a href="mailto:${esc(ct.email)}?subject=${encodeURIComponent(t.texto)}" class="pill artist" onclick="event.stopPropagation()" title="Email a ${esc(ct.de)}">Email</a>`);
+            }
+            return acc.length?`<div style="display:flex;gap:5px;align-items:flex-start;flex-shrink:0">${acc.join("")}</div>`:"";
+          })()}
         </div>`}).join("")
       :`<div class="empty"><p>Nada pendiente.</p><button class="btn primary sm" data-act="new-tarea">Añadir tarea</button></div>`}
       ${hechas.length?`<div style="padding:12px 16px;border-top:1px solid var(--rule)">
@@ -5664,16 +5744,49 @@ function brutoCancionRango(cancionId,desde,hasta){
 function mesesConDatos(){
   return [...new Set((DB.cancionIngresos||[]).map(i=>(i.mes||"").slice(0,7)).filter(Boolean))].sort();
 }
-/* Cascada: bruto → −% distribución → −% management (sobre el neto de distribución) → pool a repartir */
+/* Cascada: bruto → −% distribución → −parte de los colaboradores externos → −% management → pool
+   El orden importa: si en una cancion hay colaboradores de fuera, su parte sale ANTES de
+   la comision de management. Regla de Malo (9 sep 2026): "si hay colaboradores siempre
+   mgmt cobra despues". Si se hiciera al reves, el artista pagaria comision sobre un dinero
+   que nunca fue suyo. Con los artistas de casa da igual el orden, porque a todos se les
+   cobra management; la diferencia solo aparece con los externos.
+
+   Externo = participante cuyo cliente tiene la comision de management a 0, o que no tiene
+   ficha de cliente. No hace falta ninguna columna nueva: si no le cobramos management, su
+   parte no puede pasar por el management. */
+function esParticipanteExterno(clienteId){
+  if(!clienteId) return true;
+  const cl=(DB.clientes||[]).find(x=>x.id===clienteId);
+  if(!cl) return true;
+  return n((cl.comisiones||{}).management)===0;
+}
+function pctExternoCancion(cancionId){
+  return participantesDe(cancionId)
+    .filter(p=>n(p.pct)>0&&esParticipanteExterno(p.clienteId))
+    .reduce((a,p)=>a+n(p.pct),0);
+}
+/* Lo que le toca a UN participante de un bruto dado, con la cascada en el orden bueno. */
+function importeParticipante(cancion,bruto,part){
+  const pct=n(part.pct); if(pct<=0) return 0;
+  const trasDist=n(bruto)*(1-n(cancion.feeDistribucionPct)/100);
+  if(esParticipanteExterno(part.clienteId)) return trasDist*pct/100;
+  const pe=Math.min(100,pctExternoCancion(cancion.id));
+  if(pe>=100) return 0;
+  const resto=trasDist*(1-pe/100);
+  return resto*(1-n(cancion.mgmtPct)/100)*(pct/(100-pe));
+}
 function poolDeMes(cancion,bruto){
   const trasDist=n(bruto)*(1-n(cancion.feeDistribucionPct)/100);
-  return trasDist*(1-n(cancion.mgmtPct)/100);
+  const pe=Math.min(100,pctExternoCancion(cancion.id));
+  return trasDist*(1-pe/100)*(1-n(cancion.mgmtPct)/100);
 }
 function cascadaCancion(cancion){
   const bruto=brutoTotalCancion(cancion.id);
   const trasDist=bruto*(1-n(cancion.feeDistribucionPct)/100);
-  const pool=trasDist*(1-n(cancion.mgmtPct)/100);
-  return {bruto,trasDist,pool};
+  const pe=Math.min(100,pctExternoCancion(cancion.id));
+  const externos=trasDist*pe/100;
+  const pool=(trasDist-externos)*(1-n(cancion.mgmtPct)/100);
+  return {bruto,trasDist,externos,pool};
 }
 /* Participaciones de un cliente (como artista, feat o productor) en todo el catálogo */
 function participacionesDe(clienteId){return (DB.cancionParticipantes||[]).filter(p=>p.clienteId===clienteId)}
@@ -5714,7 +5827,7 @@ function bolsilloCancionesPorMes(clienteId){
   participacionesDe(clienteId).forEach(p=>{
     const c=(DB.canciones||[]).find(x=>x.id===p.cancionId);if(!c)return;
     ingresosDe(p.cancionId).forEach(i=>{
-      const pool=poolDeMes(c,i.bruto)*n(p.pct)/100;
+      const pool=importeParticipante(c,i.bruto,p);
       const key=(i.mes||"").slice(0,7);if(!key)return;
       if(!out[key])out[key]={pool:0,porCancion:{}};
       out[key].pool+=pool;
@@ -5816,8 +5929,7 @@ function viewMisCanciones(el,ta){
   if(desde&&hasta&&desde>hasta){const t=desde;desde=hasta;hasta=t}
   const conRango=!!(desde||hasta);
   const dinero=c=>brutoCancionRango(c.id,desde,hasta);
-  const poolDe=c=>{const b=dinero(c);
-    return b*(1-n(c.feeDistribucionPct)/100)*(1-n(c.mgmtPct)/100)};
+  const poolDe=c=>poolDeMes(c,dinero(c));
   const mesBonito=m=>{ if(!m)return "";
     const AB=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
     return AB[+m.slice(5,7)-1]+" "+m.slice(0,4); };
@@ -6505,7 +6617,7 @@ function viewBolsillo(el,ta){
   const porCancion=participacionesDe(cli).map(p=>{
     const c=(DB.canciones||[]).find(x=>x.id===p.cancionId);if(!c)return null;
     const total=ingresosDe(c.id).filter(i=>(i.mes||"").slice(0,7)>=r.desde&&(i.mes||"").slice(0,7)<=r.hasta)
-      .reduce((a,i)=>a+poolDeMes(c,i.bruto)*n(p.pct)/100,0);
+      .reduce((a,i)=>a+importeParticipante(c,i.bruto,p),0);
     return {c,total};
   }).filter(Boolean).filter(x=>x.total>0).sort((a,b)=>b.total-a.total);
 
@@ -6517,7 +6629,7 @@ function viewBolsillo(el,ta){
   participacionesDe(cli).forEach(p=>{
     const c=(DB.canciones||[]).find(x=>x.id===p.cancionId);if(!c)return;
     ingresosDe(c.id).filter(i=>(i.mes||"").slice(0,7)>=r.desde&&(i.mes||"").slice(0,7)<=r.hasta)
-      .forEach(i=>combinado.push({fecha:i.mes,tipo:"canción",titulo:tituloConCreditos(c),importe:poolDeMes(c,i.bruto)*n(p.pct)/100}));
+      .forEach(i=>combinado.push({fecha:i.mes,tipo:"canción",titulo:tituloConCreditos(c),importe:importeParticipante(c,i.bruto,p)}));
   });
   if(conMerch)merchLineas().filter(l=>l.artistaId===cli&&l.mes>=r.desde&&l.mes<=r.hasta)
     .forEach(l=>combinado.push({fecha:(l.fecha||"").slice(0,10),tipo:"merch",
@@ -6620,7 +6732,7 @@ function etiquetaBolsillo(r){
 function pctConfigurado(v){return v!==null&&v!==undefined&&v!==""&&isFinite(parseFloat(v))}
 function reporteRoyalties(cliId,r,etiqueta){
   const c=cliente(cliId)||{};
-  const logo=(DB.empresa&&DB.empresa.logo)?`<img src="${esc(DB.empresa.logo)}" alt="MALO">`:`MA<br>LO`;
+  const logo=marcaDoc("texto");
   const filas=participacionesDe(cliId).map(p=>{
     const cn=(DB.canciones||[]).find(x=>x.id===p.cancionId);if(!cn)return null;
     const ing=ingresosDe(cn.id).filter(i=>{const k=(i.mes||"").slice(0,7);return k>=r.desde&&k<=r.hasta});
@@ -6631,8 +6743,8 @@ function reporteRoyalties(cliId,r,etiqueta){
     const repOk=pctConfigurado(p.pct)&&Math.abs(sumaParticipantesPct(cn.id)-100)<=0.01;
     const falta=[];if(!feeOk)falta.push("% distribución");if(!mgmtOk)falta.push("% management");if(!repOk)falta.push("reparto de participantes");
     const trasDist=feeOk?bruto*(1-n(cn.feeDistribucionPct)/100):null;
-    const pool=(trasDist!==null&&mgmtOk)?trasDist*(1-n(cn.mgmtPct)/100):null;
-    const tuyo=(pool!==null&&repOk)?pool*n(p.pct)/100:null;
+    const pool=(trasDist!==null&&mgmtOk)?poolDeMes(cn,bruto):null;
+    const tuyo=(pool!==null&&repOk)?importeParticipante(cn,bruto,p):null;
     return {cn,p,bruto,unidades,feeOk,mgmtOk,repOk,falta,trasDist,pool,tuyo};
   }).filter(Boolean).sort((a,b)=>b.bruto-a.bruto);
   const totBruto=filas.reduce((a,x)=>a+x.bruto,0);
@@ -9213,7 +9325,7 @@ function redactarEnvio(){
       Enviarles comunicación comercial puede infringir el RGPD. Marca «Solo con consentimiento» en los filtros para excluirlos.</p>
     </div></div>`:""}
     <div class="fgrid">
-      <div class="f s12"><label>Asunto</label><input id="mail_asunto" placeholder="Nuevas fechas de DISOBEY · noviembre"></div>
+      <div class="f s12"><label>Asunto</label><input id="mail_asunto" placeholder="${demoNeutra()?"Nuevas fechas · noviembre":"Nuevas fechas de DISOBEY · noviembre"}"></div>
       <div class="f s12"><label>Mensaje</label>
         <textarea id="mail_cuerpo" style="min-height:200px" placeholder="Escribe aquí el contenido del email…"></textarea></div>
       <div class="f s12"><span class="hint">Puedes usar <code style="font-family:var(--mono);color:var(--bone)">{nombre}</code> y se sustituirá por el nombre de cada contacto al exportar.</span></div>
@@ -9861,6 +9973,18 @@ function avisoNovedades(){
 }
 function cfgTabNovedades(el){
   marcaVersionVista();
+  /* CHANGELOG es el diario de MALO: nombres del roster, artistas de fuera con
+     los que se ha trabajado, con quien se distribuye y avisos internos. En la
+     demo no se ensena — pero la pestana se queda, que forma parte del producto. */
+  if(demoNeutra()){
+    el.innerHTML=`<div class="card"><header><h3>Novedades</h3></header><div class="body">
+      <p style="color:var(--mute);font-size:12.5px;margin:0;line-height:1.65">
+        Aquí sale el historial de cambios de la app, versión por versión, con lo que
+        se ha añadido o arreglado en cada una. En la demostración va en blanco:
+        el historial de la instancia real habla de sus artistas y de sus acuerdos.</p>
+    </div></div>`;
+    return;
+  }
   const bloques=CHANGELOG.map((r,i)=>`
     <div style="padding:${i?"18px":"0"} 0 0;${i?"border-top:1px solid var(--rule);margin-top:18px":""}">
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:9px;flex-wrap:wrap">
@@ -10152,7 +10276,7 @@ function cfgTabEmpresa(el){
     const comisiones={};
     servicios.forEach(s=>{comisiones[s]=num("emp_com_"+s)});
     /* nombre y logo son columnas reales; el resto va al cajón ajustes. */
-    DB.empresa=Object.assign({nombre:"MALO"},DB.empresa||{},
+    DB.empresa=Object.assign({nombre:empresaPorDefecto()},DB.empresa||{},
       {nombre:val("emp_nombre")||"MALO",logo:val("emp_logo")});
     await guardarAjustes({empresa:{
       razonSocial:val("emp_razon"),nif:val("emp_nif"),direccion:val("emp_dir"),
@@ -10244,9 +10368,13 @@ function cfgTabEquipo(el){
       ${Object.entries(ROLES).map(([k,v])=>`<dt>${esc(v.label)}</dt><dd>${esc(v.desc)}</dd>`).join("")}
     </dl>
     <p style="color:var(--mute);font-size:12.5px;margin-top:16px">
-      <strong style="color:var(--bone)">${esc(ROL_FIJO)}</strong> es administrador de forma fija y no se puede cambiar
-      desde la app: si el rol de todos fuese editable, un clic mal dado dejaría a MALO sin ningún administrador
-      y sin forma de recuperarlo.</p>
+      ${demoNeutra()
+        ? `Hay <strong style="color:var(--bone)">una cuenta de administrador fija</strong> que no se puede cambiar
+           desde la app: si el rol de todos fuese editable, un clic mal dado dejaría la agencia sin ningún
+           administrador y sin forma de recuperarlo.`
+        : `<strong style="color:var(--bone)">${esc(ROL_FIJO)}</strong> es administrador de forma fija y no se puede cambiar
+           desde la app: si el rol de todos fuese editable, un clic mal dado dejaría a MALO sin ningún administrador
+           y sin forma de recuperarlo.`}</p>
   </div></div>
 
   ${conRls?`
@@ -12234,7 +12362,7 @@ function reporteGanancias(f){
   const etiqueta=etiquetaSeleccion(M,A);
   const filtrosTxt=[c?(c.nombre||c.nombreReal):"Todos los clientes",
     cat?(CONTACTO_CAT[cat]||{}).label:null].filter(Boolean).join(" · ");
-  const logo=(DB.empresa&&DB.empresa.logo)?`<img src="${esc(DB.empresa.logo)}" alt="MALO">`:`MA<br>LO`;
+  const logo=marcaDoc("texto");
   const lqb=s=>{
     const co=s.cobro||{},li=s.liq||{};
     if(li.estado==="liquidado")return `<span class="lqb ok">liquidado</span>`;
@@ -12435,9 +12563,7 @@ function hojaRuta(showId){
   const R=rutaDe(s);
   const anio=(s.fecha||hoy()).slice(0,4);
   /* El logo de la empresa manda; si no hay, va la calavera MALO de la plantilla */
-  const logo=(DB.empresa&&DB.empresa.logo)
-    ? `<img src="${esc(DB.empresa.logo)}" alt="MALO">`
-    : `<span class="rt-marca" role="img" aria-label="MALO"></span>`;
+  const logo=marcaDoc("rt");
   const conf=`PRODUCTION_CONFIDENTIAL_${anio}©`;
   const pill=(t,extra)=>`<div class="rt-bar"><span class="rt-pill"><b>${t}</b><i>→</i></span>${extra||""}</div>`;
   const ta=(g,k,ph)=>`<textarea rows="1" data-g="${g}" data-k="${k}" placeholder="${ph||""}">${esc((R[g]||{})[k]||"")}</textarea>`;
@@ -12854,7 +12980,7 @@ function contratoDe(s){
     email:E.email||""},C.agente||{});
   C.banco=Object.assign({
     titular:E.titularCuenta||"",
-    banco:E.banco||CT_DEF_BANCO,
+    banco:E.banco||(demoNeutra()?"":CT_DEF_BANCO),
     iban:E.iban||""},C.banco||{});
   if(!Array.isArray(C.pagos)||!C.pagos.length)
     C.pagos=[{concepto:"Anticipo",fecha:"",subtotal:""},
@@ -13832,6 +13958,13 @@ document.addEventListener("click",e=>{
     if(act==="ed-vista"){filtro.edVista=el.dataset.v||"alertas";render();window.scrollTo(0,0);return}
     if(act==="save-marticulo")return saveMerchArticulo(el.dataset.titulo);
     if(act==="tema"){toggleTema();return}
+    if(act==="avisos"){
+      if(VIEW!=="panel"){VIEW="panel";render()}
+      const c=document.getElementById("p5atencion");
+      if(c){c.scrollIntoView({behavior:"smooth",block:"start"});
+        c.style.transition="box-shadow .3s";c.style.boxShadow="0 0 0 3px color-mix(in srgb,#E8622C 55%,transparent)";
+        setTimeout(()=>{c.style.boxShadow=""},1600)}
+      return}
     if(act==="new-tarea")return formTarea(null);
     if(act==="new-medio")return formMedios(null);
     if(act==="new-ticket")return formTicket();
