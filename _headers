@@ -26,3 +26,10 @@
   # las bloquea y la galería sale con las iniciales aunque el dato esté bien.
   # Son solo servidores de imágenes: no pueden ejecutar nada.
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://apis.google.com https://accounts.google.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://*.google.com https://*.googleusercontent.com https://*.gstatic.com https://cdn-images.dzcdn.net https://*.mzstatic.com; media-src blob: https://drive.google.com https://*.googleusercontent.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://accounts.google.com https://apis.google.com; frame-src https://*.google.com https://accounts.google.com https://content.googleapis.com; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'none'
+
+# ── Imagenes de la app (assets/) ──
+# Se piden aparte del HTML y no cambian de una version a otra, asi que una
+# semana de cache le ahorra al navegador volver a pedirlas en cada visita.
+# Si alguna vez se sustituye una, cambiale el nombre al fichero.
+/assets/*
+  Cache-Control: public, max-age=604800

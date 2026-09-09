@@ -195,6 +195,24 @@ if [ -x herramientas/humo.sh ]; then
   fi
 fi
 
+# ── Las cuentas: numeros fijos, no solo "no revienta" ────────────────────────
+# Una vista en blanco se ve; un numero mal, no, y acaba en una factura. Hasta el
+# 9 sep 2026 ninguna prueba comprobaba un euro, y por eso los datos de prueba
+# llevaban meses escribiendo "cache" donde la app lee "cacheBruto": todo valia
+# 0 EUR y el OK salia verde. Esto fija a mano la cascada de shows, el P&L de
+# producciones y el merch.
+if [ -x herramientas/test-cuentas.sh ]; then
+  if ! herramientas/test-cuentas.sh; then
+    echo ""
+    echo "  X  las cuentas no cuadran - commit cancelado"
+    echo "     Alguna cifra de dinero ha cambiado de valor. Si el cambio es"
+    echo "     intencionado, actualiza los numeros de herramientas/test-cuentas.js"
+    echo "     (van comentados con la operacion al lado, para poder repasarla)."
+    echo ""
+    exit 1
+  fi
+fi
+
 # ── Freno de mano: borrados masivos ──────────────────────────────────────────
 #
 # Por que existe: el 27 ago 2026 dos commits distintos se escribieron a partir
@@ -266,6 +284,10 @@ import subprocess, sys, re
 PUBLICO = {
     "index.html", "alta.html", "privacidad.html", "sw.js",
     "vendor", "_headers", "_redirects",
+    # assets/ son imagenes de la app que el navegador pide por su cuenta
+    # (hoy el grano del papel de la hoja de ruta). Publicas a proposito: si no
+    # se sirven, la hoja de ruta sale sin fondo.
+    "assets",
 }
 
 archivos = subprocess.run(["git", "ls-files"], capture_output=True, text=True).stdout.split()

@@ -9,13 +9,28 @@
 
   DB=blank();
   DB.miClienteId=null; DB.rol="admin";
+  /* Las comisiones del cliente van por SERVICIO (booking / management /
+     development / sello), no por «shows/canciones/merch»: con las claves
+     inventadas, merchPctDe() y la liquidacion de editorial leian 0 %. */
   DB.clientes=[{id:"cli1",nombre:"ARTISTA UNO",nombreReal:"Uno",categoria:"artista",
-    comisiones:{shows:15,canciones:20,merch:20},email:"a@b.c",activo:true}];
+    comisiones:{booking:15,management:20,development:0,sello:50},
+    email:"a@b.c",activo:true,facturacion:"autonomo_irpf",ivaPct:21,irpfPct:15}];
   DB.promotores=[{id:"pro1",nombre:"Sala X",ciudad:"Madrid"}];
+  /* Los nombres son los de TABLE_MAP, no los de la base: el caché es
+     «cacheBruto» (no «cache») y la fecha de la canción «fechaLanzamiento».
+     Escritos mal, la fila entra igual pero vale 0 € y sin fecha, asi que las
+     vistas se pintaban con todo a cero y no se probaba ni una cuenta. Los
+     gastos van con un cargo de cada tipo para que se ejecute el reparto
+     artista / MALO de calcShow(). */
   DB.shows=[{id:"sh1",clienteId:"cli1",promotorId:"pro1",fecha:FECHA,ciudad:"Madrid",
-    estado:"confirmado",cache:1000,ivaPct:21,gastos:[],comisionPct:15,retencionOrigen:0}];
-  DB.canciones=[{id:"can1",titulo:"TEMA UNO",artista:"ARTISTA UNO",distribuidora:"ADA",
-    isrc:"BK4DA2500001",fecha:FECHA,release:"Single"}];
+    estado:"confirmado",cacheBruto:1000,moneda:"EUR",tipoCambio:1,ivaPct:21,
+    gastos:[{concepto:"Vuelos",importe:120,cargo:"artista"},
+            {concepto:"Hotel",importe:80,cargo:"malo"},
+            {concepto:"Backline",importe:50,cargo:"promotor"}],
+    comisionPct:15,baseComision:"bruto",retencionOrigen:0,
+    cobro:{estado:"pendiente"},liq:{estado:"pendiente"}}];
+  DB.canciones=[{id:"can1",titulo:"TEMA UNO",artistaId:"cli1",distribuidora:"ADA",
+    isrc:"BK4DA2500001",fechaLanzamiento:FECHA,feeDistribucionPct:15,mgmtPct:20}];
   DB.cancionParticipantes=[{id:"cp1",cancionId:"can1",clienteId:"cli1",pct:100}];
   DB.cancionIngresos=[{id:"ci1",cancionId:"can1",mes:MES,bruto:100}];
   DB.obras=[{id:"ob1",workCode:"DWD001",titulo:"TEMA UNO",editorial:"UMPG"}];
@@ -30,7 +45,10 @@
   DB.merch=[{id:"mv1",tienda:"malo",numero:"#1001",fecha:FECHA+"T12:00:00Z",email:"c@d.e",
     comprador:"Comprador",total:31,moneda:"EUR",estadoPago:"PAID",ivaIncluido:true,
     totalImpuestos:5.38,items:[{titulo:"CAMISETA",cantidad:1,importe:25,impuesto:4.34}]}];
-  DB.suscriptores=[{id:"su1",email:"s@t.u",nombre:"Sus",etiquetas:[],consent:true},
+  /* «consent» no existe: el campo es «consentimiento» (lo cazo la comprobacion
+     de TABLE_MAP de arriba la primera vez que se ejecuto). Con la clave mala,
+     esta fila contaba como SIN consentimiento en todo Mailing. */
+  DB.suscriptores=[{id:"su1",email:"s@t.u",nombre:"Sus",etiquetas:[],consentimiento:true},
     {id:"su2",email:"con@sent.es",nombre:"Con Sent",ciudad:"Madrid",etiquetas:["repite"],
       consentimiento:true,baja:false},
     {id:"su3",email:"fuera@sent.es",nombre:"Excluido",ciudad:"Madrid",etiquetas:[],
@@ -48,6 +66,36 @@
   DB.soporteRespuestas=[{id:"sr1",ticketId:"tk1",texto:"Lo miramos",autor:"u2",
     autorNombre:"Equipo",creadoEn:FECHA+"T11:00:00Z"}];
   DB.eventos=[];DB.producciones=[];DB.temas=[];DB.mensajes=[];DB.tareas=[];
+
+  /* ── Antes de pintar nada: que los nombres de campo EXISTAN ──
+     Este arnes llena DB a mano, y un objeto de JavaScript se traga cualquier
+     clave sin protestar. Asi es como «cache» (el campo es «cacheBruto») y
+     «artista»/«fecha» (son «artistaId»/«fechaLanzamiento») estuvieron aqui sin
+     que nadie se enterara: las vistas se pintaban con 0 € y sin fecha, y el OK
+     salia verde igual. TABLE_MAP es la lista buena — la que usa la app para
+     hablar con Postgres — asi que se comprueba contra ella.
+     DB.merch se queda fuera a proposito: merch_ventas no pasa por TABLE_MAP,
+     la mapea a mano loadRemote(). */
+  var revisar=["clientes","promotores","shows","canciones","cancionParticipantes",
+    "cancionIngresos","obras","obraParticipantes","obraIngresos","obraCanciones",
+    "merchArticulos","suscriptores","campanas","medios","soporteTickets","soporteRespuestas",
+    "temas","tareas","eventos","producciones","redesSnapshots","contexto","mensajes"];
+  var sueltas=[];
+  revisar.forEach(function(col){
+    var map=TABLE_MAP[col];
+    if(!map){sueltas.push(col+" no esta en TABLE_MAP");return}
+    (DB[col]||[]).forEach(function(fila,i){
+      Object.keys(fila).forEach(function(k){
+        if(k.charAt(0)==="_")return;              // _editadoPor y compania
+        if(!(k in map))sueltas.push(col+"["+i+"]."+k);
+      });
+    });
+  });
+  if(sueltas.length){
+    print("  X  campos que la app NO lee (no estan en TABLE_MAP): "+sueltas.join(", "));
+  }else{
+    print("  ok  los datos de prueba usan los campos de TABLE_MAP");
+  }
 
   var vistas=[["panel",typeof viewPanel!=="undefined"&&viewPanel],
     ["calendario",typeof viewCalendario!=="undefined"&&viewCalendario],

@@ -1665,6 +1665,21 @@ function demoNeutra(){return DEMO_NEUTRA&&modoActual()==="demo"}
    cambiar (Datos › Empresa). */
 const EMPRESA_DEMO="Tu agencia";
 function empresaPorDefecto(){return demoNeutra()?EMPRESA_DEMO:"MALO"}
+/* Como se llama a la agencia en las etiquetas de dinero: «Comisión ${nombreAgencia()}»,
+   «Ingreso ${nombreAgencia()}». Sale en el Panel, en Shows, en Clientes y en los PDF.
+   · instancia real  → el nombre de la empresa («MALO»)
+   · demo sin tocar  → «agencia», que es lo que se entiende y no nombra a nadie
+   · demo con nombre → el que haya puesto el cliente en Datos › Empresa
+   Nota: en la instancia real esto pinta exactamente lo mismo que antes, porque
+   empresa.nombre es «MALO»; y si algun dia se cambia, las etiquetas siguen. */
+/* Para la prosa de las ayudas: «Producciones propias de MALO» tiene que poder
+   decir «de la agencia» sin quedar coja. Por eso va aparte del nombre suelto. */
+function laAgencia(){return demoNeutra()&&nombreAgencia()==="agencia"?"la agencia":nombreAgencia()}
+function nombreAgencia(){
+  const nom=((DB.empresa||{}).nombre||"").trim();
+  if(demoNeutra())return (nom&&nom!==EMPRESA_DEMO)?nom:"agencia";
+  return nom||"MALO";
+}
 function makeDemoClient(){
   const cargar=()=>{try{return JSON.parse(localStorage.getItem(DEMO_KEY))||{}}catch(e){return {}}};
   const guardar=d=>{try{localStorage.setItem(DEMO_KEY,JSON.stringify(d))}catch(e){}};
@@ -2096,15 +2111,21 @@ function pintaBarraDemo(){
   const b=document.getElementById("demoBarra");
   if(!b||!sb||!sb._demo)return;
   b.className="demo-barra";
+  /* En demo neutra la barra tampoco nombra a MALO, y se queda sin el boton
+     «Ir a MALO»: lleva al login de la instancia real, que no es sitio donde
+     mandar a quien esta probando el producto. Para volver esta «Salir de la
+     demo» en la barra lateral, que hace exactamente lo mismo. */
+  const neutra=demoNeutra();
   b.innerHTML=`<strong>MODO DEMOSTRACIÓN</strong>
-    <span>Los datos se guardan solo en este navegador. Nada de esto toca la instancia de MALO.</span>
+    <span>Los datos se guardan solo en este navegador.${neutra?"":" Nada de esto toca la instancia de MALO."}</span>
     <span style="margin-left:auto;display:flex;gap:8px">
       <button id="demoSembrar">Datos de ejemplo</button>
       <button id="demoVaciar">Vaciar demo</button>
-      <button id="demoSalir">Ir a MALO</button></span>`;
+      ${neutra?"":`<button id="demoSalir">Ir a MALO</button>`}</span>`;
   document.getElementById("demoSembrar").addEventListener("click",sembrarDemo);
   document.getElementById("demoVaciar").addEventListener("click",borrarDemo);
-  document.getElementById("demoSalir").addEventListener("click",salirDemo);
+  const salir=document.getElementById("demoSalir");
+  if(salir)salir.addEventListener("click",salirDemo);
   const lg=document.getElementById("logoutBtn");
   if(lg)lg.textContent="Salir de la demo";
   neutralizaMarcaDemo();
@@ -3317,7 +3338,7 @@ function importJSON(){
   i.click();
 }
 function exportCSV(){
-  const rows=[["fecha","cliente","categoría","subcategoría","promotor","ciudad","país","servicio","estado","caché bruto","retención","gastos cliente","comisión %","comisión MALO","neto cliente","transferencia","cobro","liquidación"]];
+  const rows=[["fecha","cliente","categoría","subcategoría","promotor","ciudad","país","servicio","estado","caché bruto","retención","gastos cliente","comisión %","comisión "+nombreAgencia(),"neto cliente","transferencia","cobro","liquidación"]];
   DB.shows.slice().sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||"")).forEach(s=>{
     const c=calc(s),cl=cliente(s.clienteId);
     rows.push([s.fecha||"",nomCliente(s.clienteId),cl?(CATEGORIAS[cl.categoria]||{}).label||"":"",cl?cl.subcategoria||"":"",nomPromotor(s.promotorId),
@@ -4728,7 +4749,7 @@ function viewShows(el,ta){
           decir si son solo de las próximas o de todo el histórico filtrado. */}
     <div class="cell" style="cursor:pointer" data-kpi="bruto"><div class="lab">Caché bruto${filtro.verAntiguos?"":" · próximos"}</div><div class="val">${eur0(tot.bruto)}</div>${notaOferta}</div>
     <div class="cell" style="cursor:pointer" data-kpi="neto"><div class="lab">Neto clientes${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-artist">${eur0(tot.neto)}</div></div>
-    <div class="cell" style="cursor:pointer" data-kpi="comis"><div class="lab">Comisión MALO${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-malo">${eur0(tot.comis)}</div></div>
+    <div class="cell" style="cursor:pointer" data-kpi="comis"><div class="lab">Comisión ${nombreAgencia()}${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-malo">${eur0(tot.comis)}</div></div>
     <div class="cell" style="cursor:pointer" data-kpi="gastos"><div class="lab">Total gastos${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-alert">${eur0(tot.gastos)}</div></div>
   </div>
   <div class="card"><div class="body flush">
@@ -4851,7 +4872,7 @@ function viewEventos(el,ta){
   const nBorrador=list.filter(p=>p.estado==="borrador").length;
   if(!list.length){
     el.innerHTML=`<div class="card"><div class="empty">
-      <p><strong>Producciones propias de MALO.</strong><br>Aquí el dinero funciona al revés que en booking: tú asumes los costes y te quedas el resultado, en vez de cobrar una comisión.</p>
+      <p><strong>Producciones propias de ${laAgencia()}.</strong><br>Aquí el dinero funciona al revés que en booking: tú asumes los costes y te quedas el resultado, en vez de cobrar una comisión.</p>
       <button class="btn primary" data-act="new-prod">Crear el primero</button></div></div>`+etBloque();
     etFiltroAnio(el);return;
   }
@@ -6894,7 +6915,7 @@ function viewMerch(el,ta){
     <div class="cell"><div class="lab">Unidades</div><div class="val v-artist">${unidades}</div></div>
     ${portal?"":`<div class="cell"><div class="lab">Coste producción</div><div class="val v-alert">${eur0(totCoste)}</div>
       <div class="note">${sinFichar?`${sinFichar} sin coste fichado`:"todo fichado"}</div></div>
-    <div class="cell"><div class="lab">Comisión MALO</div><div class="val v-malo">${eur0(totComision)}</div>
+    <div class="cell"><div class="lab">Comisión ${nombreAgencia()}</div><div class="val v-malo">${eur0(totComision)}</div>
       <div class="note">después de gastos</div></div>`}
   </div>
   ${sinFichar&&!portal?`<div class="card" style="border-color:var(--warn)"><div class="body">
@@ -7247,12 +7268,12 @@ function viewClientes(el,ta){
     <select id="cc"><option value="">Todas las categorías</option>${Object.entries(CATEGORIAS).map(([k,v])=>`<option value="${k}" ${filtro.categoria===k?"selected":""}>${v.label}</option>`).join("")}</select>
     <select id="cs"><option value="">Todas las subcategorías</option>${subsFiltro.map(s=>`<option value="${esc(s)}" ${filtro.sub===s?"selected":""}>${esc(s)}</option>`).join("")}</select>
     <select id="cg"><option value="">Todos los géneros</option>${generosCat().map(g=>`<option value="${esc(g)}" ${filtro.genero===g?"selected":""}>${esc(g)}</option>`).join("")}</select>
-    ${selectOrden("ordClientes",[["cat","Categoría"],["alpha","Alfabético A-Z"],["ingreso_desc","Ingreso MALO más alto"]],filtro.ordenClientes)}
+    ${selectOrden("ordClientes",[["cat","Categoría"],["alpha","Alfabético A-Z"],["ingreso_desc","Ingreso "+nombreAgencia()+" más alto"]],filtro.ordenClientes)}
     ${(filtro.q||filtro.categoria||filtro.sub||filtro.genero)?`<button class="btn ghost sm" id="cclr">Quitar filtros</button>`:""}
   </div>
   <div class="card"><div class="body flush tscroll cli-wrap"><table class="tfix t-clientes">
   <thead><tr><th class="c-cli">Cliente</th><th class="c-cat">Categoría y género</th><th class="c-srv">Servicios</th>
-    <th class="num c-sho">Shows</th><th class="num c-age">Agenda</th><th class="num c-ing">Ingreso MALO</th><th class="c-red">Redes</th></tr></thead>
+    <th class="num c-sho">Shows</th><th class="num c-age">Agenda</th><th class="num c-ing">Ingreso ${nombreAgencia()}</th><th class="c-red">Redes</th></tr></thead>
   <tbody>${list.map(c=>{
     const ss=showsDe(c.id).filter(s=>s.estado!=="cancelado");
     const ing=ss.reduce((t,s)=>t+calc(s).comis,0);
@@ -7276,7 +7297,7 @@ function viewClientes(el,ta){
         : vacio}</div></td>
       <td class="num dim c-sho" data-lbl="Shows">${ss.length||"—"}</td>
       <td class="num dim c-age" data-lbl="Agenda">${nev||"—"}</td>
-      <td class="num v-malo strong c-ing" data-lbl="Ingreso MALO">${eur0(ing)}</td>
+      <td class="num v-malo strong c-ing" data-lbl="Ingreso ${nombreAgencia()}">${eur0(ing)}</td>
       <td class="c-red" data-lbl="Redes"><div class="vstack">${redes.length
         ? redes.map(k=>`<a href="${esc(redUrl(k,c.redes[k]))}" target="_blank" rel="noopener" class="red-link" onclick="event.stopPropagation()" title="${esc(c.redes[k])}">${REDES[k].label}</a>`).join("")
         : vacio}</div></td>
@@ -7601,7 +7622,7 @@ function viewMapa(el,ta){
   <div class="card"><div class="body">
     <p class="hint" style="margin:0">Esto sale <strong style="color:var(--bone)">solo de vuestros propios datos</strong>:
     los shows que habéis registrado y los contactos de la base de datos. No incorpora datos de mercado ni de la competencia —
-    para eso haría falta información que MALO no tiene.</p>
+    para eso haría falta información que ${laAgencia()} no tiene.</p>
   </div></div>`;
 
   engancharFiltrosMapa();
@@ -8154,7 +8175,7 @@ function edLiquidacion(el,obras){
   </div></div>
   <div class="card"><div class="body flush">
   <table><thead><tr><th>Cliente</th><th style="text-align:right">Obras</th><th style="text-align:right">Le llega</th>
-    <th style="text-align:right">Mgmt</th><th style="text-align:right">Comisión MALO</th><th style="text-align:right">A pagarle</th></tr></thead>
+    <th style="text-align:right">Mgmt</th><th style="text-align:right">Comisión ${nombreAgencia()}</th><th style="text-align:right">A pagarle</th></tr></thead>
   <tbody>${filas.map(f=>`<tr>
     <td class="strong">${esc(f.nombre)}${f.esCliente?"":' <span class="pill" style="border-color:var(--alert);color:var(--alert)">sin ficha</span>'}</td>
     <td style="text-align:right" class="dim">${f.obras}</td>
@@ -8386,7 +8407,7 @@ function formMerchArticulo(titulo){
           <tr><td>Base (sin IVA)</td><td class="num">${eur(base)}</td><td class="num">${eur(base)}</td></tr>
           <tr><td>− Coste (${uds} × ${eur(coste)})</td><td class="num v-alert">${eur(uds*coste)}</td><td class="num v-alert">${eur(uds*coste)}</td></tr>
           <tr><td>= Margen</td><td class="num">${eur(cA.margen)}</td><td class="num">${eur(cM.margen)}</td></tr>
-          <tr><td>− Comisión MALO (${pct} %)</td><td class="num v-malo">${eur(cA.comision)}<div class="tiny dim">sobre el margen</div></td>
+          <tr><td>− Comisión ${nombreAgencia()} (${pct} %)</td><td class="num v-malo">${eur(cA.comision)}<div class="tiny dim">sobre el margen</div></td>
               <td class="num v-malo">${eur(cM.comision)}<div class="tiny dim">sobre el bruto</div></td></tr>
           <tr class="total"><td>Neto del artista</td>
               <td class="num ${esM?"dim":"v-artist strong"}">${eur(cA.neto)}</td>
@@ -8883,7 +8904,7 @@ function viewMailing(el,ta){
       </div></div>
       <p class="hint" style="text-align:center;margin-top:14px">
       Los emails de fans son datos personales: solo se envía a quien tiene el consentimiento marcado, y la responsabilidad
-      legal de la lista es de MALO, no de esta herramienta.</p>`;
+      legal de la lista es de ${laAgencia()}, no de esta herramienta.</p>`;
     return;
   }
 
@@ -9686,7 +9707,7 @@ function viewGeneradores(el,ta){
   <div class="card"><header><h3>Generador de contratos</h3><div class="spacer"></div>
     <span class="pill ok">disponible</span></header><div class="body">
     <p style="color:var(--mute);font-size:12.5px;margin-bottom:16px">
-      Rellena la plantilla de contrato de actuación de MALO con los datos del show: partes, condiciones
+      Rellena la plantilla de contrato de actuación de ${laAgencia()} con los datos del show: partes, condiciones
       particulares, calendario de pagos con el IVA calculado y cuenta de cobro. El clausulado va tal cual
       está en la plantilla firmada y <strong style="color:var(--bone)">no se edita desde aquí</strong>.
       A la derecha se ve el documento en tiempo real: es exactamente el PDF.
@@ -10044,7 +10065,7 @@ function cfgTabDatos(el){
         <tr><td class="lbl">Caché bruto acordado</td><td class="dim">sin IVA</td></tr>
         <tr class="sub"><td class="lbl">− retención en origen</td><td>solo shows fuera de España</td></tr>
         <tr class="sub"><td class="lbl">− gastos marcados «artista»</td><td>vuelos, hotel, transporte…</td></tr>
-        <tr class="sub"><td class="lbl">− comisión MALO</td><td>% del cliente, editable por show</td></tr>
+        <tr class="sub"><td class="lbl">− comisión ${nombreAgencia()}</td><td>% del cliente, editable por show</td></tr>
         <tr class="total"><td class="lbl">= Neto cliente</td><td>base de su factura</td></tr>
       </table>
       <p style="color:var(--mute);font-size:12px;margin-top:16px">Los importes que introduces son <strong>siempre sin IVA</strong>. El IVA de la factura al promotor y el IVA/IRPF de la factura del cliente se calculan aparte y se muestran en la ficha de cada show.</p>
@@ -10097,7 +10118,7 @@ function cfgTabDatos(el){
     <p style="color:var(--mute);font-size:12.5px;line-height:1.65">
       El calendario mezcla tres cosas: los <strong style="color:var(--bone)">shows</strong>, que llevan dinero asociado;
       la <strong style="color:var(--bone)">agenda</strong>, que es contexto (estudio, viajes, entrevistas);
-      y las <strong style="color:var(--bone)">producciones propias</strong> de MALO.<br><br>
+      y las <strong style="color:var(--bone)">producciones propias</strong> de ${laAgencia()}.<br><br>
       Para que un cliente vea sus fechas en su propio Google Calendar, pega su <strong style="color:var(--bone)">Calendar ID</strong>
       en su ficha y comparte ese calendario con su email desde Google. Los cambios se envían al instante.
       La primera vez, usa el botón <strong style="color:var(--bone)">«Sincronizar todo ahora»</strong> de su ficha
@@ -11704,7 +11725,7 @@ function fichaCliente(id){
   <div class="mbody">
     <div class="strip" style="margin-bottom:20px">
       <div class="cell"><div class="lab">Facturación generada</div><div class="val">${eur0(fac)}</div><div class="note">${ss.length} shows</div></div>
-      <div class="cell"><div class="lab">Ingreso MALO</div><div class="val v-malo">${eur0(ing)}</div><div class="note">${fac?pct(ing/fac*100):"—"} efectivo</div></div>
+      <div class="cell"><div class="lab">Ingreso ${nombreAgencia()}</div><div class="val v-malo">${eur0(ing)}</div><div class="note">${fac?pct(ing/fac*100):"—"} efectivo</div></div>
       <div class="cell"><div class="lab">Neto del cliente</div><div class="val v-artist">${eur0(net)}</div></div>
       <div class="cell"><div class="lab">Pendiente de liquidar</div><div class="val ${pdte>0?"v-alert":"v-mute"}">${eur0(pdte)}</div></div>
     </div>
@@ -12459,7 +12480,7 @@ function reporteGanancias(f){
         <div>Facturación gestionada (caché bruto)</div><div class="v">${eur(T.bruto)}</div>
         <div>Neto de los clientes</div><div class="v">${eur(T.neto)}</div>
         <div class="rule"></div>
-        <div class="big">Comisión MALO</div><div class="v big">${eur(T.comis)}</div>
+        <div class="big">Comisión ${nombreAgencia()}</div><div class="v big">${eur(T.comis)}</div>
       </div></div>`:""}
 
       ${enPeriodo.length&&mesesDelPeriodo.length>1?`<h4>Desglose por meses</h4>
@@ -12474,7 +12495,7 @@ function reporteGanancias(f){
 
       ${!c&&clientesDelPeriodo.length>1?`<h4>Desglose por cliente</h4>
       <table><thead><tr><th>Cliente</th><th class="n">Fechas</th><th class="n">Caché</th>
-        <th class="n">Comisión MALO</th><th class="n">Neto del cliente</th></tr></thead>
+        <th class="n">Comisión ${nombreAgencia()}</th><th class="n">Neto del cliente</th></tr></thead>
       <tbody>${clientesDelPeriodo.map(cid=>{const g=enPeriodo.filter(x=>x.clienteId===cid),k=sum(g);
         return `<tr><td><b>${esc(nomCliente(cid))}</b></td><td class="n">${g.length}</td>
           <td class="n">${eur0(k.bruto)}</td><td class="n"><b>${eur0(k.comis)}</b></td>
@@ -12484,7 +12505,7 @@ function reporteGanancias(f){
 
       ${!cat&&catsDelPeriodo.length>1?`<h4>Desglose por tipo de contratante</h4>
       <table><thead><tr><th>Tipo</th><th class="n">Fechas</th><th class="n">Caché</th>
-        <th class="n">Caché medio</th><th class="n">Comisión MALO</th></tr></thead>
+        <th class="n">Caché medio</th><th class="n">Comisión ${nombreAgencia()}</th></tr></thead>
       <tbody>${catsDelPeriodo.map(k2=>{
         const g=enPeriodo.filter(x=>{const p=DB.promotores.find(y=>y.id===x.promotorId);return p&&p.categoria===k2});
         const k=sum(g);
@@ -13424,7 +13445,7 @@ function formShow(id,comoNuevo){
       <div class="f s3"><label>Moneda</label><input id="s_mon" value="${esc(s.moneda||"EUR")}" maxlength="3" style="text-transform:uppercase"></div>
       <div class="f s3"><label>Tipo de cambio a EUR</label><input id="s_tc" type="number" step="0.0001" min="0" value="${s.tipoCambio||1}"></div>
       <div class="f s3"><label>% retención en origen</label><input id="s_ret" type="number" step="0.001" min="0" value="${n(s.retencionOrigen)}"></div>
-      <div class="f s3"><label>% comisión MALO</label><input id="s_com" type="number" step="0.5" min="0" max="100" value="${n(s.comisionPct)}"></div>
+      <div class="f s3"><label>% comisión ${nombreAgencia()}</label><input id="s_com" type="number" step="0.5" min="0" max="100" value="${n(s.comisionPct)}"></div>
       <div class="f s5"><label>Base de la comisión</label><select id="s_base">
         <option value="bruto" ${s.baseComision!=="neto"?"selected":""}>Sobre el caché bruto</option>
         <option value="neto" ${s.baseComision==="neto"?"selected":""}>Sobre el neto tras gastos del cliente</option></select></div>
@@ -13652,7 +13673,7 @@ function formShow(id,comoNuevo){
       <div class="strip-legend">
         ${c.reten>0?`<div><span class="sw" style="background:rgba(237,85,100,.75)"></span>Retención ${pct(c.retPct)}</div>`:""}
         ${c.gArt>0?`<div><span class="sw" style="background:var(--rule-2)"></span>Gastos del cliente</div>`:""}
-        <div><span class="sw" style="background:rgba(240,86,143,.92)"></span>Comisión MALO</div>
+        <div><span class="sw" style="background:rgba(240,86,143,.92)"></span>Comisión ${nombreAgencia()}</div>
         <div><span class="sw" style="background:rgba(143,121,242,.9)"></span>Neto cliente</div></div>
       <div class="fgrid" style="margin-top:20px">
         <div class="f s6"><table class="cascade">
@@ -13664,12 +13685,12 @@ function formShow(id,comoNuevo){
             return (gDj>0?`<tr class="sub"><td class="lbl">− Caché DJ${sh.djId?` <span class="dim">(${esc(nomCliente(sh.djId))})</span>`:""}</td><td>−${eur(gDj)}</td></tr>`:"")+
                    (gOtros>0?`<tr class="sub"><td class="lbl">− Gastos a cargo del cliente</td><td>−${eur(gOtros)}</td></tr>`:"");
           })()}
-          <tr class="sub"><td class="lbl">− Comisión MALO ${pct(sh.comisionPct)} <span class="dim">sobre ${sh.baseComision==="neto"?"neto":"bruto"} (${eur0(c.baseCom)})</span></td><td>−${eur(c.comis)}</td></tr>
+          <tr class="sub"><td class="lbl">− Comisión ${nombreAgencia()} ${pct(sh.comisionPct)} <span class="dim">sobre ${sh.baseComision==="neto"?"neto":"bruto"} (${eur0(c.baseCom)})</span></td><td>−${eur(c.comis)}</td></tr>
           <tr class="total"><td class="lbl" style="color:var(--artist)">Neto cliente</td><td style="color:var(--artist)">${eur(c.neto)}</td></tr>
         </table></div>
         <div class="f s6">
           <table class="cascade">
-            <tr><td class="lbl">Comisión MALO</td><td>${eur(c.comis)}</td></tr>
+            <tr><td class="lbl">Comisión ${nombreAgencia()}</td><td>${eur(c.comis)}</td></tr>
             ${c.gMalo>0?`<tr class="sub"><td class="lbl">− Gastos a cargo de MALO</td><td>−${eur(c.gMalo)}</td></tr>`:""}
             <tr class="total"><td class="lbl" style="color:var(--malo)">Margen real MALO</td><td style="color:var(--malo)">${eur(c.margen)}</td></tr></table>
           ${(()=>{const r=repartoDjs(sh);return r.n?`<table class="cascade" style="margin-top:16px">
@@ -13778,7 +13799,7 @@ function abrirGraficoKpi(tipo){
   const CFG={
     bruto:{label:"Caché bruto",color:"var(--bone)",get:s=>calc(s).bruto},
     neto:{label:"Neto clientes",color:"var(--artist)",get:s=>calc(s).neto},
-    comis:{label:"Comisión MALO",color:"var(--malo)",get:s=>calc(s).comis},
+    comis:{label:"Comisión "+nombreAgencia(),color:"var(--malo)",get:s=>calc(s).comis},
     gastos:{label:"Total gastos",color:"var(--alert)",get:s=>{const k=calc(s);return k.gArt+k.gMalo+k.gProm}},
   };
   const cfg=CFG[tipo];if(!cfg)return;
