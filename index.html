@@ -68,10 +68,8 @@ nav{padding:14px 10px;flex:1}
 nav button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:5px;color:var(--mute);font-size:13px;font-weight:500;text-align:left;transition:background .12s,color .12s}
 nav button:hover{background:var(--panel-2);color:var(--bone)}
 nav button.on{background:var(--panel-3);color:var(--bone)}
-nav button .k{font-family:var(--mono);font-size:10px;color:var(--mute-2);margin-left:auto}
 .badge{background:var(--malo);color:#1A1206;font-family:var(--mono);font-size:9.5px;font-weight:700;
   border-radius:9px;padding:1px 6px;margin-left:7px;line-height:1.5}
-nav button.on .k{color:var(--malo)}
 .storage{padding:14px;border-top:1px solid var(--rule);font-size:11px}
 .ver{margin-top:9px;text-align:center;font-family:var(--mono);font-size:9.5px;
   color:var(--mute);opacity:.65;letter-spacing:.04em;user-select:text}
@@ -4180,7 +4178,7 @@ function render(){
       const badge=n?`<span class="badge">${n>99?"99+":n}</span>`:"";
       return `<button data-view="${v.id}" class="${VIEW===v.id?"on":""}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONO_VIEW[v.id]||""}"/></svg>
-        <span class="lbl">${v.label}</span>${badge}<span class="k">${esc(v.k||"")}</span></button>`;
+        <span class="lbl">${v.label}</span>${badge}</button>`;
     }).join(""):"");
   }).join("");
   if("setAppBadge" in navigator){try{nl?navigator.setAppBadge(nl):navigator.clearAppBadge()}catch(e){}}
