@@ -40,6 +40,14 @@
   --rule:#202841; --rule-2:#2C3855; --bone:#EEF1F8; --mute:#98A2BC; --mute-2:#7D88A6;
   --artist:#8F79F2; --malo:#F0568F; --alert:#ED5564; --ok:#34D399; --warn:#F5B93E; --violet:#8F79F2;
   --c-artista:#3FB6CC; --c-dj:#8F79F2; --c-soundsystem:#D94F8C; --c-evento:#34D399; --c-creador:#6B8FE8;
+  --c-externo:#18225B;
+  /* Las cuatro fuentes del panel y la escala del mapa van como token porque se
+     pintan en atributos de SVG, no en CSS: sin token se quedaban fijas al tema
+     oscuro y en claro salían fuera de paleta. Aquí valen lo de siempre. */
+  --f-catalogo:#F0568F; --f-editorial:#6D2C7E; --f-shows:#F59E01; --f-merch:#3FB6CC;
+  --mp-0:#1D2740; --mp-1:#4A4270; --mp-2:#8F79F2; --mp-3:#B95CA8; --mp-4:#F0568F;
+  --mp-i0:#5D6884; --mp-i1:#EEF1F8; --mp-i2:#EEF1F8; --mp-i3:#EEF1F8; --mp-i4:#0D1220;
+  --serie-1:#E7478A; --serie-2:#6D2C7E; --serie-3:#F59E01; --serie-4:#00B8D2; --serie-5:#18225B;
   --sans:'Archivo','Helvetica Neue',Arial,sans-serif;
   --cond:'Archivo Narrow','Archivo','Helvetica Neue',Arial,sans-serif;
   --poster:'Anton','Archivo Narrow','Arial Narrow','Helvetica Neue',Arial,sans-serif;
@@ -386,7 +394,7 @@ table.tfix td,table.tfix th{overflow:hidden;text-overflow:ellipsis}
   white-space:nowrap;text-overflow:ellipsis;background:color-mix(in srgb,var(--cc) 14%,transparent);color:var(--cc);
   border-left:2px solid var(--cc);max-width:100%}
 .day.festivo{background:rgba(237,85,100,.05)}
-.day.festivo .dn{color:#ED5564}
+.day.festivo .dn{color:var(--alert)}
 .clash{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 3px rgba(237,85,100,.18)}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
 .legend div{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mute)}
@@ -1445,7 +1453,21 @@ body.claro{color-scheme:light;font-variant-numeric:tabular-nums;
   --ink:#FAF8F6; --panel:#FFFFFF; --panel-2:#F4F1EE; --panel-3:#EDE9E4;
   --rule:#E3DED8; --rule-2:#D3CCC2; --bone:#000000; --mute:#625B54; --mute-2:#71665B;
   --malo:#2E736C; --artist:#672638; --violet:#672638;
-  --ok:#1C736A; --warn:#896119; --alert:#AF435A; --c-artista:#2E736C}
+  --ok:#1C736A; --warn:#896119; --alert:#AF435A; --c-artista:#2E736C;
+  /* Categorías de contacto y agenda: el lila, el rosa chicle, el verde y el
+     azul de la v5 no pintan nada en la v6. Se reparten sus acentos. */
+  --c-dj:#672638; --c-soundsystem:#B8465F; --c-evento:#D99A2B; --c-creador:#896119;
+  --c-externo:#625B54;
+  /* Fuentes del panel. Catálogo y Merch resolvían las dos a #2E736C, o sea que
+     el donut tenía dos porciones del mismo color; Catálogo se queda el teal
+     vivo de la propuesta y Merch el oscuro. */
+  --f-catalogo:#4FB8AE; --f-editorial:#672638; --f-shows:#D99A2B; --f-merch:#2E736C;
+  /* Mapa: cinco niveles con la tinta que la propuesta empareja con cada fondo
+     (negro sobre los claros, blanco sobre el rosa). */
+  --mp-0:#EDE9E4; --mp-1:#ADEEDE; --mp-2:#4FB8AE; --mp-3:#D99A2B; --mp-4:#B8465F;
+  --mp-i0:#625B54; --mp-i1:#000000; --mp-i2:#000000; --mp-i3:#000000; --mp-i4:#FFFFFF;
+  /* Series de la gráfica de Redes, como el top 5 de la propuesta. */
+  --serie-1:#4FB8AE; --serie-2:#672638; --serie-3:#000000; --serie-4:#B8465F; --serie-5:#D99A2B}
 /* Estados como parejas fondo/tinta (handoff §1) */
 body.claro .pill{border-color:transparent;background:#F4F1EE;color:#625B54;font-weight:700}
 body.claro .pill.ok{background:#E8FAF7;color:#1C736A}
@@ -1516,8 +1538,6 @@ body.claro .chip.on{background:#000;color:#FFF;border-color:#000}
 body.claro .p5-kpi.rosa{background:#4FB8AE;color:#000}
 body.claro .p5-kpi.violeta{background:#D99A2B;color:#000}
 body.claro .p5-kpi.ambar{background:#B8465F;color:#FFF}
-body.claro .p5-est.liq{background:#ADEEDE;color:#000}
-body.claro .p5-est.pend{background:#F8EED9;color:#7A5210}
 body.claro .p5-abiertos{background:#E2A3AF;color:#672638}
 body.claro .rd-aviso.up{background:#E8FAF7;color:#1C736A}
 body.claro .rd-aviso.down{background:#E2A3AF;color:#672638}
@@ -1552,9 +1572,9 @@ body.claro .nbadge{background:#AF435A;color:#FFF}
 .p5-alerta .tx .t2{font-size:11px;color:var(--mute-2);margin-top:2px}
 .p5-est{border-radius:999px;padding:2.5px 10px;font-size:10.5px;font-weight:700;white-space:nowrap}
 .p5-est.liq{background:color-mix(in srgb,#3FB6CC 26%,transparent);color:var(--c-artista)}
-body.claro .p5-est.liq{background:#C4E7EE;color:#1D5560}
+body.claro .p5-est.liq{background:#ADEEDE;color:#000}
 .p5-est.pend{background:color-mix(in srgb,#F5B93E 24%,transparent);color:var(--warn)}
-body.claro .p5-est.pend{background:#F3DFB4;color:#6C4B12}
+body.claro .p5-est.pend{background:#F8EED9;color:#7A5210}
 .p5-abiertos{background:color-mix(in srgb,#E8622C 18%,transparent);color:#E8622C;
   border-radius:999px;padding:2.5px 10px;font-size:10.5px;font-weight:700}
 @media(max-width:600px){#topIcons .icbtn[data-goto="datos"]{display:none}}
@@ -2278,13 +2298,16 @@ function initSupabase(){ if(modoActual()==="demo"){sb=makeDemoClient();return}
 /* ════════ CONSTANTES ════════ */
 /* corto: etiqueta para tablas. Las largas («Creadores de Contenido») ensanchaban
    la columna y empujaban las demás fuera del recuadro. */
+/* El color va por token, no a fuego: estos seis puntos salen en la leyenda del
+   calendario y en las fichas, y con los hex de la v5 se quedaban en cian, lila
+   y magenta con el tema claro puesto. */
 const CATEGORIAS={
-  artista:    {label:"Artista",                 corto:"Artista",     color:"#3FB6CC"},
-  dj:         {label:"DJ",                      corto:"DJ",          color:"#8F79F2"},
-  soundsystem:{label:"Disobey Soundsystem",     corto:"Soundsystem", color:"#D94F8C"},
-  evento:     {label:"Evento",                  corto:"Evento",      color:"#34D399"},
-  externo:    {label:"Artista externo",         corto:"Externo",     color:"#18225B"},
-  creador:    {label:"Creadores de Contenido",  corto:"Creador",     color:"#6B8FE8"}
+  artista:    {label:"Artista",                 corto:"Artista",     color:"var(--c-artista)"},
+  dj:         {label:"DJ",                      corto:"DJ",          color:"var(--c-dj)"},
+  soundsystem:{label:"Disobey Soundsystem",     corto:"Soundsystem", color:"var(--c-soundsystem)"},
+  evento:     {label:"Evento",                  corto:"Evento",      color:"var(--c-evento)"},
+  externo:    {label:"Artista externo",         corto:"Externo",     color:"var(--c-externo)"},
+  creador:    {label:"Creadores de Contenido",  corto:"Creador",     color:"var(--c-creador)"}
 };
 /* Punto de partida del catálogo de géneros. Se gestiona desde Datos → Géneros:
    añadir, renombrar y eliminar. Borra sin miedo los que no uséis. */
@@ -4365,10 +4388,10 @@ function toggleTema(){
 
 /* Las cuatro fuentes de ingreso del panel. El orden es el del donut y la leyenda. */
 const P5_FUENTES=[
-  ["catalogo","Catálogo","var(--malo)"],
-  ["editorial","Editorial","#6D2C7E"],
-  ["shows","Shows","#F59E01"],
-  ["merch","Merch","var(--c-artista)"]];
+  ["catalogo","Catálogo","var(--f-catalogo)"],
+  ["editorial","Editorial","var(--f-editorial)"],
+  ["shows","Shows","var(--f-shows)"],
+  ["merch","Merch","var(--f-merch)"]];
 function p5Color(k){const f=P5_FUENTES.find(x=>x[0]===k);return f?f[2]:"var(--mute-2)"}
 function p5Label(k){const f=P5_FUENTES.find(x=>x[0]===k);return f?f[1]:k}
 function kAbrev(v){return v>=1000?(v/1000).toLocaleString("es-ES",{maximumFractionDigits:1})+"k":String(Math.round(v))}
@@ -4435,7 +4458,8 @@ function panelAlertas(){
 }
 
 /* Feed unificado de movimientos del ejercicio: shows uno a uno; catálogo,
-   editorial y merch agregados por su periodo natural (mes o semestre). */
+   editorial y merch agregados por su periodo natural (mes o semestre) y por
+   artista, para que cada fila diga de quién es el dinero. */
 function panelMovimientos(anio){
   const A=String(anio),out=[];
   vivos().forEach(s=>{
@@ -4446,22 +4470,40 @@ function panelMovimientos(anio){
       artista:nomCliente(s.clienteId),importe:c.bruto,
       liq:!!(s.liq&&s.liq.estado==="liquidado"),attr:`data-show="${s.id}"`});
   });
+  /* Las tres liquidaciones se agrupan por periodo Y por artista. Antes solo
+     por periodo, y entonces la columna «Artista» no tenia a quien poner:
+     escribia la fuente otra vez («Catálogo», «Editorial», «Merch»), o sea que
+     repetia la primera columna y dejaba la fila sin decir de quien es el
+     dinero. Una fila por artista es lo que hace falta para poder mirarla. */
+  const clave=(per,art)=>per+"\u0000"+(art||"");
+  const suelta=(mapa,hazFila)=>Object.entries(mapa).forEach(([k,v])=>{
+    const i=k.indexOf("\u0000");
+    out.push(hazFila(k.slice(0,i),k.slice(i+1),v));
+  });
+
   const catMes={};
-  (DB.cancionIngresos||[]).forEach(i=>{const m=((i.mes||"")+"").slice(0,7);if(m.slice(0,4)!==A)return;catMes[m]=(catMes[m]||0)+n(i.bruto)});
-  Object.entries(catMes).forEach(([m,v])=>out.push({fuente:"catalogo",fecha:m+"-28",
-    concepto:`Liquidación ADA — ${AG_MESES[+m.slice(5,7)-1].toLowerCase()}`,artista:"Catálogo",
-    importe:v,liq:true,attr:`data-goto="canciones"`}));
+  (DB.cancionIngresos||[]).forEach(i=>{
+    const m=((i.mes||"")+"").slice(0,7);if(m.slice(0,4)!==A)return;
+    const can=(DB.canciones||[]).find(c=>c.id===i.cancionId);
+    const k=clave(m,can&&can.artistaId);catMes[k]=(catMes[k]||0)+n(i.bruto)});
+  suelta(catMes,(m,art,v)=>({fuente:"catalogo",fecha:m+"-28",
+    concepto:`Liquidación ADA — ${AG_MESES[+m.slice(5,7)-1].toLowerCase()}`,
+    artista:art?nomCliente(art):"—",importe:v,liq:true,attr:`data-goto="canciones"`}));
+
   const edPer={};
   (DB.obraIngresos||[]).forEach(i=>{
     const p=(i.periodo||"")+"";const y=p.slice(0,4)||((i.devengoDesde||"")+"").slice(0,4);
-    if(y!==A)return;const k=p||y;edPer[k]=(edPer[k]||0)+n(i.importeBruto)});
-  Object.entries(edPer).forEach(([p,v])=>out.push({fuente:"editorial",fecha:A+"-12-30",
-    concepto:`Liquidación editorial — ${p}`,artista:"Editorial",importe:v,liq:true,attr:`data-goto="editorial"`}));
+    if(y!==A)return;const k=clave(p||y,i.clienteId);edPer[k]=(edPer[k]||0)+n(i.importeBruto)});
+  suelta(edPer,(per,art,v)=>({fuente:"editorial",fecha:A+"-12-30",
+    concepto:`Liquidación editorial — ${per}`,artista:art?nomCliente(art):"—",
+    importe:v,liq:true,attr:`data-goto="editorial"`}));
+
   const meMes={};
-  merchLineas().forEach(l=>{if((l.mes||"").slice(0,4)!==A)return;meMes[l.mes]=(meMes[l.mes]||0)+l.importe});
-  Object.entries(meMes).forEach(([m,v])=>out.push({fuente:"merch",fecha:m+"-28",
-    concepto:`Ventas Shopify — ${AG_MESES[+m.slice(5,7)-1].toLowerCase()}`,artista:"Merch",
-    importe:v,liq:true,attr:`data-goto="merch"`}));
+  merchLineas().forEach(l=>{if((l.mes||"").slice(0,4)!==A)return;
+    const k=clave(l.mes,l.artistaId);meMes[k]=(meMes[k]||0)+l.importe});
+  suelta(meMes,(m,art,v)=>({fuente:"merch",fecha:m+"-28",
+    concepto:`Ventas Shopify — ${AG_MESES[+m.slice(5,7)-1].toLowerCase()}`,
+    artista:art?nomCliente(art):"—",importe:v,liq:true,attr:`data-goto="merch"`}));
   out.sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
   return out;
 }
@@ -4523,7 +4565,7 @@ function viewPanel(el,ta){
       <text x="60" y="73" text-anchor="middle" style="font:9px var(--mono);fill:var(--mute-2)">bruto</text></svg>`;
   })();
 
-  const sevCol={alert:"#E8622C",info:"var(--c-artista)"};
+  const sevCol={alert:"var(--alert)",info:"var(--c-artista)"};
   el.innerHTML=`
   <div class="p-cab">${heroHTML}</div>
   <div class="p5-head">
@@ -4563,7 +4605,7 @@ function viewPanel(el,ta){
         ${alertas.length?alertas.map(a=>`<div class="p5-alerta">
           <span class="pto" style="background:${sevCol[a.sev]}"></span>
           <div class="tx"><div class="t1">${a.t}</div><div class="t2">${a.s}</div></div>
-          <button class="btn ghost sm" ${a.goto?`data-goto="${a.goto}"`:`data-act="${a.act}"`}>${a.b}</button>
+          <button class="btn sm" ${a.goto?`data-goto="${a.goto}"`:`data-act="${a.act}"`}>${a.b}</button>
         </div>`).join("")
         :`<div class="empty"><p>Nada pendiente de arreglar. Todo cuadra.</p></div>`}
       </div></div>
@@ -7685,7 +7727,7 @@ function viewRedes(el,ta){
   /* Los cinco mayores, para la gráfica y sus colores */
   const top5=filas.filter(f=>redesSerie90(f.c.id).length>=2)
     .slice().sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,5);
-  const COLORES5=["#E7478A","#6D2C7E","#F59E01","#00B8D2","#18225B"];
+  const COLORES5=["var(--serie-1)","var(--serie-2)","var(--serie-3)","var(--serie-4)","var(--serie-5)"];
 
   const grafica=(()=>{
     if(top5.length<1)return "";
@@ -8029,8 +8071,13 @@ function viewContactos(el,ta){
   if(!DB.promotores.length){
     el.innerHTML=`<div class="card"><div class="empty"><p>Sin contactos todavía. Aquí se acumulan salas, promotores, fiestas, festivales, agencias y medios, con su histórico de pagos.</p><button class="btn primary" data-act="new-promotor">Añadir contacto</button></div></div>`;return;
   }
+  /* Un contacto sin categoria se pinta como «Promotores» en la tabla (mas
+     abajo, con el mismo ||CONTACTO_CAT.promotor), asi que tiene que contar y
+     filtrar por ahi tambien: si no, los contadores de arriba no suman el
+     total y el filtro de esa categoria se los deja fuera. */
+  const catDeP=p=>CONTACTO_CAT[p.categoria]?p.categoria:"promotor";
   let list=DB.promotores.slice();
-  if(filtro.catBD)list=list.filter(p=>p.categoria===filtro.catBD);
+  if(filtro.catBD)list=list.filter(p=>catDeP(p)===filtro.catBD);
   if(filtro.relBD)list=list.filter(p=>(p.estadoRelacion||"sin_contactar")===filtro.relBD);
   if(filtro.q){const q=filtro.q.toLowerCase();
     list=list.filter(p=>[p.nombre,p.ciudad,p.contacto,p.email,p.notas].join(" ").toLowerCase().includes(q))}
@@ -8046,7 +8093,7 @@ function viewContactos(el,ta){
     frio:(a,b)=>(a.ultimoContacto||"0000").localeCompare(b.ultimoContacto||"0000"),
   };
   list=aplicarOrden(list,filtro.ordenContactos,ORD_CONTACTOS);
-  const cuenta={};DB.promotores.forEach(p=>{cuenta[p.categoria]=(cuenta[p.categoria]||0)+1});
+  const cuenta={};DB.promotores.forEach(p=>{const k=catDeP(p);cuenta[k]=(cuenta[k]||0)+1});
   document.getElementById("viewSub").textContent=`${list.length} de ${DB.promotores.length}`;
   const pag=paginar(list,"contactos");list=pag.list;
 
@@ -8227,36 +8274,28 @@ function viewMapa(el,ta){
     return;
   }
 
-  const calor=n_=>{
-    const r=max?n_/max:0;
-    if(r>=.75)return "#F0568F";
-    if(r>=.45)return "#B95CA8";
-    if(r>=.2) return "#8F79F2";
-    return "#3C4250";
-  };
+  /* Cinco niveles, de nada a maximo. El color va en un atributo del SVG, asi
+     que sale de un token: con los hex de antes el mapa se quedaba en el azul
+     marino del tema oscuro tambien con el tema claro puesto. */
+  const nivel=(v,mx)=>{ if(!v)return 0; const r=mx?v/mx:0;
+    return r>=.75?4:r>=.45?3:r>=.2?2:1 };
+  const calor=n_=>`var(--mp-${nivel(n_,max)||1})`;
 
   // Actividad agregada por comunidad, para colorear el mapa
   const porCom={};
   listaTodas.forEach(x=>{porCom[x.comunidad]=(porCom[x.comunidad]||0)+x.n});
   const maxCom=Math.max(1,...Object.values(porCom));
-  const colorCom=c=>{
-    const v=porCom[c]||0;
-    if(!v)return "#1D2740";
-    const r=v/maxCom;
-    if(r>=.75)return "#F0568F";
-    if(r>=.45)return "#B95CA8";
-    if(r>=.2) return "#8F79F2";
-    return "#4A4270";
-  };
+  const nivelCom=c=>nivel(porCom[c]||0,maxCom);
+  const colorCom=c=>`var(--mp-${nivelCom(c)})`;
   const svgMapa=`<svg viewBox="0 0 860 740" style="width:100%;height:auto;max-height:62vh" xmlns="http://www.w3.org/2000/svg">
     ${Object.entries(COM_PATH).map(([nom,d])=>`<path d="${d}" fill="${colorCom(nom)}"
-      stroke="${filtro.mapaCom===nom?"#EEF1F8":"var(--ink)"}" stroke-width="${filtro.mapaCom===nom?3.5:2.5}"
+      stroke="${filtro.mapaCom===nom?"var(--bone)":"var(--ink)"}" stroke-width="${filtro.mapaCom===nom?3.5:2.5}"
       style="cursor:pointer" data-com="${esc(nom)}"><title>${esc(nom)}: ${porCom[nom]||0} ${(porCom[nom]||0)===1?"show":"shows"}</title></path>`).join("")}
-    ${Object.entries(COM_ETIQ).map(([nom,xy])=>{const v=porCom[nom]||0;
+    ${Object.entries(COM_ETIQ).map(([nom,xy])=>{const v=porCom[nom]||0,ti=`var(--mp-i${nivelCom(nom)})`;
       return `<text x="${xy[0]}" y="${xy[1]}" text-anchor="middle" font-size="12" font-family="Archivo,sans-serif"
-        fill="${v?"#EEF1F8":"#5D6884"}" style="pointer-events:none">${esc(nom)}</text>
+        fill="${ti}" style="pointer-events:none">${esc(nom)}</text>
         ${v?`<text x="${xy[0]}" y="${xy[1]+15}" text-anchor="middle" font-size="11" font-family="IBM Plex Mono,monospace"
-        fill="var(--ink)" font-weight="600" style="pointer-events:none">${v}</text>`:""}`}).join("")}
+        fill="${ti}" font-weight="600" style="pointer-events:none">${v}</text>`:""}`}).join("")}
   </svg>`;
 
   el.innerHTML=barraFiltros+`
@@ -8284,11 +8323,11 @@ function viewMapa(el,ta){
     ${filtro.mapaCom?`<button class="btn ghost sm" id="mp_limpiar">Quitar ${esc(filtro.mapaCom)}</button>`:`<span class="dim tiny">Pulsa una comunidad para filtrar</span>`}</header>
     <div class="body">${svgMapa}
     <div class="strip-legend" style="margin-top:12px">
-      <div><span class="sw" style="background:var(--panel-2);border:1px solid var(--rule-2)"></span>Sin actividad</div>
-      <div><span class="sw" style="background:#4A4270"></span>Baja</div>
-      <div><span class="sw" style="background:#8F79F2"></span>Media</div>
-      <div><span class="sw" style="background:#B95CA8"></span>Alta</div>
-      <div><span class="sw" style="background:#E94F87"></span>Máxima</div>
+      <div><span class="sw" style="background:var(--mp-0);border:1px solid var(--rule-2)"></span>Sin actividad</div>
+      <div><span class="sw" style="background:var(--mp-1)"></span>Baja</div>
+      <div><span class="sw" style="background:var(--mp-2)"></span>Media</div>
+      <div><span class="sw" style="background:var(--mp-3)"></span>Alta</div>
+      <div><span class="sw" style="background:var(--mp-4)"></span>Máxima</div>
       <div style="margin-left:auto" class="dim">Mapa esquemático, no a escala real</div>
     </div></div></div>
 
@@ -9629,7 +9668,7 @@ function viewMailing(el,ta){
     <div class="cell"><div class="lab">Tu plaza más fuerte</div><div class="val">${plazas.length?esc(plazas[0][0]):"—"}</div>
       <div class="note">${plazas.length?`${plazas[0][1]} contactos · ${Math.round(plazas[0][1]/total*100)} % de la base`:""}</div></div>
     <div class="cell"><div class="lab">Plazas con público</div><div class="val v-artist">${plazasReales}</div>
-      <div class="note">${plazasReales?"ciudades con 5 o más":"aún sin datos de ciudad"}</div></div>
+      <div class="note">${plazasReales?"ciudades con 5 o más":plazas.length?"ninguna llega a 5 todavía":"aún sin datos de ciudad"}</div></div>
     <div class="cell"><div class="lab">Seleccionados ahora</div><div class="val">${lista.length}</div>
       <div class="note">${lista.length!==total?"con los filtros puestos":"toda la base"}</div></div>
   </div>
