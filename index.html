@@ -4813,7 +4813,9 @@ function viewCalendario(el,ta){
 
     <div class="card" style="margin:0">
       <header><h3>${CAL.sel?fecha(CAL.sel):"Próximo"}</h3><div class="spacer"></div>
-        ${CAL.sel?`<button class="btn ghost sm" data-cal="deselect">Quitar</button>`:""}</header>
+        ${/* «Quitar» no decia lo que hace: al soltar el dia elegido el panel
+              vuelve a los proximos. Handoff de interfaz, 10 sep. */""}
+        ${CAL.sel?`<button class="btn ghost sm" data-cal="deselect">Ver próximos</button>`:""}</header>
       <div class="body flush">
         ${(CAL.sel&&(CTX[CAL.sel]||[]).length)?`<div style="padding:11px 14px;border-bottom:1px solid var(--rule)">
           ${(CTX[CAL.sel]||[]).map(x=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;--c:${(CTX_ESTILO[x.tipo]||CTX_ESTILO.otro).color}">
