@@ -1546,14 +1546,20 @@ body.claro .pr-tag.ext{background:#E3DED8;color:#672638}
 body.claro .pr-tag.hueco{background:#F4F1EE;color:#625B54}
 body.claro .storage .uava{background:#D99A2B;color:#000}
 body.claro .nbadge{background:#AF435A;color:#FFF}
-.p5-grid{display:grid;grid-template-columns:2fr 3fr;gap:16px;align-items:start}
+/* Los huecos son los de la propuesta: 20 entre columnas y 12 entre los
+   bloques de cada una. Y van por gap, no por margen de cada bloque: con
+   margenes, el «margin:0» que llevaba la tarjeta de avisos dejaba a cero el
+   hueco con la de movimientos, y las tarjetas se tocaban. */
+.p5-grid{display:grid;grid-template-columns:2fr 3fr;gap:20px;align-items:start}
+.p5-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.p5-col>*{margin:0}
 @media(max-width:1100px){.p5-grid{grid-template-columns:1fr}}
 .p5-donut{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
 .p5-donut .leyenda{flex:1;min-width:170px}
 .p5-donut .leyenda .p5f{display:flex;flex-direction:row;align-items:center;gap:9px;padding:4.5px 0;font-size:13px}
 .p5-donut .leyenda .p5f .cdot2{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
 .p5-donut .leyenda .p5f .pcx{margin-left:auto;font-family:var(--mono);font-size:11.5px;font-weight:700}
-.p5-kpi{border-radius:13px;padding:17px 19px;margin-top:14px;color:#FFF;cursor:pointer;text-align:left;width:100%;display:block}
+.p5-kpi{border-radius:17px;padding:17px 19px;color:#FFF;cursor:pointer;text-align:left;width:100%;display:block}
 .p5-kpi .fila1{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .p5-kpi .tit{font-size:12.5px;font-weight:700}
 .p5-kpi .imp{font-family:var(--cond);font-size:27px;font-weight:800;margin:3px 0 2px}
@@ -1604,8 +1610,35 @@ body.claro .p5-est.pend{background:#F8EED9;color:#7A5210}
 .rd-aviso.down{background:#FCDCD0;color:#9C3308}
 body:not(.claro) .rd-aviso.up{background:color-mix(in srgb,#34D399 18%,transparent);color:#34D399}
 body:not(.claro) .rd-aviso.down{background:color-mix(in srgb,#ED5564 18%,transparent);color:#ED5564}
-.rd-mueve .m{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:12.5px;cursor:pointer}
-.rd-mueve .m .v{margin-left:auto;font-family:var(--mono);font-size:11.5px;font-weight:700}
+.rd-mueve .m{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11.5px;cursor:pointer}
+.rd-mueve .m .nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.rd-mueve .m .tot{font-family:var(--mono);font-size:11px;color:var(--mute)}
+.rd-mueve .m .v{font-family:var(--mono);font-size:10.5px;font-weight:700;width:52px;text-align:right;flex:0 0 52px}
+.rd-mueve .grupo{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--mute);margin:2px 0 3px}
+.rd-mueve .grupo+.grupo,.rd-mueve .m+.grupo{margin-top:13px}
+/* La grafica, con las medidas de la propuesta: el eje Y en una canal de 44px,
+   180px de alto fijos y el Top 5 en su columna al lado. */
+.rd-grid{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:14px}
+@media(max-width:1000px){.rd-grid{grid-template-columns:1fr}}
+.rd-chart{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:16px;min-width:0}
+@media(max-width:760px){.rd-chart{grid-template-columns:1fr}}
+.rd-lienzo{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rd-plot{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;align-items:stretch}
+.rd-ey{position:relative;height:180px}
+.rd-ey span{position:absolute;right:0;transform:translateY(-50%);font-family:var(--mono);
+  font-size:9.5px;color:var(--mute-2);font-variant-numeric:tabular-nums}
+.rd-ex{display:flex;justify-content:space-between;font-size:9.5px;color:var(--mute-2)}
+.rd-top5{display:flex;flex-direction:column;gap:6px;justify-content:center;
+  border-left:1px solid var(--rule);padding-left:14px;min-width:0}
+@media(max-width:760px){.rd-top5{border-left:0;border-top:1px solid var(--rule);padding:12px 0 0}}
+.rd-top5 .t{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+/* «t5f» y no «f»: .f es la clase de los campos de formulario y es flex column,
+   asi que la fila salia apilada y centrada. */
+.rd-top5 .t5f{display:flex;flex-direction:row;align-items:center;gap:7px;font-size:11.5px}
+.rd-top5 .t5f i{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+.rd-top5 .t5f b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.rd-top5 .t5f .n{font-family:var(--mono);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
 th.rd-sort{cursor:pointer;user-select:none;white-space:nowrap}
 th.rd-sort:hover{color:var(--bone)}
 .rd-var{font-family:var(--mono);font-size:10px;font-weight:700}
@@ -4581,8 +4614,8 @@ function viewPanel(el,ta){
     ${P5_FUENTES.map(([k,lab])=>`<button class="chip ${filtro.panelFuente===k?"on":""}" data-fuente="${k}">${lab}</button>`).join("")}
   </div>
   <div class="p5-grid">
-    <div>
-      <div class="card" style="margin:0"><div class="body p5-donut">
+    <div class="p5-col">
+      <div class="card"><div class="body p5-donut">
         ${donut}
         <div class="leyenda">${P5_FUENTES.map(([k,lab,col])=>`<div class="p5f"><span class="cdot2" style="background:${col}"></span>
           <span>${lab}</span><span class="pcx">${total?Math.round(F[k]/total*100):0}%</span></div>`).join("")}
@@ -4598,8 +4631,8 @@ function viewPanel(el,ta){
         <div class="fila1"><span class="tit">Sin conciliar</span></div>
         <div class="imp">${eur0(sinConc)}</div><div class="sub2">Sin fuente asignada</div></button>
     </div>
-    <div>
-      <div class="card" id="p5atencion" style="margin:0"><header><h3>Requiere atención</h3><div class="spacer"></div>
+    <div class="p5-col">
+      <div class="card" id="p5atencion"><header><h3>Requiere atención</h3><div class="spacer"></div>
         ${alertas.length?`<span class="p5-abiertos">${alertas.length} ${alertas.length===1?"abierto":"abiertos"}</span>`:""}</header>
         <div class="body flush">
         ${alertas.length?alertas.map(a=>`<div class="p5-alerta">
@@ -7729,30 +7762,56 @@ function viewRedes(el,ta){
     .slice().sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,5);
   const COLORES5=["var(--serie-1)","var(--serie-2)","var(--serie-3)","var(--serie-4)","var(--serie-5)"];
 
+  /* Escala con paso redondo (1, 2 o 5 por decada) en vez de min-max pelado:
+     asi las cinco lineas de la rejilla caen en cifras que se pueden leer. */
+  const pasoBonito=r=>{
+    const b=Math.pow(10,Math.floor(Math.log10(r||1)));
+    return [1,2,2.5,5,10].map(m=>b*m).find(p=>p*4>=r)||b*10;
+  };
+  const redK=v=>v>=1000?Math.round(v/1000)+"K":String(Math.round(v));
+  const MES_CORTO=["ene","feb","mar","abr","may","jun","jul","ago","sept","oct","nov","dic"];
+  const diaMes=t=>{const d=new Date(t);return d.getDate()+" "+MES_CORTO[d.getMonth()]};
+
   const grafica=(()=>{
     if(top5.length<1)return "";
-    const W=620,H=190;
+    const W=600,H=180;                     // el viewBox se estira: preserveAspectRatio="none"
     const todas=top5.flatMap(f=>redesSerie90(f.c.id).map(p=>p.total));
     if(!todas.length)return "";
-    const min=Math.min(...todas),max=Math.max(...todas);
+    const min0=Math.min(...todas),max0=Math.max(...todas);
+    const paso=pasoBonito(max0-min0||max0||1);
+    const lo=Math.floor(min0/paso)*paso, hi=Math.max(lo+paso,Math.ceil(max0/paso)*paso);
     const d0=new Date(_hace(90)).getTime(),dw=Date.now()-d0||1;
+    const yDe=v=>H-(v-lo)/(hi-lo)*H;
+    /* Cinco lineas de rejilla, del paso de arriba. La de abajo hace de eje. */
+    const ticks=[];for(let v=lo;v<=hi+.001;v+=paso)ticks.push(v);
+    const rejilla=ticks.map(v=>`<line x1="0" x2="${W}" y1="${yDe(v).toFixed(1)}" y2="${yDe(v).toFixed(1)}"
+      stroke="var(--rule)" stroke-width="1" vector-effect="non-scaling-stroke"/>`).join("");
+    const ejeY=ticks.map(v=>`<span style="top:${yDe(v).toFixed(1)}px">${redK(v)}</span>`).join("");
     const lineas=top5.map((f,i)=>{
       const serie=redesSerie90(f.c.id);
-      const pts=serie.map(p=>{
-        const x=((new Date(p.fecha).getTime()-d0)/dw*(W-16)+8).toFixed(1);
-        const y=(max===min?H/2:(H-14)-(p.total-min)/(max-min)*(H-28)+8).toFixed(1);
-        return `${x},${y}`;
-      }).join(" ");
-      return `<polyline points="${pts}" fill="none" stroke="${COLORES5[i]}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+      const pts=serie.map(p=>`${((new Date(p.fecha).getTime()-d0)/dw*W).toFixed(1)},${yDe(p.total).toFixed(1)}`).join(" ");
+      /* vector-effect: sin el, al estirar el viewBox el trazo engorda de un lado */
+      return `<polyline points="${pts}" fill="none" stroke="${COLORES5[i]}" stroke-width="2"
+        stroke-linejoin="round" vector-effect="non-scaling-stroke"><title>${esc(f.c.nombre||f.c.nombreReal)}: ${(f.total||0).toLocaleString("es-ES")} seguidores</title></polyline>`;
     }).join("");
-    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="Seguidores a 90 días">
-      <line x1="8" y1="${H-14}" x2="${W-8}" y2="${H-14}" stroke="var(--rule-2)" stroke-width="1"/>
-      ${lineas}</svg>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px">
-        ${top5.map((f,i)=>`<span class="tiny dim" style="display:inline-flex;align-items:center;gap:6px">
-          <i style="width:9px;height:9px;border-radius:50%;background:${COLORES5[i]};display:inline-block"></i>
-          ${esc(f.c.nombre||f.c.nombreReal)} · <b style="color:var(--bone)">${(f.total||0).toLocaleString("es-ES")}</b></span>`).join("")}
-      </div>`;
+    const ejeX=[0,.3333,.6667,1].map(k=>`<div>${diaMes(d0+dw*k)}</div>`).join("");
+    return `<div class="rd-chart">
+      <div class="rd-lienzo">
+        <div class="rd-plot">
+          <div class="rd-ey">${ejeY}</div>
+          <svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"
+            style="display:block;overflow:visible" role="img" aria-label="Seguidores de los cinco mayores en los últimos 90 días">
+            ${rejilla}${lineas}</svg>
+        </div>
+        <div class="rd-plot"><div></div><div class="rd-ex">${ejeX}</div></div>
+      </div>
+      <div class="rd-top5">
+        <div class="t">Top 5</div>
+        ${top5.map((f,i)=>`<div class="t5f"><i style="background:${COLORES5[i]}"></i>
+          <b>${esc(f.c.nombre||f.c.nombreReal)}</b>
+          <span class="n">${redK(f.total||0)}</span></div>`).join("")}
+      </div>
+    </div>`;
   })();
 
   const avisos=redesAvisos();
@@ -7776,11 +7835,11 @@ function viewRedes(el,ta){
   ${avisos.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
     ${avisos.map(a=>`<button type="button" class="rd-aviso ${a.tipo}" data-act="redes-art" data-id="${a.cliId}">${a.tipo==="up"?"▲":"▼"} ${esc(a.t)}</button>`).join("")}
   </div>`:""}
-  ${grafica?`<div class="p5-grid" style="margin-bottom:16px">
-    <div class="card" style="margin:0;grid-column:span 1"><header><h3>Los cinco mayores · 90 días</h3></header><div class="body">${grafica}</div></div>
+  ${grafica?`<div class="rd-grid" style="margin-bottom:16px">
+    <div class="card" style="margin:0"><header><h3>Los cinco mayores · 90 días</h3></header><div class="body">${grafica}</div></div>
     <div class="card rd-mueve" style="margin:0"><header><h3>Quién se mueve · 30 días</h3></header><div class="body">
-      ${suben.length?suben.map(f=>`<div class="m" data-act="redes-art" data-id="${f.c.id}">${avatarHTML(f.c,26)}<span>${esc(f.c.nombre||f.c.nombreReal)}</span><span class="v" style="color:var(--ok)">+${f.v30.abs.toLocaleString("es-ES")}</span></div>`).join(""):`<div class="dim tiny">Nadie sube todavía este mes.</div>`}
-      ${bajan.length?`<div style="border-top:1px solid var(--rule);margin:8px 0"></div>`+bajan.map(f=>`<div class="m" data-act="redes-art" data-id="${f.c.id}">${avatarHTML(f.c,26)}<span>${esc(f.c.nombre||f.c.nombreReal)}</span><span class="v" style="color:var(--alert)">${f.v30.abs.toLocaleString("es-ES")}</span></div>`).join(""):""}
+      ${suben.length?`<div class="grupo">Suben</div>`+suben.map(f=>`<div class="m" data-act="redes-art" data-id="${f.c.id}">${avatarHTML(f.c,22)}<span class="nom">${esc(f.c.nombre||f.c.nombreReal)}</span><span class="tot">${redK(f.total||0)}</span><span class="v" style="color:var(--ok)">+${f.v30.pct!=null?Math.abs(f.v30.pct).toFixed(1)+"%":f.v30.abs.toLocaleString("es-ES")}</span></div>`).join(""):`<div class="dim tiny">Nadie sube todavía este mes.</div>`}
+      ${bajan.length?`<div class="grupo">Bajan</div>`+bajan.map(f=>`<div class="m" data-act="redes-art" data-id="${f.c.id}">${avatarHTML(f.c,22)}<span class="nom">${esc(f.c.nombre||f.c.nombreReal)}</span><span class="tot">${redK(f.total||0)}</span><span class="v" style="color:var(--alert)">−${f.v30.pct!=null?Math.abs(f.v30.pct).toFixed(1)+"%":Math.abs(f.v30.abs).toLocaleString("es-ES")}</span></div>`).join(""):""}
     </div></div>
   </div>`:""}
   <div class="chips">
