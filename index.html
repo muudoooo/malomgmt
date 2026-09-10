@@ -1432,27 +1432,39 @@ td.v-malo,td.v-artist{color:var(--bone)}
    mismas variables. Lo que esté en hex fijo (estados apagados, pills de
    categoría) se queda igual a propósito. */
 body.claro{color-scheme:light;font-variant-numeric:tabular-nums;
-  --ink:#FBFCF6; --panel:#FFFFFF; --panel-2:#F4EFF3; --panel-3:#ECE5EA;
-  --rule:#EAE4E8; --rule-2:#DCD3DA; --bone:#331028; --mute:#5C4256; --mute-2:#8D7A87;
-  --malo:#E7478A; --artist:#6D2C7E; --violet:#6D2C7E;
-  --ok:#0F6A3A; --warn:#A16F00; --alert:#9C3308; --c-artista:#00B8D2}
+  /* Paleta de la propuesta v6 (10 sep): crema y tinta negra, con teal, granate
+     y mostaza de acento. Sustituye a la «Chromio» de la v5 (rosa, lila, cian).
+
+     DOS DESVIACIONES, las dos por contraste, y las dos de un solo valor:
+     · La tinta apagada de la v6 (#ADA399) se queda en 2,0-2,5:1 sobre estos
+       cremas y aquí pinta rótulos de 9,5 px. Se usa #71665B, su mismo matiz más
+       oscuro, que da 4,63:1 en el peor fondo.
+     · Los acentos de la v6 están pensados como FONDO (su mapa ON los empareja
+       con negro o blanco y todos pasan de 5:1). Como TINTA sobre crema, cuatro
+       no llegan: teal 1,97 · mostaza 2,02 · rosa 4,26 · teal oscuro 4,27. Los
+       tokens de texto usan la variante oscurecida del mismo matiz; el color
+       original se conserva donde de verdad va de fondo (KPI, pills, etiquetas). */
+  --ink:#FAF8F6; --panel:#FFFFFF; --panel-2:#F4F1EE; --panel-3:#EDE9E4;
+  --rule:#E3DED8; --rule-2:#D3CCC2; --bone:#000000; --mute:#625B54; --mute-2:#71665B;
+  --malo:#2E736C; --artist:#672638; --violet:#672638;
+  --ok:#1C736A; --warn:#896119; --alert:#AF435A; --c-artista:#2E736C}
 /* Estados como parejas fondo/tinta (handoff §1) */
-body.claro .pill{border-color:transparent;background:#F4EFF3;color:#6F5A68;font-weight:700}
-body.claro .pill.ok{background:#D6F3E1;color:#0F6A3A}
-body.claro .pill.warn{background:#F6E6A8;color:#6B4E00}
-body.claro .pill.alert{background:#FCDCD0;color:#9C3308}
-body.claro .pill.malo{background:#FBE0EB;color:#A3235C}
-body.claro .pill.artist,body.claro .pill.violet{background:#EFE0F3;color:#6D2C7E}
+body.claro .pill{border-color:transparent;background:#F4F1EE;color:#625B54;font-weight:700}
+body.claro .pill.ok{background:#E8FAF7;color:#1C736A}
+body.claro .pill.warn{background:#F8EED9;color:#7A5210}
+body.claro .pill.alert{background:#E2A3AF;color:#672638}
+body.claro .pill.malo{background:#ADEEDE;color:#000}
+body.claro .pill.artist,body.claro .pill.violet{background:#E3DED8;color:#672638}
 body.claro .pill.cat{background:transparent;border:1px solid var(--rule-2);font-weight:600}
 /* Tarjetas 16–18, modales 22, sin sombras; overlay berenjena */
 body.claro .card{border-radius:17px;box-shadow:none}
 body.claro .modal{border-radius:22px;box-shadow:0 18px 44px rgba(51,16,40,.16);border-color:var(--rule)}
 body.claro .modal-bg{background:rgba(51,16,40,.46)}
 /* Filas: alterna casi imperceptible y hover rosado */
-body.claro tbody tr:nth-child(even):not(.click:hover) td{background:#FDFBFC}
-body.claro tbody tr.click:hover td,body.claro tbody tr.click:hover{background:#FBE0EB}
+body.claro tbody tr:nth-child(even):not(.click:hover) td{background:#FBF9F7}
+body.claro tbody tr.click:hover td,body.claro tbody tr.click:hover{background:#E8FAF7}
 body.claro .brand-logo{background:#FFF}
-body.claro nav button.on{background:#331028;color:#FFF}
+body.claro nav button.on{background:#000;color:#FFF}
 body.claro .topbar,body.claro .dock{background:var(--ink)}
 
 /* Grupos plegables de la barra lateral */
@@ -1495,6 +1507,27 @@ nav button.nav-grupo[aria-expanded="true"] svg.fl{transform:rotate(90deg)}
   transition:background .12s,color .12s}
 .chip:hover{color:var(--bone)}
 .chip.on{background:#331028;color:#FFF;border-color:#331028}
+/* Anulaciones del tema claro con la paleta v6. Van aparte a propósito: las
+   reglas de arriba las comparte el tema oscuro, que sigue con el rosa MALO. */
+body.claro .chip.on{background:#000;color:#FFF;border-color:#000}
+/* Los nombres de clase (rosa/violeta/ambar) son de la paleta v5 y ya no dicen
+   el color: van por destino — rosa→Bolsillo, violeta→Fechas, ambar→Merch. Se
+   respetan los colores que tiene cada tarjeta en la v6: liquidado teal,
+   pendiente mostaza, sin conciliar granate. Renombrarlas tocaría el tema
+   oscuro, que sigue con la paleta de siempre. */
+body.claro .p5-kpi.rosa{background:#4FB8AE;color:#000}
+body.claro .p5-kpi.violeta{background:#D99A2B;color:#000}
+body.claro .p5-kpi.ambar{background:#B8465F;color:#FFF}
+body.claro .p5-est.liq{background:#ADEEDE;color:#000}
+body.claro .p5-est.pend{background:#F8EED9;color:#7A5210}
+body.claro .p5-abiertos{background:#E2A3AF;color:#672638}
+body.claro .rd-aviso.up{background:#E8FAF7;color:#1C736A}
+body.claro .rd-aviso.down{background:#E2A3AF;color:#672638}
+body.claro .pr-tag.roster{background:#ADEEDE;color:#000}
+body.claro .pr-tag.ext{background:#E3DED8;color:#672638}
+body.claro .pr-tag.hueco{background:#F4F1EE;color:#625B54}
+body.claro .storage .uava{background:#D99A2B;color:#000}
+body.claro .nbadge{background:#AF435A;color:#FFF}
 .p5-grid{display:grid;grid-template-columns:2fr 3fr;gap:16px;align-items:start}
 @media(max-width:1100px){.p5-grid{grid-template-columns:1fr}}
 .p5-donut{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
@@ -3822,7 +3855,7 @@ function aplicarOrden(list,modo,getters){
 const VIEWS=[
   {id:"panel",label:"Panel",k:"1"},
   {id:"calendario",label:"Calendario",k:"2"},
-  {id:"shows",label:"Shows",k:"3"},
+  {id:"shows",label:"Fechas",k:"3"},
   {id:"tareas",label:"Tareas",k:"t"},
   {id:"producciones",label:"Producciones propias",k:"4"},
   {id:"clientes",label:"Clientes",k:"5"},
@@ -3831,7 +3864,7 @@ const VIEWS=[
   {id:"mailing",label:"Mailing",k:"8"},
   {id:"medios",label:"Medios",k:"p"},
   {id:"mapa",label:"Mapa",k:"9"},
-  {id:"canciones",label:"Canciones",k:"m"},
+  {id:"canciones",label:"Catálogo",k:"m"},
   {id:"editorial",label:"Editorial",k:"e"},
   {id:"bolsillo",label:"Bolsillo",k:"b"},
   {id:"merch",label:"Merch",k:"h"},
@@ -3876,8 +3909,13 @@ const DOCK_PRIMERO=["panel","shows","contactos","redes","calendario"];
    Deben cubrir TODOS los ids de VIEWS: lo que falte no saldría en el menú. */
 const NAV_GRUPOS=[
   ["Día a día",["panel","calendario","shows","tareas","clientes","redes"]],
-  ["Música",["canciones","editorial","bolsillo"]],
-  ["Gestión",["producciones","merch","contactos","documentos","mailing","medios","mapa","capturas"]],
+  /* «Portal del artista» en lugar de «Música» (propuesta v6): son las secciones
+     que el artista ve en su portal y que el equipo consulta en su nombre —las
+     mismas cuatro de PORTAL_VIEWS quitando inicio, agenda, redes y soporte, que
+     viven en otros grupos. La v6 lista bolsillo, catálogo y merch; editorial va
+     aquí por lo mismo, y porque al desaparecer «Música» se quedaba sin grupo. */
+  ["Portal del artista",["bolsillo","canciones","editorial","merch"]],
+  ["Gestión",["producciones","contactos","documentos","mailing","medios","mapa","capturas"]],
   ["Sistema",["equipo","generadores","soporte","datos"]]];
 /* Qué grupos están abiertos en la barra lateral (propuesta v5: los cerrados
    enseñan un puntito por apartado). El grupo del apartado activo se abre solo. */
