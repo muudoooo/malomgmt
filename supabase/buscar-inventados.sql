@@ -4,15 +4,38 @@
 -- de prueba, y han quedado mezclados con los de verdad. Esto NO BORRA NADA:
 -- son cuatro SELECT que los señalan para que se puedan repasar antes.
 --
--- Cómo se distinguen: un cliente real siempre tiene algo colgando —una fecha,
--- una canción, una toma de redes, una tarea—. Uno metido para ver cómo quedaba
--- una pantalla no tiene nada. Ese es el criterio, no el nombre, que es lo único
--- que no se puede juzgar desde aquí.
+-- Cómo se distinguen, por orden de fiabilidad:
+--   1) La ficha repite el nombre de artista en el nombre legal, o lo deja
+--      vacío. Al dar de alta a alguien de verdad se escribe su nombre de
+--      persona; al probar se teclea dos veces lo mismo o no se rellena.
+--   2) No tiene nada colgando: ni una fecha, ni una canción, ni una toma de
+--      redes, ni un reparto, ni editorial, ni merch, ni una tarea.
+-- El nombre en sí es lo único que no se puede juzgar desde aquí.
 --
 -- Después: bórralos DESDE LA APP (ficha del cliente o del contacto → Eliminar),
 -- no con un DELETE. La app avisa si tiene fechas, borra también sus eventos de
 -- agenda y los quita de su Google Calendar; un DELETE a pelo deja todo eso
 -- suelto.
+
+-- 0 · EL RASTRO MÁS CLARO: la ficha no tiene nombre de persona ─────────────
+--     Un alta de verdad lleva el nombre legal de quien firma. En las pruebas
+--     se repite el nombre de artista o se deja en blanco.
+select c.id, c.nombre, c.nombre_real, c.categoria, c.subcategoria, c.activo,
+       case
+         when coalesce(nullif(btrim(c.nombre_real),''),'') = '' then 'sin nombre legal'
+         when lower(btrim(c.nombre_real)) = lower(btrim(c.nombre))  then 'repite el de artista'
+         else 'parecido al de artista'
+       end as por_que,
+       c.email, c.nif, c.iban,
+       (select count(*) from shows           s where s.cliente_id = c.id) as fechas,
+       (select count(*) from canciones       n where n.artista_id = c.id) as canciones,
+       (select count(*) from redes_snapshots r where r.cliente_id = c.id) as tomas_redes
+from clientes c
+where c.categoria is distinct from 'evento'          -- un evento no tiene nombre legal
+  and (coalesce(nullif(btrim(c.nombre_real),''),'') = ''
+    or lower(btrim(c.nombre_real)) = lower(btrim(c.nombre))
+    or lower(btrim(c.nombre_real)) like '%'||lower(btrim(c.nombre))||'%')
+order by fechas, canciones, c.nombre;
 
 -- 1 · CLIENTES sin nada colgando ────────────────────────────────────────────
 select c.id, c.nombre, c.nombre_real, c.categoria, c.subcategoria,
