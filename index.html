@@ -90,7 +90,7 @@ nav button.on{background:var(--panel-3);color:var(--bone)}
 .topbar h2{font-size:15px;font-weight:600}
 .topbar .sub{font-family:var(--mono);font-size:10.5px;color:var(--mute-2);letter-spacing:.06em;text-transform:uppercase}
 .topbar .spacer{flex:1}
-.topbar select,#topActions select{background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;
+.topbar select,#topActions select{background:var(--panel);border:1px solid var(--rule-2);border-radius:10px;
   padding:6px 10px;color:var(--bone);font-size:12.5px}
 /* Sin esto los controles se apilan y se salen de la barra: mide 56px y el div
    iba en bloque, así que dos selects sumaban 64px y asomaban por arriba. */
@@ -175,8 +175,8 @@ nav button.on{background:var(--panel-3);color:var(--bone)}
 .btn.primary:hover{background:#F878A6;border-color:#F878A6}
 .btn.ghost{background:none;border-color:transparent;color:var(--mute)}
 .btn.ghost:hover{color:var(--bone);background:var(--panel-2)}
-.btn.danger{border-color:rgba(237,85,100,.4);color:var(--alert)}
-.btn.danger:hover{background:rgba(237,85,100,.1)}
+.btn.danger{border-color:color-mix(in srgb,var(--alert) 40%,transparent);color:var(--alert)}
+.btn.danger:hover{background:color-mix(in srgb,var(--alert) 10%,transparent)}
 .btn.sm{padding:4px 9px;font-size:11.5px}
 .btn:focus-visible,nav button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.day:focus-visible{outline:2px solid var(--malo);outline-offset:2px}
 
@@ -218,12 +218,12 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 .pill{display:inline-block;padding:2.5px 8px;border-radius:20px;font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;border:1px solid var(--rule-2);color:var(--mute);white-space:nowrap}
 .pill.ok{border-color:rgba(63,163,91,.45);color:var(--ok)}
 .pill.warn{border-color:rgba(217,130,43,.45);color:var(--warn)}
-.pill.alert{border-color:rgba(237,85,100,.45);color:var(--alert)}
-.pill.malo{border-color:rgba(240,86,143,.45);color:var(--malo)}
-.pill.artist{border-color:rgba(143,121,242,.45);color:var(--artist)}
-.pill.violet{border-color:rgba(143,121,242,.45);color:var(--violet)}
+.pill.alert{border-color:color-mix(in srgb,var(--alert) 45%,transparent);color:var(--alert)}
+.pill.malo{border-color:color-mix(in srgb,var(--malo) 45%,transparent);color:var(--malo)}
+.pill.artist{border-color:color-mix(in srgb,var(--artist) 45%,transparent);color:var(--artist)}
+.pill.violet{border-color:color-mix(in srgb,var(--artist) 45%,transparent);color:var(--violet)}
 .red-link{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:11px;
-  font-weight:500;text-decoration:none;background:rgba(143,121,242,.14);border:1px solid rgba(143,121,242,.5);
+  font-weight:500;text-decoration:none;background:color-mix(in srgb,var(--artist) 14%,transparent);border:1px solid color-mix(in srgb,var(--artist) 50%,transparent);
   color:#A98BF5;white-space:nowrap;transition:background .12s,color .12s}
 .red-link:hover{background:var(--violet);color:var(--ink);border-color:var(--violet)}
 .red-link::after{content:"↗";font-size:9px;opacity:.7}
@@ -351,14 +351,17 @@ table.tfix td,table.tfix th{overflow:hidden;text-overflow:ellipsis}
 .pipe{display:flex;gap:3px;align-items:center}
 .pipe span{height:3px;width:15px;border-radius:2px;background:var(--rule-2)}
 .pipe span.on{background:var(--malo)}
-.pipe span.dead{background:rgba(237,85,100,.55)}
+.pipe span.dead{background:color-mix(in srgb,var(--alert) 55%,transparent)}
 
 .strip-bar{display:flex;height:34px;border-radius:5px;overflow:hidden;border:1px solid var(--rule);background:var(--panel-2)}
 .strip-bar div{display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:var(--mono);font-size:10px;transition:flex-basis .25s ease}
-.seg-artist{background:rgba(143,121,242,.9);color:#170B3D}
-.seg-malo{background:rgba(240,86,143,.92);color:#2A0714}
+.seg-artist{background:color-mix(in srgb,var(--artist) 90%,transparent);color:#170B3D}
+.seg-malo{background:color-mix(in srgb,var(--malo) 92%,transparent);color:#2A0714}
+/* La tinta oscura de estos tres segmentos estaba pensada para el rosa y el
+   lila claros de la v5. Los acentos de la v6 son oscuros: encima va blanco. */
+body.claro .seg-artist,body.claro .seg-malo,body.claro .seg-ret{color:#FFF}
 .seg-gastos{background:var(--rule-2);color:var(--bone)}
-.seg-ret{background:rgba(237,85,100,.75);color:#2A0709}
+.seg-ret{background:color-mix(in srgb,var(--alert) 75%,transparent);color:#2A0709}
 .strip-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
 .strip-legend div{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mute)}
 .sw{width:9px;height:9px;border-radius:2px;flex:0 0 9px}
@@ -381,7 +384,7 @@ table.tfix td,table.tfix th{overflow:hidden;text-overflow:ellipsis}
 .day:nth-child(7n){border-right:none}
 .day:hover{background:var(--panel-2)}
 .day.out{opacity:.32}
-.day.today{background:rgba(240,86,143,.06)}
+.day.today{background:color-mix(in srgb,var(--malo) 6%,transparent)}
 .day.today .dn{background:var(--malo);color:#1A1206;border-radius:4px}
 .day.sel{background:var(--panel-3);box-shadow:inset 0 0 0 1px var(--rule-2)}
 .dn{font-family:var(--mono);font-size:11px;color:var(--mute);width:20px;height:18px;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
@@ -393,9 +396,9 @@ table.tfix td,table.tfix th{overflow:hidden;text-overflow:ellipsis}
 .ctx{font-size:9px;line-height:1.3;padding:1px 4px;border-radius:3px;margin-bottom:2px;overflow:hidden;
   white-space:nowrap;text-overflow:ellipsis;background:color-mix(in srgb,var(--cc) 14%,transparent);color:var(--cc);
   border-left:2px solid var(--cc);max-width:100%}
-.day.festivo{background:rgba(237,85,100,.05)}
+.day.festivo{background:color-mix(in srgb,var(--alert) 5%,transparent)}
 .day.festivo .dn{color:var(--alert)}
-.clash{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 3px rgba(237,85,100,.18)}
+.clash{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 3px color-mix(in srgb,var(--alert) 18%,transparent)}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
 .legend div{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mute)}
 .agenda-item{padding:11px 14px;border-bottom:1px solid var(--panel-2);cursor:pointer;display:flex;gap:10px;align-items:flex-start}
@@ -619,19 +622,22 @@ html.dw-sin-scroll-x{overflow-x:hidden}
 .buscable-vacio{padding:8px 10px;font-size:12.5px;color:var(--mute-2)}
 
 .modal-x:hover{color:var(--bone);background:var(--panel-3)}
-.x:hover{color:var(--alert);background:rgba(237,85,100,.1)}
+.x:hover{color:var(--alert);background:color-mix(in srgb,var(--alert) 10%,transparent)}
 .filters{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
-.filters input,.filters select{background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;padding:7px 11px;color:var(--bone)}
-.calbar select{background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;padding:7px 11px;color:var(--bone);font-size:13px}
+.filters input,.filters select{background:var(--panel);border:1px solid var(--rule-2);border-radius:10px;padding:7px 11px;color:var(--bone)}
+.calbar select{background:var(--panel);border:1px solid var(--rule-2);border-radius:10px;padding:7px 11px;color:var(--bone);font-size:13px}
 /* Las <option> heredan colores del sistema y en fondo oscuro quedaban ilegibles */
 /* Base de cualquier <select>: hasta ahora solo tenían estilo los que caían
    dentro de .filters, .f, .calbar, .liq-bar… y el que se escribía fuera de esos
    contenedores —los dos del bloque Ticketera, en Producciones— se quedaba con
    el aspecto nativo. Es un selector de elemento, la especificidad más baja:
    donde ya había regla por contenedor, esa sigue mandando. */
-select{background:var(--panel);border:1px solid var(--rule-2);border-radius:5px;
+select{background:var(--panel);border:1px solid var(--rule-2);border-radius:10px;
   padding:6px 9px;color:var(--bone);max-width:100%}
-select option,select optgroup{background:#1D2740;color:#EEF1F8}
+/* Iba sin condicionar al tema, asi que en claro abrir cualquier desplegable
+   daba una lista azul marino sobre una app crema. */
+body:not(.claro) select option,body:not(.claro) select optgroup{background:#1D2740;color:#EEF1F8}
+body.claro select option,body.claro select optgroup{background:var(--panel);color:var(--bone)}
 .filters input[type=search]{min-width:230px}
 /* El min-width del combo solo existía dentro de .fl; suelto en la barra —como
    en Canciones— se quedaba al ancho por defecto del <input> y cortaba el texto. */
@@ -735,7 +741,7 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
 .cn-flags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .cn-flag{font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;
   padding:2px 6px;border-radius:4px;border:1px solid var(--rule-2);color:var(--mute)}
-.cn-flag.warn{border-color:rgba(240,86,143,.5);color:var(--malo)}
+.cn-flag.warn{border-color:color-mix(in srgb,var(--malo) 50%,transparent);color:var(--malo)}
 /* Chapa de video: va encima de la portada porque es la accion secundaria de la
    ficha (la principal, tocar la tarjeta, abre la canción). Es un <span> con
    data-yt, no un <a>, porque la tarjeta entera ya es un <button> y anidar un
@@ -785,7 +791,7 @@ select option,select optgroup{background:#1D2740;color:#EEF1F8}
     padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
 }
 .bar-be{position:relative;height:26px;border-radius:5px;background:var(--panel-2);border:1px solid var(--rule);overflow:hidden}
-.bar-be .fill{height:100%;background:rgba(143,121,242,.55)}
+.bar-be .fill{height:100%;background:color-mix(in srgb,var(--artist) 55%,transparent)}
 .bar-be .be{position:absolute;top:0;bottom:0;width:2px;background:var(--malo)}
 .bar-be .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10.5px}
 /* ── Hoja de ruta · documento A4, calcado de la plantilla de MALO ──
@@ -1273,7 +1279,7 @@ body.portal .distrib-nueva{display:block;margin-bottom:14px}
 .hero-movil{display:none}
 @media(max-width:900px){
   button.hero-movil{display:block;width:100%;text-align:left;border-radius:16px;padding:15px 16px;margin-bottom:14px;
-    background:linear-gradient(135deg,rgba(240,86,143,.16),rgba(143,121,242,.14)),var(--panel);
+    background:linear-gradient(135deg,color-mix(in srgb,var(--malo) 16%,transparent),color-mix(in srgb,var(--artist) 14%,transparent)),var(--panel);
     border:1px solid color-mix(in srgb,var(--malo) 30%,var(--rule-2));color:var(--bone)}
   .hero-movil .eti{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--malo);font-weight:700}
   .hero-movil .hf{display:block;font-size:13.5px;margin-top:8px;font-weight:600}
@@ -1287,7 +1293,7 @@ body.portal .distrib-nueva{display:block;margin-bottom:14px}
 @media(max-width:900px){
   .mbar .oculta-movil{display:none}
   .fhm{display:block;border-radius:14px;padding:14px 15px;margin:0 0 16px;
-    background:linear-gradient(135deg,rgba(240,86,143,.16),rgba(143,121,242,.14)),var(--panel);
+    background:linear-gradient(135deg,color-mix(in srgb,var(--malo) 16%,transparent),color-mix(in srgb,var(--artist) 14%,transparent)),var(--panel);
     border:1px solid color-mix(in srgb,var(--malo) 30%,var(--rule-2))}
   .fhm .eti{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--malo);font-weight:700}
   .fhm .hq{display:block;font-size:21px;font-weight:900;letter-spacing:-.02em;margin-top:6px}
@@ -1327,14 +1333,14 @@ body.portal .distrib-nueva{display:block;margin-bottom:14px}
 
 .btn{border-radius:10px;transition:background .14s,border-color .14s,transform .1s}
 .btn:active{transform:scale(.97)}
-.btn.primary{box-shadow:0 4px 14px rgba(240,86,143,.28)}
+.btn.primary{box-shadow:0 4px 14px color-mix(in srgb,var(--malo) 28%,transparent)}
 .btn.sm{border-radius:9px}
 .filtros-btn{border-radius:10px}
 
 .f input,.f select,.f textarea{border-radius:10px;padding:9px 12px;
   transition:border-color .14s,box-shadow .14s}
 .f input:focus,.f select:focus,.f textarea:focus{border-color:var(--malo);
-  box-shadow:0 0 0 3px rgba(240,86,143,.16);outline:none}
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--malo) 16%,transparent);outline:none}
 .filters input,.filters select,.filters .buscable-input{border-radius:10px}
 .liq-bar select{border-radius:10px}
 #anioSel,#rdArt{border-radius:10px!important}
@@ -1752,7 +1758,7 @@ tr.fila-activa td{background:color-mix(in srgb,var(--malo) 7%,transparent)}
   .p-cab.con-hero .strip{margin-bottom:0}
   .p-cab.con-hero button.hero-movil{display:block;width:100%;text-align:left;margin:0;
     border-radius:16px;padding:17px 18px;
-    background:linear-gradient(135deg,rgba(240,86,143,.16),rgba(143,121,242,.14)),var(--panel);
+    background:linear-gradient(135deg,color-mix(in srgb,var(--malo) 16%,transparent),color-mix(in srgb,var(--artist) 14%,transparent)),var(--panel);
     border:1px solid color-mix(in srgb,var(--malo) 24%,transparent);color:var(--bone);cursor:pointer}
   .p-cab.con-hero .hero-movil .eti{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--malo);font-weight:700}
   .p-cab.con-hero .hero-movil .hf{display:block;font-size:13.5px;margin-top:10px;font-weight:600}
@@ -4955,7 +4961,7 @@ function viewCalendario(el,ta){
                     <option value="pendiente" ${(sh.cobro&&sh.cobro.estado)==="cobrado"?"":"selected"}>cobro pendiente</option>
                     <option value="cobrado" ${(sh.cobro&&sh.cobro.estado)==="cobrado"?"selected":""}>cobrado</option></select></div>`;})()}
             </div>
-            ${i.t==="show"?(i.esDj?`<span class="pill artist">${i.parte?eur0(i.parte):"DJ"}</span>`:`<span class="pill malo">${eur0(i.importe)}</span>`):i.t==="prod"?`<span class="pill" style="border-color:rgba(52,211,153,.5);color:#34D399">${eur0(i.importe)}</span>`:`<span class="pill">agenda</span>`}
+            ${i.t==="show"?(i.esDj?`<span class="pill artist">${i.parte?eur0(i.parte):"DJ"}</span>`:`<span class="pill malo">${eur0(i.importe)}</span>`):i.t==="prod"?`<span class="pill" style="border-color:color-mix(in srgb,var(--ok) 50%,transparent);color:#34D399">${eur0(i.importe)}</span>`:`<span class="pill">agenda</span>`}
           </div>`}).join("")
         :`<div class="empty"><p>${CAL.sel?"Nada este día.":"Nada próximo."}</p>
            <button class="btn sm" data-act="new-evento">Añadir a la agenda</button></div>`}
@@ -5159,7 +5165,7 @@ function etBloque(){
           <td class="num">${e.ingresos!=null?eur0(e.ingresos):"—"}</td>
           <td style="min-width:150px">${DB.sinEtArtistas
             ? `<span class="dim tiny">falta el SQL</span>`
-            : `<select data-et-cli="${esc(e.id)}" style="width:100%;font-size:11px;padding:3px 6px">
+            : `<select data-et-cli="${esc(e.id)}" style="width:100%">
                 <option value="">— de MALO —</option>
                 ${DB.clientes.map(c=>`<option value="${c.id}" ${e.clienteId===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}
               </select>`}
@@ -5697,7 +5703,7 @@ function formProduccion(id){
         <div class="fill" style="width:${ancho}%"></div>
         ${bePos!==null?`<div class="be" style="left:${bePos}%" title="Punto de equilibrio"></div>`:""}
         <div class="lbl">${c.vendidas} / ${base} · ${Math.round(ancho)} % ${c.aforo?"de aforo":"del cupo"}</div></div>
-      <div class="strip-legend"><div><span class="sw" style="background:rgba(143,121,242,.55)"></span>Vendidas</div>
+      <div class="strip-legend"><div><span class="sw" style="background:color-mix(in srgb,var(--artist) 55%,transparent)"></span>Vendidas</div>
         ${bePos!==null?`<div><span class="sw" style="background:var(--malo)"></span>Punto de equilibrio: ${c.beEntradas} entradas (${Math.round(c.beEntradas/base*100)} % ${c.aforo?"del aforo":"del cupo"})</div>`:""}</div>`
       :c.modoFee?`<div class="pill malo" style="font-size:11px">Fee fijo pactado — el resultado no depende de la asistencia</div>`:""}
       <div class="fgrid" style="margin-top:18px">
@@ -6580,7 +6586,7 @@ function viewMisCanciones(el,ta){
     const pts=vals.map((v,i)=>[(i/(vals.length-1))*W,H-2-(v/vmax)*(H-5)]);
     const linea=pts.map((pt,i)=>(i?"L":"M")+pt[0].toFixed(1)+","+pt[1].toFixed(1)).join(" ");
     return `<svg class="cn-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-      <path d="${linea} L${W},${H} L0,${H} Z" fill="rgba(240,86,143,.14)"/>
+      <path d="${linea} L${W},${H} L0,${H} Z" fill="color-mix(in srgb,var(--malo) 14%,transparent)"/>
       <path d="${linea}" fill="none" stroke="var(--malo)" stroke-width="1.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
     </svg>`;
   }
@@ -8403,7 +8409,7 @@ function viewMapa(el,ta){
       <div class="note">Pulsa para asignarlas y que cuenten</div></div>`:""}
   </div>
 
-  ${sinMapear.length?`<div class="card" style="border-color:rgba(237,85,100,.4)"><div class="body" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  ${sinMapear.length?`<div class="card" style="border-color:color-mix(in srgb,var(--alert) 40%,transparent)"><div class="body" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
     <div style="flex:1;min-width:250px">
       <strong style="color:var(--alert)">${new Set(sinMapear).size} localidades sin asignar</strong>
       <div class="tiny dim" style="margin-top:4px">${esc([...new Set(sinMapear)].slice(0,6).join(" · "))}${new Set(sinMapear).size>6?"…":""}<br>
@@ -10183,7 +10189,7 @@ function redactarEnvio(){
   <header><h3>Redactar envío</h3><span class="dim tiny">${l.length} destinatarios</span>
     <div class="spacer"></div><button class="btn ghost sm modal-x" data-act="close" title="Cerrar" aria-label="Cerrar">×</button></header>
   <div class="mbody">
-    ${sinConsent?`<div class="card" style="border-color:rgba(237,85,100,.4);margin-bottom:16px"><div class="body">
+    ${sinConsent?`<div class="card" style="border-color:color-mix(in srgb,var(--alert) 40%,transparent);margin-bottom:16px"><div class="body">
       <p style="font-size:12.5px;color:var(--alert);margin:0">${sinConsent} de estos ${l.length} contactos no tienen marcado el consentimiento.
       Enviarles comunicación comercial puede infringir el RGPD. Marca «Solo con consentimiento» en los filtros para excluirlos.</p>
     </div></div>`:""}
@@ -10664,7 +10670,7 @@ function viewCapturas(el,ta){
       Lo que salga marcado como <strong style="color:var(--bone)">confianza media</strong> es donde más suele equivocarse.</p>`:""}
   </div></div>`:""}
 
-  ${CAP.enviado?`<div class="card" style="border-color:rgba(52,211,153,.4)"><div class="body">
+  ${CAP.enviado?`<div class="card" style="border-color:color-mix(in srgb,var(--ok) 40%,transparent)"><div class="body">
     <strong style="color:var(--ok)">${CAP.enviado.creadas.length} tareas creadas en ClickUp</strong>
     ${CAP.enviado.creadas.length?`<div style="margin-top:9px;display:flex;gap:7px;flex-wrap:wrap">
       ${CAP.enviado.creadas.map((c,i)=>`<a href="${esc(c.url)}" target="_blank" rel="noopener" class="red-link">Tarea ${i+1}</a>`).join("")}</div>`:""}
@@ -10969,7 +10975,7 @@ function cfgTabDatos(el){
   </div></div>
 
   ${esAdmin()?`
-  <div class="card" style="border-color:rgba(237,85,100,.25)"><header><h3>Zona de riesgo</h3></header>
+  <div class="card" style="border-color:color-mix(in srgb,var(--alert) 25%,transparent)"><header><h3>Zona de riesgo</h3></header>
     <div class="body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <p style="flex:1;min-width:240px;color:var(--mute);font-size:12.5px">Borra <strong style="color:var(--alert)">todos los datos de todo el equipo</strong> en la base compartida. Exporta antes una copia.</p>
       <button class="btn danger" id="wipe">Borrar todos los datos</button>
@@ -11248,7 +11254,7 @@ function cfgTabEquipo(el){
       sus filas (sus shows, sus canciones, sus redes), aunque abra la consola; solo lectura no puede escribir; y borrar
       es cosa del administrador. Verificado con una batería de pruebas contra producción el mismo día.</p>
   </div></div>`
-  :`<div class="card" style="border-color:rgba(237,85,100,.25)"><header><h3>Aviso: esto todavía no es seguridad</h3></header><div class="body">
+  :`<div class="card" style="border-color:color-mix(in srgb,var(--alert) 25%,transparent)"><header><h3>Aviso: esto todavía no es seguridad</h3></header><div class="body">
     <p style="color:var(--mute);font-size:12.5px;line-height:1.65;margin:0">
       Hoy los roles <strong style="color:var(--bone)">esconden botones</strong>, nada más. La protección real está en
       <code>supabase/roles-rls.sql</code>, <strong style="color:var(--alert)">sin aplicar</strong> en esta base.</p>
@@ -14583,10 +14589,10 @@ function formShow(id,comoNuevo){
         <div class="seg-malo" style="flex:0 0 ${w(c.comis)}%">${w(c.comis)>9?eur0(c.comis):""}</div>
         <div class="seg-artist" style="flex:1">${w(c.neto)>14?eur0(c.neto):""}</div></div>
       <div class="strip-legend">
-        ${c.reten>0?`<div><span class="sw" style="background:rgba(237,85,100,.75)"></span>Retención ${pct(c.retPct)}</div>`:""}
+        ${c.reten>0?`<div><span class="sw" style="background:color-mix(in srgb,var(--alert) 75%,transparent)"></span>Retención ${pct(c.retPct)}</div>`:""}
         ${c.gArt>0?`<div><span class="sw" style="background:var(--rule-2)"></span>Gastos del cliente</div>`:""}
-        <div><span class="sw" style="background:rgba(240,86,143,.92)"></span>Comisión ${nombreAgencia()}</div>
-        <div><span class="sw" style="background:rgba(143,121,242,.9)"></span>Neto cliente</div></div>
+        <div><span class="sw" style="background:color-mix(in srgb,var(--malo) 92%,transparent)"></span>Comisión ${nombreAgencia()}</div>
+        <div><span class="sw" style="background:color-mix(in srgb,var(--artist) 90%,transparent)"></span>Neto cliente</div></div>
       <div class="fgrid" style="margin-top:20px">
         <div class="f s6"><table class="cascade">
           <tr><td class="lbl">Caché bruto${sh.moneda!=="EUR"?` <span class="dim">(${n(sh.cacheBruto).toLocaleString("es-ES")} ${esc(sh.moneda)})</span>`:""}</td><td>${eur(c.bruto)}</td></tr>
