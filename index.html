@@ -1844,8 +1844,25 @@ const DEMO_KEY="malo.demo.db", MODO_KEY="malo.modo";
 /* Ojo: se comprueba en el navegador, así que no es seguridad de verdad — sirve
    para que no entre cualquiera que dé con el enlace. */
 const DEMO_PASS="mudomudopapi123";
-function modoActual(){try{return localStorage.getItem(MODO_KEY)||"malo"}catch(e){return "malo"}}
-function setModo(m){try{localStorage.setItem(MODO_KEY,m)}catch(e){}}
+/* El modo vive en sessionStorage, NO en localStorage: la demo dura lo que dura
+   la pestaña y no se hereda. Estaba escrito para siempre, y eso dejaba un
+   navegador que hubiera entrado a la demo alguna vez abriendola otra vez al ir
+   a la app — con su banner, si, pero tambien con un login que en demo acepta
+   cualquier contraseña (makeDemoClient.signInWithPassword devuelve ok sin
+   mirarla). O sea que el usuario real teclea su contraseña de verdad y entra a
+   los datos de prueba creyendo que es su instancia.
+   Los DATOS de la demo siguen en localStorage, asi que quien vuelve y entra
+   otra vez se encuentra lo suyo donde lo dejo. Y location.reload() conserva
+   sessionStorage, que es lo que usan salirDemo() y borrarDemo(). */
+function modoActual(){
+  try{
+    /* Limpieza del que quedo escrito antes de este cambio: si no, ese
+       navegador se queda en demo para siempre. */
+    if(localStorage.getItem(MODO_KEY)!==null)localStorage.removeItem(MODO_KEY);
+    return sessionStorage.getItem(MODO_KEY)||"malo";
+  }catch(e){return "malo"}
+}
+function setModo(m){try{sessionStorage.setItem(MODO_KEY,m)}catch(e){}}
 /* ── Demo neutra: ni un dato de MALO en pantalla ──
    Vaciar la base NO basta. La app lleva informacion de MALO escrita en el
    propio codigo, y sale aunque no haya ni una fila: el roster entero en
@@ -15416,6 +15433,9 @@ async function driveFn(accion,extra){
      drive-api solo admite authorization y content-type. Con invoke el
      navegador bloquea la peticion antes de enviarla y sale el mensaje
      "Failed to send a request to the Edge Function". */
+  /* En la demo el cliente es falso y su sesion no trae token, asi que esto
+     moria con «Sesion caducada» — que no es lo que pasa. */
+  if(sb._demo)throw new Error("Google Drive no funciona en la demo");
   const ses=await sb.auth.getSession();
   const tk=ses&&ses.data&&ses.data.session&&ses.data.session.access_token;
   if(!tk)throw new Error("Sesion caducada, vuelve a entrar");
@@ -15434,6 +15454,7 @@ async function driveFn(accion,extra){
    para cuentas de terceros, sigue siendo entrada manual. */
 async function redesFn(accion,extra){
   if(!sb)throw new Error("Sin conexion con Supabase");
+  if(sb._demo)throw new Error("La consulta en vivo de seguidores no funciona en la demo");
   const ses=await sb.auth.getSession();
   const tk=ses&&ses.data&&ses.data.session&&ses.data.session.access_token;
   if(!tk)throw new Error("Sesion caducada, vuelve a entrar");
