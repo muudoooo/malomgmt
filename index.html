@@ -173,6 +173,11 @@ nav button.on{background:var(--panel-3);color:var(--bone)}
 .btn:hover{background:var(--panel-3);border-color:var(--mute-2)}
 .btn.primary{background:var(--malo);border-color:var(--malo);color:#1A1206;font-weight:600}
 .btn.primary:hover{background:#F878A6;border-color:#F878A6}
+/* En la propuesta v6 la accion principal es NEGRA, no del color de marca: el
+   teal se reserva para los acentos de dato. El hover levanta un punto. */
+body.claro .btn.primary{background:#000;border-color:#000;color:#FFF}
+body.claro .btn.primary:hover{background:#241F1A;border-color:#241F1A}
+body.claro .btn.primary{box-shadow:none}
 .btn.ghost{background:none;border-color:transparent;color:var(--mute)}
 .btn.ghost:hover{color:var(--bone);background:var(--panel-2)}
 .btn.danger{border-color:color-mix(in srgb,var(--alert) 40%,transparent);color:var(--alert)}
@@ -403,6 +408,12 @@ body.claro .seg-artist,body.claro .seg-malo,body.claro .seg-ret{color:#FFF}
 .legend div{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mute)}
 .agenda-item{padding:11px 14px;border-bottom:1px solid var(--panel-2);cursor:pointer;display:flex;gap:10px;align-items:flex-start}
 .agenda-item:hover{background:var(--panel-2)}
+/* Item o tarjeta que solo informa: en el portal del artista no abren ficha. */
+.agenda-item.quieto,.ag .ag-card.quieto,.cn-card.quieto{cursor:default}
+.cn-card.quieto:hover{transform:none;box-shadow:none}
+.agenda-item.quieto:hover{background:transparent}
+.ag .ag-card.quieto:hover,.ag .ag-card.quieto:active{background:var(--panel)}
+.agenda-item.quieto:active,.ag .ag-card.quieto:active{transform:none}
 .agenda-item:last-child{border-bottom:none}
 .agenda-item .bar{width:3px;align-self:stretch;border-radius:2px;background:var(--c);flex:0 0 3px}
 
@@ -1406,7 +1417,7 @@ tbody tr.click{transition:background .12s}
    normal (la mono en MAYÚSCULAS queda para cabeceras de tabla y datos
    técnicos), pills rellenas en vez de huecas, bordes al mínimo y más aire.
    Los documentos imprimibles (.liq, .hoja, .rt) no se tocan. */
-.card > header h3{font-family:var(--sans);font-size:13.5px;letter-spacing:0;text-transform:none;color:var(--bone);font-weight:700}
+.card > header h3{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);font-weight:700}
 .f label{font-family:var(--sans);font-size:12px;letter-spacing:0;text-transform:none;color:var(--mute)}
 .cell .lab{font-family:var(--sans);font-size:11.5px;letter-spacing:.01em;text-transform:none;color:var(--mute);margin-bottom:7px}
 .section-title{font-family:var(--sans);font-size:13px;letter-spacing:0;text-transform:none;color:var(--bone);font-weight:700;border-bottom-color:rgba(255,255,255,.05);margin:28px 0 16px}
@@ -1483,7 +1494,10 @@ body.claro .pill.malo{background:#ADEEDE;color:#000}
 body.claro .pill.artist,body.claro .pill.violet{background:#E3DED8;color:#672638}
 body.claro .pill.cat{background:transparent;border:1px solid var(--rule-2);font-weight:600}
 /* Tarjetas 16–18, modales 22, sin sombras; overlay berenjena */
-body.claro .card{border-radius:17px;box-shadow:none}
+/* Los valores del sistema de la v6: tarjeta de radio 16 y relleno 16/18. */
+body.claro .card{border-radius:16px;box-shadow:none}
+body.claro .card .body{padding:16px 18px}
+body.claro .card > header{padding:14px 18px 10px}
 body.claro .modal{border-radius:22px;box-shadow:0 18px 44px rgba(51,16,40,.16);border-color:var(--rule)}
 body.claro .modal-bg{background:rgba(51,16,40,.46)}
 /* Filas: alterna casi imperceptible y hover rosado */
@@ -1514,15 +1528,162 @@ nav button.nav-grupo[aria-expanded="true"] svg.fl{transform:rotate(90deg)}
 .icbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;
   stroke-linecap:round;stroke-linejoin:round}
 .icbtn .nbadge{position:absolute;top:-5px;right:-5px;min-width:15px;height:15px;
-  border-radius:8px;background:#E8622C;color:#FFF;font-family:var(--mono);font-size:9px;
+  border-radius:8px;background:var(--alert);color:#FFF;font-family:var(--mono);font-size:9px;
   font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* ════════ FECHAS · la lista por meses de la propuesta v6 ════════
+   Rejilla de la maqueta: dia · barra de color · show · estado · tres cifras ·
+   cobro · liquidacion. En movil la fila se apila, que a 390 px esas nueve
+   columnas no caben de ninguna manera. */
+.fe-filtros{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.fe-filtros .chip{display:inline-flex;align-items:center;gap:7px}
+.fe-filtros .chip .n{font-family:var(--mono);font-size:10px;font-weight:700;
+  background:var(--panel-3);color:var(--mute);border-radius:9px;padding:1px 6px;line-height:1.5}
+.fe-filtros .chip.on .n{background:var(--f-catalogo);color:#000}
+.fe-grupo{margin-bottom:16px}
+.fe-mes{display:flex;align-items:baseline;gap:10px;padding:0 6px 8px;flex-wrap:wrap}
+.fe-mes b{font-size:13.5px;font-weight:600}
+.fe-mes .n{font-size:11px;color:var(--mute)}
+.fe-mes .cache{display:flex;align-items:baseline;gap:6px;margin-left:8px;padding-left:12px;
+  border-left:1px solid var(--rule);white-space:nowrap}
+.fe-mes .cache b{font-size:11.5px;font-weight:700;color:var(--f-catalogo);font-variant-numeric:tabular-nums}
+.fe-mes .cache span{font-size:10.5px;color:var(--mute)}
+.fe-tabla{border:1px solid var(--rule);border-radius:20px;background:var(--panel);overflow:hidden}
+.fe-cab,.fe-fila{display:grid;grid-template-columns:44px 3px minmax(0,1.5fr) 110px 90px 90px 90px 86px 86px;
+  gap:12px;padding:11px 18px 11px 14px;border-bottom:1px solid var(--panel-2);align-items:center}
+.fe-cab{padding:9px 18px 8px 14px;font-family:var(--mono);font-size:9px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.fe-fila:last-child{border-bottom:none}
+.fe-fila{cursor:pointer}
+.fe-fila:hover{background:var(--panel-2)}
+.fe-fila.cancel{opacity:.45}
+.fe-dia{text-align:center}
+.fe-dia b{display:block;font-size:18px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.fe-dia span{display:block;font-size:9.5px;color:var(--mute);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
+.fe-barra{width:3px;height:30px;border-radius:2px;background:var(--c,var(--rule-2))}
+.fe-show{min-width:0}
+.fe-show .t1{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fe-show .t2{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mute);margin-top:2px;min-width:0}
+.fe-show .t2 > span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.fe-est{font-size:10.5px;color:var(--mute);margin-top:5px}
+.fe-num{text-align:right;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.fe-num.comis{font-weight:700;color:var(--f-catalogo)}
+.fe-num.neto{color:var(--artist)}
+.fe-num .pct{font-size:9.5px;color:var(--mute);margin-top:1px;font-weight:400}
+.fe-pill{font-size:10px;padding:4px 9px;border-radius:11px;font-weight:600;text-align:center;
+  background:transparent;color:var(--mute-2);border:1px dashed transparent;cursor:pointer}
+.fe-pill:hover{border-color:var(--rule-2)}
+.fe-est-cel{position:relative;margin:-6px -8px;padding:6px 8px;border-radius:10px;cursor:pointer}
+.fe-est-cel:hover{background:var(--panel-2)}
+.fe-est-fila{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.fe-est-fila svg{width:10px;height:10px;stroke:var(--mute-2);fill:none;stroke-width:2.4;flex:none}
+.fe-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:25;background:var(--panel);
+  border:1px solid var(--rule);border-radius:13px;padding:6px;width:154px;
+  box-shadow:0 12px 30px rgba(0,0,0,.16);display:flex;flex-direction:column;gap:2px}
+.fe-menu button{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;
+  font-size:11.5px;font-weight:600;width:100%;text-align:left;color:var(--bone)}
+.fe-menu button:hover{background:var(--panel-2)}
+.fe-menu button.on{background:#000;color:#FFF}
+.fe-menu button i{width:6px;height:6px;border-radius:50%;background:var(--f-catalogo);flex:none}
+.fe-menu button.cancel i{background:var(--alert)}
+.fe-meses{position:fixed;z-index:90;background:var(--panel);border:1px solid var(--rule);
+  border-radius:16px;box-shadow:0 18px 44px rgba(0,0,0,.16);padding:12px;width:270px}
+.fe-meses .anio{font-size:11px;font-weight:700;color:var(--mute);margin:6px 2px 6px}
+.fe-meses .rej{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.fe-meses .rej button{padding:7px 2px;border-radius:9px;font-size:11.5px;font-weight:600;
+  color:var(--bone);display:flex;flex-direction:column;align-items:center;gap:1px}
+.fe-meses .rej button:disabled{color:var(--mute-2);opacity:.5;cursor:default}
+.fe-meses .rej button:not(:disabled):hover{background:var(--panel-2)}
+.fe-meses .rej button.on{background:#000;color:#FFF}
+.fe-meses .rej button .n{font-family:var(--mono);font-size:9px;font-weight:700;opacity:.7}
+.fe-meses .rej button.on .n{color:var(--f-catalogo);opacity:1}
+.fe-pill.ok{background:#ADEEDE;color:#000}
+.fe-pill.alerta{background:#E2A3AF;color:#672638}
+body:not(.claro) .fe-pill.ok{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok)}
+body:not(.claro) .fe-pill.alerta{background:color-mix(in srgb,var(--alert) 22%,transparent);color:var(--alert)}
+@media(max-width:900px){
+  .fe-cab{display:none}
+  .fe-fila{grid-template-columns:44px 3px minmax(0,1fr);gap:10px;row-gap:9px;padding:12px 14px}
+  .fe-fila > .fe-est-cel{grid-column:3/4}
+  .fe-fila > .fe-num,.fe-fila > .fe-pill{grid-column:1/4;text-align:left;display:flex;
+    align-items:baseline;gap:8px}
+  .fe-fila > .fe-num::before{content:attr(data-lab);font-family:var(--mono);font-size:9px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:600;min-width:96px}
+  .fe-fila > .fe-pill{justify-content:flex-start;background:none;padding:0}
+  .fe-fila > .fe-pill::before{content:attr(data-lab);font-family:var(--mono);font-size:9px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:600;min-width:96px}
+}
+
+/* ════════ TAREAS · el tablero de la propuesta v6 ════════
+   Columna con regla de color arriba; tarjeta de radio 15 y relleno 14 con
+   titulo + menu, linea de contexto, ocho rayitas de progreso y el pie con
+   avatar, persona y fecha. El color de la tarjeta va por PRIORIDAD (alta
+   granate, normal blanca, baja mint): en la maqueta viene escrito a mano en
+   sus datos de ejemplo y aqui hacia falta una regla de verdad. */
+.kb2{display:flex;gap:14px;align-items:flex-start}
+@media(max-width:1050px){.kb2{overflow-x:auto;padding-bottom:12px}.kb2 > div{flex:0 0 250px}}
+/* Sin el margin:-4px de la maqueta: ahi se sale 4px por el lado y la pagina
+   coge scroll horizontal. Con el padding a secas todo se desplaza igual. */
+.kb2-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:11px;
+  border-radius:15px;padding:4px;transition:background .12s}
+.kb2-col.over{background:var(--panel-2)}
+.kb2-bar{height:3px;border-radius:2px}
+.kb2-cab{display:flex;align-items:center;justify-content:space-between;padding:0 2px 2px}
+.kb2-cab .t{font-family:var(--sans);font-weight:700;font-size:9.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--mute)}
+.kb2-cab .n{font-size:10px;color:var(--mute);font-variant-numeric:tabular-nums}
+.kb2-card{background:var(--panel);border:1px solid var(--rule);border-radius:15px;padding:14px;
+  position:relative;overflow:hidden;cursor:grab}
+.kb2-card.arrastrando{opacity:.45}
+.kb2-card.alta{background:var(--artist);border-color:var(--artist);color:#FFF}
+.kb2-card.baja{background:#ADEEDE;border-color:#ADEEDE;color:#000}
+body:not(.claro) .kb2-card.baja{background:color-mix(in srgb,var(--ok) 22%,transparent);border-color:transparent;color:var(--bone)}
+.kb2-card.hecha{background:var(--panel-2);border-color:var(--rule);color:var(--mute)}
+.kb2-card.hecha .kb2-tit{text-decoration:line-through}
+.kb2-fila1{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.kb2-tit{font-size:12px;font-weight:600;line-height:1.34;cursor:pointer}
+.kb2-pts{flex:none;margin-top:2px;width:14px;height:14px;opacity:.5}
+.kb2-ctx{display:flex;align-items:center;gap:5px;margin-top:8px;font-size:10px;font-weight:600;
+  overflow:hidden;opacity:.75}
+.kb2-ctx span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb2-ctx svg{width:10px;height:10px;flex:none;fill:currentColor}
+.kb2-dash{display:flex;gap:3px;margin-top:12px}
+.kb2-dash i{height:3px;border-radius:2px;flex:1;background:currentColor;opacity:.22}
+.kb2-dash i.on{opacity:1}
+.kb2-pie{display:flex;align-items:center;gap:9px;margin-top:14px}
+.kb2-pie .av{width:29px;height:29px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;color:#000;flex:none}
+.kb2-pie .nom{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb2-pie .fch{font-size:10px;margin-top:1px;font-variant-numeric:tabular-nums;opacity:.75}
+.kb2-flag{position:absolute;top:38px;right:14px;width:26px;height:26px;border-radius:50%;
+  background:var(--alert);display:flex;align-items:center;justify-content:center}
+.kb2-flag svg{width:12px;height:12px;fill:#fff}
+.kb2-acc{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+.kb2-vacia{padding:14px 10px;font-size:11.5px;color:var(--mute-2);line-height:1.5}
 
 /* Panel v5 */
 .p5-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;
   flex-wrap:wrap;margin-bottom:16px}
-.p5-eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;
-  text-transform:uppercase;color:var(--mute-2);margin-bottom:5px}
-.p5-titulo{font-family:var(--cond);font-size:29px;font-weight:800;letter-spacing:-.01em}
+/* La cabecera vive fuera de #view —cada vista reescribe su innerHTML entero y
+   se la llevaria por delante—, asi que repite su caja: mismo padding y mismo
+   ancho maximo, y se pega al contenido quitandole el margen de abajo. */
+#cabecera{padding:24px 24px 0;max-width:1500px;width:100%}
+#cabecera:empty{display:none}
+#cabecera .p5-head{margin-bottom:0}
+@media(max-width:900px){#cabecera{padding:16px 16px 0}}
+/* La propuesta pone el rotulo en la sans, 700, sin versalitas ni tracking, y
+   el titulo en la sans normal a 27/600 —no en la condensada a 29/800—. */
+.p5-eyebrow{font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:0;
+  color:var(--mute);margin-bottom:2px}
+.p5-titulo{font-family:var(--sans);font-size:27px;font-weight:600;letter-spacing:-.022em}
+/* Pestañas de la seccion (VISTA_TAB de la propuesta): las que la v6 mete dentro
+   de otra. Van debajo del titulo, con el mismo gesto que los chips. */
+.cab-tabs{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+/* En la propuesta el titulo y sus pestañas van en la MISMA linea, y la accion
+   principal a la derecha del todo, junto a las cifras. */
+.cab-linea{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:2px}
+.cab-der{display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap;margin-left:auto}
+@media(max-width:700px){.cab-der{gap:14px;width:100%}}
 .p5-minis{display:flex;gap:26px;flex-wrap:wrap}
 .p5-minis .m .lab{font-family:var(--mono);font-size:9px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--mute-2);margin-bottom:2px}
@@ -1587,8 +1748,25 @@ body.claro .nbadge{background:#AF435A;color:#FFF}
 body.claro .p5-est.liq{background:#ADEEDE;color:#000}
 .p5-est.pend{background:color-mix(in srgb,#F5B93E 24%,transparent);color:var(--warn)}
 body.claro .p5-est.pend{background:#F8EED9;color:#7A5210}
-.p5-abiertos{background:color-mix(in srgb,#E8622C 18%,transparent);color:#E8622C;
+.p5-abiertos{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn);
   border-radius:999px;padding:2.5px 10px;font-size:10.5px;font-weight:700}
+/* Desplegable de la campana (propuesta v6): los mismos avisos del panel, pero
+   a mano desde cualquier apartado. Va fijo y colgado del <body>, no dentro de
+   la barra: dentro lo recortaba el overflow de la topbar. */
+.avisos-pop{position:fixed;width:360px;max-width:calc(100vw - 24px);z-index:90;
+  background:var(--panel);border:1px solid var(--rule);border-radius:18px;
+  box-shadow:0 18px 44px rgba(0,0,0,.16);overflow:hidden}
+.avisos-pop > header{display:flex;align-items:center;justify-content:space-between;
+  gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--panel-2)}
+.avisos-pop > header h3{font-size:13.5px;font-weight:600}
+.avisos-pop .lista{max-height:min(60vh,420px);overflow-y:auto}
+.avisos-pop .p5-alerta{padding:10px 16px;border-top:none;border-bottom:1px solid var(--panel-2)}
+.avisos-pop .p5-alerta:last-child{border-bottom:none}
+.avisos-pop .pie{display:block;width:100%;text-align:center;padding:11px;
+  font-size:12px;font-weight:600;color:var(--mute);border-top:1px solid var(--rule);
+  background:var(--panel-2)}
+.avisos-pop .pie:hover{color:var(--bone)}
+.avisos-pop .empty{padding:22px 16px}
 @media(max-width:600px){#topIcons .icbtn[data-goto="datos"]{display:none}}
 /* Tablero de Tareas (handoff §6) */
 .kb{display:grid;grid-template-columns:repeat(4,minmax(230px,1fr));gap:12px;align-items:start}
@@ -1616,6 +1794,13 @@ body.claro .p5-est.pend{background:#F8EED9;color:#7A5210}
 .rd-aviso.down{background:#FCDCD0;color:#9C3308}
 body:not(.claro) .rd-aviso.up{background:color-mix(in srgb,#34D399 18%,transparent);color:#34D399}
 body:not(.claro) .rd-aviso.down{background:color-mix(in srgb,#ED5564 18%,transparent);color:#ED5564}
+.rd-p30{display:inline-block;font-size:10.5px;font-weight:700;border-radius:11px;padding:3px 9px;
+  font-variant-numeric:tabular-nums}
+.rd-p30.up{background:#ADEEDE;color:#000}
+.rd-p30.down{background:#E2A3AF;color:#672638}
+body:not(.claro) .rd-p30.up{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}
+body:not(.claro) .rd-p30.down{background:color-mix(in srgb,var(--alert) 20%,transparent);color:var(--alert)}
+.chips .chip .n{font-family:var(--mono);font-size:10px;font-weight:700;opacity:.65;margin-left:5px}
 .rd-mueve .m{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11.5px;cursor:pointer}
 .rd-mueve .m .nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .rd-mueve .m .tot{font-family:var(--mono);font-size:11px;color:var(--mute)}
@@ -1705,11 +1890,14 @@ body:not(.claro) .pr-tag.hueco{background:var(--panel-2);color:var(--mute-2);bor
   body.claro .modal-bg{justify-content:center;align-items:flex-start;padding:0 20px}
   body.claro .modal{margin:48px 0;max-width:860px}
 }
-/* En el panel de escritorio la cabecera es la del contenido (diseño v5):
-   la topbar queda como bandeja transparente para el selector y los iconos. */
+/* Las vistas que dibujan su propia cabecera grande (la del diseño v6: rotulo,
+   titulo y cifras a la derecha) no repiten el titulo arriba: la topbar se queda
+   como bandeja transparente para el selector y los iconos. */
 @media(min-width:901px){
-  body.v-panel .topbar{background:transparent;border-bottom:none}
-  body.v-panel .topbar h2,body.v-panel .topbar .sub{display:none}
+  body.v-cabecera .topbar{background:transparent;border-bottom:none}
+  /* Solo el titulo: el recuento («174 de 174», «226 canciones») es otra cosa
+     y sigue siendo util, asi que se queda en la bandeja de arriba. */
+  body.v-cabecera .topbar h2{display:none}
 }
 /* Marca compacta del sidebar en tema claro: logo pequeño + «malo» */
 body.claro .brand{display:flex;align-items:center;gap:10px;padding:18px 16px 16px}
@@ -1795,6 +1983,7 @@ tr.fila-activa td{background:color-mix(in srgb,var(--malo) 7%,transparent)}
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h10"/></svg>
       </button>
     </div>
+    <div id="cabecera"></div>
     <div class="content" id="view"></div>
   </div>
 </div>
@@ -3463,7 +3652,11 @@ async function save(){
       (!DB.sinTemas&&(DB.temas||[]).length)&&sb.from("temas").upsert(DB.temas.map(x=>toRow("temas",x))),
       (!DB.sinCanciones&&(DB.canciones||[]).length)&&sb.from("canciones").upsert(DB.canciones.map(x=>{const r=toRow("canciones",x);if(DB.sinDistribucion)delete r.distribucion;return r})),
       (!DB.sinCanciones&&(DB.cancionParticipantes||[]).length)&&sb.from("cancion_participantes").upsert(DB.cancionParticipantes.map(x=>toRow("cancionParticipantes",x))),
-      (!DB.sinCanciones&&(DB.cancionIngresos||[]).length)&&sb.from("cancion_ingresos").upsert(DB.cancionIngresos.map(x=>toRow("cancionIngresos",x))),
+      /* Red por si una fila sin mes llega por otro camino: mejor que no se
+         suba esa que no se suba nada (mes es «date not null» y un "" tumba el
+         upsert de la tabla entera). La ficha de cancion ya avisa antes. */
+      (()=>{const ci=(DB.cancionIngresos||[]).filter(x=>String(x.mes||"").trim());
+        return (!DB.sinCanciones&&ci.length)&&sb.from("cancion_ingresos").upsert(ci.map(x=>toRow("cancionIngresos",x)))})(),
       (!DB.sinRedes&&(DB.redesSnapshots||[]).length)&&sb.from("redes_snapshots").upsert(DB.redesSnapshots.map(x=>{
         const r=toRow("redesSnapshots",x);if(DB.sinRedesExtra)delete r.extra;return r})),
       /* empresa solo viaja cuando ha cambiado Y quien guarda es admin. Con RLS
@@ -3491,6 +3684,57 @@ async function save(){
   }catch(e){ toast("Error de conexión al guardar"); setConn("warn","Sin conexión"); }
   saving=false;
 }
+/* ════════ AVISOS · el desplegable de la campana ════════
+   Misma lista que «Requiere atencion» del panel —panelAlertas(), la de verdad,
+   no la de la maqueta—, para poder verla sin ir al panel. Los botones llevan
+   el data-goto / data-act de siempre, asi que el delegador global los recoge
+   solo; aqui unicamente se cierra el desplegable al pulsarlos. */
+function cierraAvisos(){
+  const p=document.getElementById("avisosPop");
+  if(p)p.remove();
+  document.removeEventListener("pointerdown",avisosFuera,true);
+  document.removeEventListener("keydown",avisosTecla,true);
+  window.removeEventListener("resize",cierraAvisos);
+}
+function avisosFuera(e){
+  const p=document.getElementById("avisosPop");
+  if(!p)return;
+  /* El target no siempre es un elemento —el propio document, un nodo de texto—
+     y entonces no tiene closest(): sin esta guarda, el listener revienta. */
+  const t=e.target;
+  if(t&&t.closest&&(p.contains(t)||t.closest('[data-act="avisos"]')))return;
+  cierraAvisos();
+}
+function avisosTecla(e){ if(e.key==="Escape")cierraAvisos() }
+function abreAvisos(btn){
+  if(document.getElementById("avisosPop")){cierraAvisos();return}   // segundo clic: cerrar
+  const av=panelAlertas();
+  const col={alert:"var(--alert)",info:"var(--c-artista)"};
+  const p=document.createElement("div");
+  p.className="avisos-pop"; p.id="avisosPop";
+  p.setAttribute("role","dialog"); p.setAttribute("aria-label","Avisos");
+  p.innerHTML=`<header><h3>Avisos</h3>
+      ${av.length?`<span class="p5-abiertos">${av.length} ${av.length===1?"abierto":"abiertos"}</span>`:""}</header>
+    ${av.length?`<div class="lista">${av.map(a=>`<div class="p5-alerta">
+      <span class="pto" style="background:${col[a.sev]||"var(--mute-2)"}"></span>
+      <div class="tx"><div class="t1">${a.t}</div><div class="t2">${a.s}</div></div>
+      <button class="btn sm" ${a.goto?`data-goto="${a.goto}"`:`data-act="${a.act}"`}>${a.b}</button>
+    </div>`).join("")}</div>`
+    :`<div class="empty"><p>Nada pendiente de arreglar. Todo cuadra.</p></div>`}
+    ${av.length?`<button class="pie" data-goto="panel">Ver todo en el panel</button>`:""}`;
+  document.body.appendChild(p);
+  /* Colgado del boton, y a ras del borde si no cabe (movil) */
+  const r=btn.getBoundingClientRect();
+  p.style.top=Math.round(r.bottom+9)+"px";
+  const der=Math.round(window.innerWidth-r.right);
+  if(window.innerWidth<420){ p.style.left="12px"; p.style.right="12px"; p.style.width="auto"; }
+  else p.style.right=Math.max(12,der)+"px";
+  p.addEventListener("click",e=>{ if(e.target.closest("button[data-goto],button[data-act]"))cierraAvisos() });
+  document.addEventListener("pointerdown",avisosFuera,true);
+  document.addEventListener("keydown",avisosTecla,true);
+  window.addEventListener("resize",cierraAvisos);
+}
+
 function setConn(mode,label){
   const d=document.getElementById("dot");
   if(!d)return;
@@ -3987,16 +4231,27 @@ const HOME_POR_PAGINA=5;
 const DOCK_PRIMERO=["panel","shows","contactos","redes","calendario"];
 /* Barra lateral de escritorio en 4 grupos (propuesta de escritorio, ago-26).
    Deben cubrir TODOS los ids de VIEWS: lo que falte no saldría en el menú. */
+/* El menú, tal cual la tabla NAV de la propuesta v6: catorce apartados en los
+   mismos cuatro grupos. Tres de los que faltan no desaparecen, pasan a ser
+   pestaña de otro (ver VISTA_PADRE). Los otros cuatro —documentos, medios,
+   capturas y equipo— la v6 no los dibuja: siguen existiendo como vista y se
+   llega por atajo de teclado o por enlace, pero ya no tienen entrada de menú. */
 const NAV_GRUPOS=[
   ["Día a día",["panel","calendario","shows","tareas","clientes","redes"]],
-  /* «Portal del artista» en lugar de «Música» (propuesta v6): son las secciones
-     que el artista ve en su portal y que el equipo consulta en su nombre —las
-     mismas cuatro de PORTAL_VIEWS quitando inicio, agenda, redes y soporte, que
-     viven en otros grupos. La v6 lista bolsillo, catálogo y merch; editorial va
-     aquí por lo mismo, y porque al desaparecer «Música» se quedaba sin grupo. */
-  ["Portal del artista",["bolsillo","canciones","editorial","merch"]],
-  ["Gestión",["producciones","contactos","documentos","mailing","medios","mapa","capturas"]],
-  ["Sistema",["equipo","generadores","soporte","datos"]]];
+  ["Portal del artista",["bolsillo","canciones","merch"]],
+  ["Gestión",["contactos","mailing"]],
+  ["Sistema",["generadores","soporte","datos"]]];
+
+/* Las que la v6 mete dentro de otra como pestaña, con el nombre que les da su
+   tabla VISTA_TAB. La pestaña del padre es la primera de su lista. */
+const VISTA_PADRE={producciones:"shows",editorial:"canciones",mapa:"contactos"};
+const VISTA_HIJAS={shows:["shows","producciones"],canciones:["canciones","editorial"],
+                   contactos:["contactos","mapa"]};
+const VISTA_TAB={shows:"Booking",producciones:"Producciones propias",
+                 canciones:"Distribución",editorial:"Editorial",
+                 contactos:"Lista",mapa:"Mapa de la red"};
+/* Quién se marca en el menú cuando estás en una hija. */
+function vistaDuena(v){return VISTA_PADRE[v]||v}
 /* Qué grupos están abiertos en la barra lateral (propuesta v5: los cerrados
    enseñan un puntito por apartado). El grupo del apartado activo se abre solo. */
 const NAV_AB_KEY="malo.nav.abiertos";
@@ -4173,7 +4428,11 @@ function agendaShows(root){
     const mes=f?AG_MESES[+f.slice(5,7)-1]+" "+f.slice(0,4):"Sin fecha";
     if(mes!==mesPrev){html+=`<div class="ag-mes">${esc(mes)}</div>`;mesPrev=mes}
     const d=f?new Date(f+"T12:00:00"):null;
-    html+=`<button type="button" class="ag-card${s.estado==="cancelado"?" ag-cancel":""}" data-show="${s.id}">
+    /* Se queda en <button> (el CSS es «.ag button.ag-card» y el cierre es
+       </button>): en el portal solo pierde el data-show, y sin el no hay ficha
+       que abrir. «.quieto» le quita el cursor y el hover. */
+    const abreAg=!esArtistaPortal();
+    html+=`<button type="button" class="ag-card${s.estado==="cancelado"?" ag-cancel":""}${abreAg?"":" quieto"}"${abreAg?` data-show="${s.id}"`:""}>
       <span class="ag-rail" style="--rc:${AG_RAIL[s.estado]||"var(--mute-2)"}"></span>
       <span class="ag-dia"><span class="n">${d?f.slice(8,10):"—"}</span><span class="s">${d?AG_DIAS[d.getDay()]:""}</span></span>
       <span class="ag-info"><span class="a">${esc(nomCliente(s.clienteId))}</span>
@@ -4233,7 +4492,35 @@ function render(){
      portal, se reconduce al inicio. */
   const portal=esArtistaPortal();
   document.body.classList.toggle("portal",portal);
-  document.body.classList.toggle("v-panel",!portal&&VIEW==="panel");
+  /* Con la cabecera grande puesta, el titulo de la barra de arriba sobra en
+     todos los apartados: repetirlo era lo que se veia raro. */
+  const cab=portal?null:CABECERAS[VIEW];
+  document.body.classList.toggle("v-cabecera",!!cab);
+  const elCab=document.getElementById("cabecera");
+  const hijas=VISTA_HIJAS[vistaDuena(VIEW)];
+  if(elCab){
+    /* El nodo de la accion vive dentro de la cabecera, asi que hay que sacarlo
+       ANTES de reescribirla: si no, el innerHTML se lo lleva por delante y en
+       el siguiente render la vista se encuentra un null al escribir en el. */
+    const taPrev=document.getElementById("topActions");
+    if(taPrev)document.querySelector(".topbar").appendChild(taPrev);
+    elCab.innerHTML=cab?`<div class="p5-head">
+      <div>
+        <div class="p5-eyebrow">${esc(cab[0])}</div>
+        <div class="cab-linea">
+          <div class="p5-titulo">${esc(cab[1])}</div>
+          ${hijas?`<div class="cab-tabs">${hijas.map(h=>
+            `<button class="chip sm ${h===VIEW?"on":""}" data-goto="${h}">${esc(VISTA_TAB[h])}</button>`).join("")}</div>`:""}
+        </div>
+      </div>
+      <div class="cab-der"><div class="p5-minis" id="cabMinis"></div></div></div>`:"";
+    /* La accion principal va dentro de la cabecera, como en la propuesta. Se
+       mueve el MISMO nodo (#topActions), no una copia: cada vista le escribe su
+       innerHTML y asi sigue funcionando sin tocar ninguna. */
+    const der=elCab.querySelector(".cab-der");
+    if(taPrev&&der)der.appendChild(taPrev);      // y de vuelta a su sitio
+    else if(taPrev)document.querySelector(".topbar #topIcons").before(taPrev);
+  }
   /* Quién está dentro, al pie del sidebar (diseño v5) */
   const _uc=document.getElementById("userCard");
   if(_uc){
@@ -4246,7 +4533,7 @@ function render(){
   const grupos=portal?[["Tu espacio",PORTAL_IDS]]:NAV_GRUPOS;
   const navAb=navAbiertos();
   document.getElementById("nav").innerHTML=grupos.map(([titulo,ids])=>{
-    const abierto=portal||!!navAb[titulo]||ids.includes(VIEW);
+    const abierto=portal||!!navAb[titulo]||ids.includes(vistaDuena(VIEW));
     return `<button type="button" class="nav-grupo" data-grupo="${esc(titulo)}" aria-expanded="${abierto?"true":"false"}">
       <span>${titulo}</span>
       ${abierto?"":`<span class="pts" aria-hidden="true">${ids.map(()=>"<i></i>").join("")}</span>`}
@@ -4258,7 +4545,7 @@ function render(){
          incidencia sin resolver tiene que verse sin entrar a mirar. */
       const n=v.id==="equipo"?nl:(v.id==="soporte"?sopPendientes():0);
       const badge=n?`<span class="badge">${n>99?"99+":n}</span>`:"";
-      return `<button data-view="${v.id}" class="${VIEW===v.id?"on":""}">
+      return `<button data-view="${v.id}" class="${vistaDuena(VIEW)===v.id?"on":""}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONO_VIEW[v.id]||""}"/></svg>
         <span class="lbl">${v.label}</span>${badge}</button>`;
     }).join(""):"");
@@ -4445,6 +4732,35 @@ function toggleTema(){
   aplicaTema();render();
 }
 
+/* Rotulo y titulo de cada apartado, de la tabla SEC de la propuesta v6. El
+   rotulo es la categoria («Directo», «Dinero», «Musica»…), no un recuento: eso
+   sigue en #viewSub. Tres no venian en SEC porque la maqueta no los dibuja
+   —medios, capturas y equipo—: su rotulo lo he puesto yo y esta por confirmar.
+   Las que en la v6 son pestañas de otra (producciones, editorial, mapa) llevan
+   aqui su propio titulo, el de VISTA_TAB, mientras sigan siendo apartado. */
+const CABECERAS={
+  panel:        ["Resumen",          "Panel de control"],
+  calendario:   ["Día a día",        "Calendario"],
+  shows:        ["Directo",          "Fechas"],
+  producciones: ["Directo",          "Producciones propias"],
+  tareas:       ["Plan de trabajo",  "Tareas"],
+  clientes:     ["Cartera",          "Clientes"],
+  redes:        ["Audiencia",        "Redes"],
+  bolsillo:     ["Dinero",           "Bolsillo"],
+  canciones:    ["Música",           "Catálogo"],
+  editorial:    ["Música",           "Editorial"],
+  merch:        ["Producto",         "Merch"],
+  contactos:    ["Agenda",           "Contactos"],
+  mapa:         ["Agenda",           "Mapa de la red"],
+  documentos:   ["Legal",            "Documentos"],
+  mailing:      ["Comunicación",     "Mailing"],
+  medios:       ["Comunicación",     "Medios"],
+  capturas:     ["Sistema",          "Transcripción"],
+  equipo:       ["Sistema",          "Equipo"],
+  generadores:  ["Sistema",          "Generadores"],
+  soporte:      ["Sistema",          "Soporte"],
+  datos:        ["Sistema",          "Configuración"]};
+
 /* Las cuatro fuentes de ingreso del panel. El orden es el del donut y la leyenda. */
 const P5_FUENTES=[
   ["catalogo","Catálogo","var(--f-catalogo)"],
@@ -4453,7 +4769,10 @@ const P5_FUENTES=[
   ["merch","Merch","var(--f-merch)"]];
 function p5Color(k){const f=P5_FUENTES.find(x=>x[0]===k);return f?f[2]:"var(--mute-2)"}
 function p5Label(k){const f=P5_FUENTES.find(x=>x[0]===k);return f?f[1]:k}
-function kAbrev(v){return v>=1000?(v/1000).toLocaleString("es-ES",{maximumFractionDigits:1})+"k":String(Math.round(v))}
+function kAbrev(v){
+  if(v>=1e6)return (v/1e6).toLocaleString("es-ES",{maximumFractionDigits:2})+"M";
+  return v>=1000?(v/1000).toLocaleString("es-ES",{maximumFractionDigits:1})+"k":String(Math.round(v));
+}
 
 /* Bruto del ejercicio por fuente. Shows: caché bruto de lo en firme (como la
    «Facturación gestionada» de siempre). Catálogo: bruto de cancion_ingresos.
@@ -4534,35 +4853,49 @@ function panelMovimientos(anio){
      escribia la fuente otra vez («Catálogo», «Editorial», «Merch»), o sea que
      repetia la primera columna y dejaba la fila sin decir de quien es el
      dinero. Una fila por artista es lo que hace falta para poder mirarla. */
-  const clave=(per,art)=>per+"\u0000"+(art||"");
-  const suelta=(mapa,hazFila)=>Object.entries(mapa).forEach(([k,v])=>{
-    const i=k.indexOf("\u0000");
-    out.push(hazFila(k.slice(0,i),k.slice(i+1),v));
-  });
+  /* Una liquidacion de un periodo paga a varios artistas de una vez, asi que
+     la fila es el periodo y la columna «Artista» dice a quien: el nombre si es
+     uno solo, «N artistas» si son varios. Agrupar por artista, que es como lo
+     deje primero, llenaba el feed: con los datos de verdad una sola
+     liquidacion editorial metia ocho filas de 80 € y empujaba los shows fuera
+     de las doce que caben. Lo que no vale es lo de antes de eso —escribir la
+     fuente («Editorial», «Merch») donde va el artista—, que era repetir la
+     primera columna y dejar la fila sin decir de quien es el dinero. */
+  const mete=(mapa,per,art,v)=>{
+    const d=mapa[per]||(mapa[per]={importe:0,quien:new Set()});
+    d.importe+=v; if(art)d.quien.add(art);
+  };
+  const deQuien=d=>d.quien.size===1?nomCliente([...d.quien][0])
+                  :d.quien.size?`${d.quien.size} artistas`:"—";
+  const suelta=(mapa,hazFila)=>Object.entries(mapa).forEach(([per,d])=>out.push(hazFila(per,d)));
 
   const catMes={};
   (DB.cancionIngresos||[]).forEach(i=>{
     const m=((i.mes||"")+"").slice(0,7);if(m.slice(0,4)!==A)return;
     const can=(DB.canciones||[]).find(c=>c.id===i.cancionId);
-    const k=clave(m,can&&can.artistaId);catMes[k]=(catMes[k]||0)+n(i.bruto)});
-  suelta(catMes,(m,art,v)=>({fuente:"catalogo",fecha:m+"-28",
+    mete(catMes,m,can&&can.artistaId,n(i.bruto))});
+  suelta(catMes,(m,d)=>({fuente:"catalogo",fecha:m+"-28",
     concepto:`Liquidación ADA — ${AG_MESES[+m.slice(5,7)-1].toLowerCase()}`,
-    artista:art?nomCliente(art):"—",importe:v,liq:true,attr:`data-goto="canciones"`}));
+    artista:deQuien(d),importe:d.importe,liq:true,attr:`data-goto="canciones"`}));
 
   const edPer={};
   (DB.obraIngresos||[]).forEach(i=>{
     const p=(i.periodo||"")+"";const y=p.slice(0,4)||((i.devengoDesde||"")+"").slice(0,4);
-    if(y!==A)return;const k=clave(p||y,i.clienteId);edPer[k]=(edPer[k]||0)+n(i.importeBruto)});
-  suelta(edPer,(per,art,v)=>({fuente:"editorial",fecha:A+"-12-30",
-    concepto:`Liquidación editorial — ${per}`,artista:art?nomCliente(art):"—",
-    importe:v,liq:true,attr:`data-goto="editorial"`}));
+    if(y!==A)return;mete(edPer,p||y,i.clienteId,n(i.importeBruto))});
+  /* La fecha sale del periodo que nombra la propia fila. Antes iba fija al
+     30 de diciembre, y con eso la liquidacion editorial salia siempre primera
+     en «ultimos movimientos» —con fecha futura— por delante de los shows. */
+  const fechaEd=per=>/^\d{4}-\d{2}$/.test(per)?per+"-28":per.slice(0,4)+"-12-28";
+  suelta(edPer,(per,d)=>({fuente:"editorial",fecha:fechaEd(per),
+    concepto:`Liquidación editorial — ${per}`,artista:deQuien(d),
+    importe:d.importe,liq:true,attr:`data-goto="editorial"`}));
 
   const meMes={};
   merchLineas().forEach(l=>{if((l.mes||"").slice(0,4)!==A)return;
-    const k=clave(l.mes,l.artistaId);meMes[k]=(meMes[k]||0)+l.importe});
-  suelta(meMes,(m,art,v)=>({fuente:"merch",fecha:m+"-28",
+    mete(meMes,l.mes,l.artistaId,l.importe)});
+  suelta(meMes,(m,d)=>({fuente:"merch",fecha:m+"-28",
     concepto:`Ventas Shopify — ${AG_MESES[+m.slice(5,7)-1].toLowerCase()}`,
-    artista:art?nomCliente(art):"—",importe:v,liq:true,attr:`data-goto="merch"`}));
+    artista:deQuien(d),importe:d.importe,liq:true,attr:`data-goto="merch"`}));
   out.sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
   return out;
 }
@@ -4627,14 +4960,12 @@ function viewPanel(el,ta){
   const sevCol={alert:"var(--alert)",info:"var(--c-artista)"};
   el.innerHTML=`
   <div class="p-cab">${heroHTML}</div>
-  <div class="p5-head">
-    <div><div class="p5-eyebrow">Resumen</div><div class="p5-titulo">Panel de control</div></div>
-    <div class="p5-minis">
-      <div class="m"><div class="lab">Bruto del periodo</div><div class="v">${eur0(total)}</div></div>
+  ${(()=>{ /* las cifras van al hueco de la cabecera del armazon */
+    const m=document.getElementById("cabMinis");
+    if(m)m.innerHTML=`<div class="m"><div class="lab">Bruto del periodo</div><div class="v">${eur0(total)}</div></div>
       <div class="m"><div class="lab">Pendiente</div><div class="v">${eur0(K.terceros)}</div></div>
-      <div class="m"><div class="lab">Sin conciliar</div><div class="v">${eur0(sinConc)}</div></div>
-    </div>
-  </div>
+      <div class="m"><div class="lab">Sin conciliar</div><div class="v">${eur0(sinConc)}</div></div>`;
+    return ""; })()}
   <div class="chips" role="tablist" aria-label="Filtrar por fuente">
     <button class="chip ${filtro.panelFuente===""?"on":""}" data-fuente="">Todos</button>
     ${P5_FUENTES.map(([k,lab])=>`<button class="chip ${filtro.panelFuente===k?"on":""}" data-fuente="${k}">${lab}</button>`).join("")}
@@ -4711,50 +5042,101 @@ function moverTarea(id,dest){
   touch();
 }
 function viewTareas(el,ta){
-  ta.innerHTML=`<button class="btn primary sm" data-act="new-tarea">Nueva tarea</button>`;
+  ta.innerHTML=`<button class="btn primary sm" data-act="new-tarea">+ Nueva tarea</button>`;
   const pend=DB.tareas.filter(t=>!t.hecha);
-  const hechas=DB.tareas.filter(t=>t.hecha).sort((a,b)=>(b.hechaEn||"").localeCompare(a.hechaEn||"")).slice(0,15);
+  const hechas=DB.tareas.filter(t=>t.hecha).sort((a,b)=>(b.hechaEn||"").localeCompare(a.hechaEn||""));
   const vencidas=pend.filter(t=>t.vence&&t.vence<hoy()).length;
   document.getElementById("viewSub").textContent=`${pend.length} pendientes${vencidas?` · ${vencidas} vencidas`:""}`;
+
+  /* Las tres cifras de la maqueta. «Personas implicadas» son los distintos
+     asignados de lo que sigue abierto. */
+  const finSemana=(()=>{const d=new Date();d.setDate(d.getDate()+(7-d.getDay()||7));return d.toISOString().slice(0,10)})();
+  const estaSemana=pend.filter(t=>t.vence&&t.vence<=finSemana).length;
+  const personas=new Set(pend.map(t=>t.asignadoA).filter(Boolean)).size;
+  const minis=document.getElementById("cabMinis");
+  if(minis)minis.innerHTML=`
+    <div class="m"><div class="lab">Tareas abiertas</div><div class="v">${pend.length}</div></div>
+    <div class="m"><div class="lab">Vencen esta semana</div><div class="v">${estaSemana}</div></div>
+    <div class="m"><div class="lab">Personas implicadas</div><div class="v">${personas}</div></div>`;
+
   const orden={alta:0,normal:1,baja:2};
+  /* Avance de la tarjeta, en las ocho rayitas de la maqueta: sale de la columna
+     en la que esta, que es el unico dato de progreso que existe. */
+  const AVANCE={porhacer:0,encurso:3,esperando:5,hecha:8};
+  const inicial=n=>(String(n||"?").trim()[0]||"?").toUpperCase();
+
   const tarjeta=t=>{
-    const p=PRIORIDADES[t.prioridad]||PRIORIDADES.normal;
     const vencida=t.vence&&t.vence<hoy()&&!t.hecha;
     const c=t.clienteId?cliente(t.clienteId):null;
     const ct=contactoTarea(t);const acc=[];
     if(!t.hecha){
       if(t.clienteId){
         const mp=/^tar-liq-.+-(\d{4})-(\d{2})$/.exec(t.id||"");
-        acc.push(`<a href="#" class="pill violet" data-act="reporte" data-id="${t.clienteId}"${mp?` data-anio="${mp[1]}" data-mes="${mp[2]}"`:""} title="Abrir el reporte de liquidación">Reporte</a>`);
+        acc.push(`<a href="#" class="pill violet" data-act="reporte" data-id="${t.clienteId}"${mp?` data-anio="${mp[1]}" data-mes="${mp[2]}"`:""} title="Informe de ganancias">Reporte</a>`);
       }
       const plaza=contactosDePlaza(t);
       if(plaza.length>1){
-        acc.push(`<a href="#" class="pill" style="border-color:#25D366;color:#25D366" data-act="wa-plaza" data-id="${t.id}" title="Elige a quién escribir · ${plaza.length} contactos">WhatsApp…</a>`);
+        acc.push(`<a href="#" class="pill" style="border-color:#25D366;color:#25D366" data-act="wa-plaza" data-id="${t.id}" title="Elige a quién escribir">WhatsApp…</a>`);
       }else{
-        if(ct.tel)acc.push(`<a href="${waLink(ct.tel,t.texto)}" target="_blank" rel="noopener" class="pill" style="border-color:#25D366;color:#25D366" onclick="event.stopPropagation()" title="WhatsApp a ${esc(ct.de)}">WhatsApp</a>`);
-        if(ct.email)acc.push(`<a href="mailto:${esc(ct.email)}?subject=${encodeURIComponent(t.texto)}" class="pill artist" onclick="event.stopPropagation()" title="Email a ${esc(ct.de)}">Email</a>`);
+        if(ct.tel)acc.push(`<a href="${waLink(ct.tel,t.texto)}" target="_blank" rel="noopener" class="pill" style="border-color:#25D366;color:#25D366" onclick="event.stopPropagation()">WhatsApp</a>`);
+        if(ct.email)acc.push(`<a href="mailto:${esc(ct.email)}?subject=${encodeURIComponent(t.texto)}" class="pill artist" onclick="event.stopPropagation()">Email</a>`);
       }
     }
-    return `<div class="kb-card${t.hecha?" hecha":""}" draggable="true" data-id="${t.id}" style="--c:${t.hecha?"var(--rule-2)":p.color}">
-      <div class="kb-tx" data-tarea="${t.id}">${esc(t.texto)}</div>
-      <div class="kb-meta tiny dim">
-        ${t.vence&&!t.hecha?`<span style="${vencida?"color:var(--alert);font-weight:700":""}">${vencida?"Venció":"Vence"} ${fecha(t.vence)}</span>`:""}
-        ${c?`<span>${esc(c.nombre||c.nombreReal)}</span>`:""}
-        ${t.promotorId?`<span>${esc(nomPromotor(t.promotorId))}</span>`:""}
-        ${t.prioridad&&t.prioridad!=="normal"&&!t.hecha?`<span style="color:${p.color}">${p.label}</span>`:""}
+    const est=tareaEstado(t), av=AVANCE[est]||0;
+    const ctx=[c?(c.nombre||c.nombreReal):"",t.promotorId?nomPromotor(t.promotorId):""].filter(Boolean).join(" — ");
+    /* El pie de la maqueta es avatar + persona + fecha. Aqui la persona sale de
+       miembros, pero el formulario de tarea no tiene campo de asignado, asi que
+       casi siempre no hay: entonces se queda solo la fecha, sin relleno. */
+    const quien=(t.asignadoA&&DB.miembros&&DB.miembros[t.asignadoA])||"";
+    const tono=t.hecha?"hecha":(t.prioridad==="alta"?"alta":t.prioridad==="baja"?"baja":"");
+    return `<div class="kb2-card ${tono}" draggable="true" data-id="${t.id}">
+      <div class="kb2-fila1">
+        <div class="kb2-tit" data-tarea="${t.id}">${esc(t.texto)}</div>
+        <svg class="kb2-pts" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg>
       </div>
-      ${acc.length?`<div class="kb-acc">${acc.join("")}</div>`:""}
+      ${ctx?`<div class="kb2-ctx"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l2.4 5 5.6.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.6-.8z"/></svg><span>${esc(ctx)}</span></div>`:""}
+      <div class="kb2-dash">${[...Array(8)].map((_,i)=>`<i class="${i<av?"on":""}"></i>`).join("")}</div>
+      ${(quien||t.vence)?`<div class="kb2-pie">
+        ${quien?`<span class="av" style="background:hsl(${avatarTonoDe(quien)} 60% 84%)">${esc(inicial(quien))}</span>`:""}
+        <span style="min-width:0">
+          ${quien?`<span class="nom" style="display:block">${esc(quien)}</span>`:""}
+          ${t.vence?`<span class="fch" style="display:block${quien?"":";font-size:11px"}">${vencida?"Venció ":""}${fecha(t.vence)}</span>`:""}
+        </span></div>`:""}
+      ${(vencida||t.prioridad==="alta")&&!t.hecha?`<div class="kb2-flag" title="${vencida?"Vencida":"Prioridad alta"}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.75 4h2.5l-.45 10.5h-1.6z"/><circle cx="12" cy="18.6" r="1.7"/></svg></div>`:""}
+      ${acc.length?`<div class="kb2-acc">${acc.join("")}</div>`:""}
     </div>`;
   };
-  el.innerHTML=`<div class="kb">${KB_COLS.map(([k,lab])=>{
-    const list=k==="hecha"?hechas
+
+  /* Regla de color de cada columna, como COLS de la maqueta */
+  /* Los colores exactos de COLS en la maqueta: teal, granate, la tinta apagada
+     y mint (sus constantes PINK, LILA, BLUE y CYAN, renombradas en la v6). */
+  const BARRA={porhacer:"var(--f-catalogo)",encurso:"var(--artist)",
+               esperando:"var(--mute)",hecha:"#ADEEDE"};
+  const chip=(lab,on,attr,n)=>`<button class="chip sm ${on?"on":""}" ${attr}>${lab}<span class="n">${n}</span></button>`;
+  const f=filtro.tareasVista||"run";
+  el.innerHTML=`
+  <div class="fe-filtros">
+    ${chip("En marcha",f==="run",'data-tv="run"',pend.length)}
+    ${chip("Hechas",f==="done",'data-tv="done"',hechas.length)}
+    ${chip("Todas",f==="all",'data-tv="all"',DB.tareas.length)}
+  </div>
+  <div class="kb2">${KB_COLS.map(([k,lab])=>{
+    let list=k==="hecha"?hechas.slice(0,15)
       :pend.filter(t=>tareaEstado(t)===k).sort((a,b)=>(orden[a.prioridad]??1)-(orden[b.prioridad]??1)||(a.vence||"9999").localeCompare(b.vence||"9999"));
-    return `<div class="kb-col" data-col="${k}">
-      <div class="kb-head">${lab}<span class="kb-n">${list.length}</span></div>
-      ${list.length?list.map(tarjeta).join(""):`<div class="kb-vacia">${KB_VACIAS[k]}</div>`}
+    if(f==="run"&&k==="hecha")list=[];
+    if(f==="done"&&k!=="hecha")list=[];
+    return `<div class="kb2-col" data-col="${k}">
+      <div class="kb2-bar" style="background:${BARRA[k]}"></div>
+      <div class="kb2-cab"><span class="t">${lab}</span><span class="n">${list.length}</span></div>
+      ${list.length?list.map(tarjeta).join(""):`<div class="kb2-vacia">${KB_VACIAS[k]}</div>`}
     </div>`;
   }).join("")}</div>`;
-  el.querySelectorAll(".kb-card").forEach(card=>{
+
+  el.querySelectorAll("[data-tv]").forEach(b=>b.addEventListener("click",()=>{
+    filtro.tareasVista=b.dataset.tv;render();
+  }));
+  el.querySelectorAll(".kb2-card").forEach(card=>{
     card.addEventListener("dragstart",e=>{
       e.dataTransfer.setData("text/plain",card.dataset.id);
       e.dataTransfer.effectAllowed="move";
@@ -4762,7 +5144,7 @@ function viewTareas(el,ta){
     });
     card.addEventListener("dragend",()=>card.classList.remove("arrastrando"));
   });
-  el.querySelectorAll(".kb-col").forEach(col=>{
+  el.querySelectorAll(".kb2-col").forEach(col=>{
     col.addEventListener("dragover",e=>{e.preventDefault();e.dataTransfer.dropEffect="move";col.classList.add("over")});
     col.addEventListener("dragleave",e=>{if(!col.contains(e.relatedTarget))col.classList.remove("over")});
     col.addEventListener("drop",e=>{
@@ -4839,7 +5221,7 @@ function viewInicioPortal(el,ta){
   <div class="card" style="margin-top:14px"><header><h3>Próximas fechas</h3><div class="spacer"></div>
     <button class="btn ghost sm" data-ir="calendario">Ver agenda</button></header><div class="body">
     ${prox.length?`<table><tbody>
-      ${prox.map(s=>`<tr class="click" data-show="${s.id}">
+      ${prox.map(s=>`<tr>
         <td style="width:1%;white-space:nowrap"><span style="font-family:var(--mono)">${esc(fechaLarga(s.fecha))}</span></td>
         <td>${esc(s.ciudad||"—")}${s.djId===c.id?` <span class="pill violet">vas de DJ</span>`:""}</td>
         <td style="width:1%"><span class="pill ${AG_PILL[s.estado]||""}">${esc(s.estado)}</span></td>
@@ -4873,8 +5255,8 @@ function viewInicioPortal(el,ta){
 }
 
 function viewCalendario(el,ta){
-  ta.innerHTML=esArtistaPortal()?"":`<button class="btn sm" data-act="new-evento">Añadir a la agenda</button>
-                <button class="btn primary sm" data-act="new-show">Nuevo show</button>`;
+  ta.innerHTML=esArtistaPortal()?"":`<button class="btn sm" data-act="new-evento">+ Añadir a la agenda</button>
+                <button class="btn primary sm" data-act="new-show">+ Nueva fecha</button>`;
   let items=itemsCal();
   if(CAL.cliente)   items=items.filter(i=>i.clienteId===CAL.cliente);
   if(CAL.categoria||CAL.sub||CAL.cliente) items=items.filter(i=>i.t!=="prod"||CAL.categoria==="evento");
@@ -4959,7 +5341,10 @@ function viewCalendario(el,ta){
             <span class="cdot"></span><span class="tiny" style="color:${(CTX_ESTILO[x.tipo]||CTX_ESTILO.otro).color}">${esc(x.titulo)}</span></div>`).join("")}
         </div>`:""}
         ${(CAL.sel?selItems:futuros).length?(CAL.sel?selItems:futuros).map(i=>{const ca=catDe(i.clienteId);
-          return `<div class="agenda-item" data-${i.t==="show"?"show":i.t==="prod"?"prod":"evento"}="${i.id}" style="--c:${ca.color}">
+          /* En el portal el item informa y no abre nada: sin data-* no hay
+             ficha que abrir, y «.quieto» le quita el cursor y el hover. */
+          const abre=!esArtistaPortal();
+          return `<div class="agenda-item${abre?"":" quieto"}"${abre?` data-${i.t==="show"?"show":i.t==="prod"?"prod":"evento"}="${i.id}"`:""} style="--c:${ca.color}">
             <div class="bar"></div>
             <div style="flex:1;min-width:0">
               <div class="strong" style="font-size:12.5px">${esc(nomCliente(i.clienteId))}</div>
@@ -4981,7 +5366,7 @@ function viewCalendario(el,ta){
             ${i.t==="show"?(i.esDj?`<span class="pill artist">${i.parte?eur0(i.parte):"DJ"}</span>`:`<span class="pill malo">${eur0(i.importe)}</span>`):i.t==="prod"?`<span class="pill" style="border-color:color-mix(in srgb,var(--ok) 50%,transparent);color:#34D399">${eur0(i.importe)}</span>`:`<span class="pill">agenda</span>`}
           </div>`}).join("")
         :`<div class="empty"><p>${CAL.sel?"Nada este día.":"Nada próximo."}</p>
-           <button class="btn sm" data-act="new-evento">Añadir a la agenda</button></div>`}
+           <button class="btn sm" data-act="new-evento">+ Añadir a la agenda</button></div>`}
       </div>
     </div>
   </div>`;
@@ -5027,92 +5412,191 @@ function showsFiltrados(){
   return list;
 }
 /* ════════ SHOWS ════════ */
+/* Fila de Fechas con el menu de estado abierto, si hay alguno. Vive fuera de
+   la vista porque render() la vuelve a pintar entera en cada cambio. */
+let FE_MENU=null;
 function viewShows(el,ta){
-  ta.innerHTML=`<button class="btn primary" data-act="new-show">Nuevo show</button>`;
+  ta.innerHTML=`<button class="btn primary" data-act="new-show">+ Nueva fecha</button>`;
   if(!DB.clientes.length){
-    el.innerHTML=`<div class="card"><div class="empty"><p>Antes de registrar shows necesitas al menos un cliente.</p><button class="btn primary" data-act="new-cliente">Añadir cliente</button></div></div>`;return;
+    el.innerHTML=`<div class="card"><div class="empty"><p>Antes de registrar shows necesitas al menos un cliente.</p><button class="btn primary" data-act="new-cliente">+ Nuevo cliente</button></div></div>`;return;
   }
   const esAntiguo=s=>!!s.fecha&&s.fecha<hoy();
-  const ocultos=filtro.verAntiguos?0:DB.shows.filter(s=>{
+  /* Cuantos hay de cada estado, para el numero de cada chip. Se cuentan sobre
+     lo que dejan los OTROS filtros (busqueda y cliente), no sobre el estado,
+     que es justo lo que el chip cambia. */
+  let baseChips=DB.shows.filter(s=>{
     if(filtro.q){const q=filtro.q.toLowerCase();
       if(![nomCliente(s.clienteId),nomPromotores(s),s.ciudad,s.pais,plano(s.notas)].join(" ").toLowerCase().includes(q))return false}
     if(filtro.cliente&&s.clienteId!==filtro.cliente)return false;
-    if(filtro.estado&&s.estado!==filtro.estado)return false;
-    return esAntiguo(s);
-  }).length;
+    return true;
+  });
+  if(filtro.showMes)baseChips=baseChips.filter(s=>(s.fecha||"").slice(0,7)===filtro.showMes);
+  const proximos=baseChips.filter(s=>!esAntiguo(s));
+  const antiguos=baseChips.filter(esAntiguo);
+  const cuentaEstado=e=>proximos.filter(s=>s.estado===e).length;
+
   let list=showsFiltrados();
+  if(filtro.showMes)list=list.filter(s=>(s.fecha||"").slice(0,7)===filtro.showMes);
   const ORD_SHOWS={
     fecha_desc:(a,b)=>(b.fecha||"").localeCompare(a.fecha||""),
     fecha_asc:(a,b)=>(a.fecha||"").localeCompare(b.fecha||""),
     alpha:(a,b)=>nomCliente(a.clienteId).localeCompare(nomCliente(b.clienteId)),
     ingreso_desc:(a,b)=>calc(b).comis-calc(a).comis,
   };
-  list=aplicarOrden(list,filtro.ordenShows,ORD_SHOWS);
+  list=aplicarOrden(list,"fecha_asc",ORD_SHOWS);
   const tot=list.filter(s=>s.estado!=="cancelado").reduce((t,s)=>{const c=calc(s);
     t.bruto+=c.bruto;t.comis+=c.comis;t.neto+=c.neto;t.gastos+=c.gArt+c.gMalo+c.gProm;return t},
     {bruto:0,comis:0,neto:0,gastos:0});
-  /* Estos totales son de lo que estas viendo, ofertas incluidas. Se dice, para
-     que no choquen con la «facturacion en firme» del Panel. */
   const totOferta=list.filter(s=>s.estado==="oferta").reduce((t,s)=>t+calc(s).bruto,0);
-  const notaOferta=totOferta?`<div class="note">incluye ${eur0(totOferta)} en ofertas</div>`:"";
   const pag=paginar(list,"shows");list=pag.list;
   document.getElementById("viewSub").textContent=filtro.verAntiguos
     ? `${list.length} registros · con antiguos`
-    : `${list.length} próximos${ocultos?` · ${ocultos} antiguos ocultos`:""}`;
+    : `${list.length} próximos${antiguos.length?` · ${antiguos.length} antiguos`:""}`;
+
+  /* Las cifras van arriba, en la cabecera de la seccion (diseño v6). Siguen
+     abriendo su grafica al pulsarlas, que eso la maqueta no lo tiene pero la
+     app si. «Total gastos» se queda: es un numero que ya usabais. */
+  const minis=document.getElementById("cabMinis");
+  if(minis)minis.innerHTML=`
+    <button class="m" data-kpi="bruto"><div class="lab">Caché${filtro.verAntiguos?"":" próximos"}</div><div class="v">${eur0(tot.bruto)}</div></button>
+    <button class="m" data-kpi="comis"><div class="lab">Comisión ${esc(nombreAgencia())}</div><div class="v">${eur0(tot.comis)}</div></button>
+    <button class="m" data-kpi="neto"><div class="lab">Neto clientes</div><div class="v">${eur0(tot.neto)}</div></button>
+`;
+
+  /* Agrupado por mes, como la propuesta: cabecera con el mes, cuantas fechas y
+     el cache del mes. El orden de los grupos lo manda el de la lista. */
+  const grupos=[];
+  list.forEach(s=>{
+    const k=(s.fecha||"").slice(0,7)||"sin-fecha";
+    let g=grupos.find(x=>x.k===k);
+    if(!g){g={k,filas:[],suma:0};grupos.push(g)}
+    g.filas.push(s);
+    if(s.estado!=="cancelado")g.suma+=calc(s).bruto;
+  });
+  const nomMes=k=>k==="sin-fecha"?"Sin fecha":`${AG_MESES[+k.slice(5,7)-1]} ${k.slice(0,4)}`;
+
+  const chip=(lab,activo,attr,n)=>`<button class="chip sm ${activo?"on":""}" ${attr}>${lab}${n!=null?`<span class="n">${n}</span>`:""}</button>`;
+  const sinEstado=!filtro.estado&&!filtro.verAntiguos;
 
   el.innerHTML=`
-  <div class="filters">
-    <input type="search" id="q" placeholder="Buscar cliente, promotor, ciudad…" value="${esc(filtro.q)}">
-    <select id="fa"><option value="">Todos los clientes</option>${DB.clientes.map(c=>`<option value="${c.id}" ${filtro.cliente===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select>
-    <select id="fe"><option value="">Todos los estados</option>${ESTADOS.map(e=>`<option ${filtro.estado===e?"selected":""}>${e}</option>`).join("")}</select>
-    ${selectOrden("ordShows",[["fecha_asc","Fecha · la más cercana primero"],["fecha_desc","Fecha · la más lejana primero"],["alpha","Cliente A-Z"],["ingreso_desc","Comisión más alta"]],filtro.ordenShows)}
-    <label class="chk-filtro" title="Incluye también las fechas ya pasadas">
-      <input type="checkbox" id="verAnt" ${filtro.verAntiguos?"checked":""}> Ver shows antiguos</label>
-    ${(filtro.q||filtro.cliente||filtro.estado||filtro.verAntiguos)?`<button class="btn ghost sm" id="clr">Quitar filtros</button>`:""}
+  <div class="fe-filtros">
+    ${chip("Todos",sinEstado,'data-fe="todos"',proximos.length)}
+    ${""/* Los tres de la maqueta: ejecutado y cancelado no llevan chip */}
+    ${["oferta","confirmado","contratado"].map(e=>
+      chip(e[0].toUpperCase()+e.slice(1),filtro.estado===e&&!filtro.verAntiguos,`data-fe="${e}"`,cuentaEstado(e))).join("")}
+    ${chip("Pasados",filtro.verAntiguos,'data-fe="pasados"',antiguos.length)}
+    ${""/* «Mes»: la rejilla de la maqueta para saltar a uno. Sin selector de
+          orden: agrupada por mes, la lista va siempre por fecha. */}
+    <button class="chip sm ${filtro.showMes?"on":""}" id="feMes">
+      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;vertical-align:-1px;margin-right:5px"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/></svg>${filtro.showMes?esc(mesCorto(filtro.showMes)):"Mes"}</button>
+    <select id="fa" style="width:auto"><option value="">Cliente</option>${DB.clientes.map(c=>`<option value="${c.id}" ${filtro.cliente===c.id?"selected":""}>${esc(c.nombre||c.nombreReal)}</option>`).join("")}</select>
   </div>
-  ${ocultos?`<p class="aviso-ocultos">Hay <strong>${ocultos}</strong> ${ocultos===1?"fecha":"fechas"} ya ${ocultos===1?"pasada":"pasadas"} que ${ocultos===1?"no se muestra":"no se muestran"}.
-    <a href="#" id="verAntLink">Ver shows antiguos</a></p>`:""}
-  <div class="strip" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
-    ${""/* Los totales cuadran siempre con lo que se ve en la tabla, así que hay que
-          decir si son solo de las próximas o de todo el histórico filtrado. */}
-    <div class="cell" style="cursor:pointer" data-kpi="bruto"><div class="lab">Caché bruto${filtro.verAntiguos?"":" · próximos"}</div><div class="val">${eur0(tot.bruto)}</div>${notaOferta}</div>
-    <div class="cell" style="cursor:pointer" data-kpi="neto"><div class="lab">Neto clientes${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-artist">${eur0(tot.neto)}</div></div>
-    <div class="cell" style="cursor:pointer" data-kpi="comis"><div class="lab">Comisión ${nombreAgencia()}${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-malo">${eur0(tot.comis)}</div></div>
-    <div class="cell" style="cursor:pointer" data-kpi="gastos"><div class="lab">Total gastos${filtro.verAntiguos?"":" · próximos"}</div><div class="val v-alert">${eur0(tot.gastos)}</div></div>
-  </div>
-  <div class="card"><div class="body flush">
-  ${list.length?`<table><thead><tr><th>Fecha</th><th>Cliente</th><th>Promotor / plaza</th><th>Estado</th><th class="num">Caché</th><th class="num">Comisión</th><th class="num">Neto</th><th>Cobro</th><th>Liquidación</th></tr></thead>
-  <tbody>${list.map(s=>{
-    const c=calc(s),idx=ESTADOS.indexOf(s.estado),cancel=s.estado==="cancelado",ca=catDe(s.clienteId);
-    const co=s.cobro||{},li=s.liq||{};
-    const coCls=co.estado==="cobrado"?"ok":(co.fechaPrevista&&co.fechaPrevista<hoy()?"alert":"");
-    return `<tr class="click" data-show="${s.id}" style="--c:${ca.color}${cancel?";opacity:.45":""}">
-      <td style="white-space:nowrap"><span class="tiny dim" style="font-family:var(--mono)">${fecha(s.fecha)}</span></td>
-      <td class="strong"><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(s.clienteId))}</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px;min-width:0">
-            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(nomPromotor(s.promotorId))}</span>
-            ${colabsDe(s).length?`<span class="colab-mark" title="Con: ${esc(colabsDe(s).map(nomPromotor).join(", "))}">+${colabsDe(s).length}</span>`:""}
-            ${plano(s.notas)?`<button type="button" class="nota-mark" data-act="nota-show" data-id="${s.id}"
-              data-asomo-show="${s.id}" aria-label="Notas de esta fecha">notas</button>`:""}</div>
-          <div class="dim tiny">${esc(s.ciudad||"")}${s.pais&&s.pais!=="ES"?" · "+esc(s.pais):""}</div></td>
-      <td><div class="pipe">${[0,1,2,3].map(i=>`<span class="${cancel?"dead":(i<=idx?"on":"")}"></span>`).join("")}</div><div class="dim tiny" style="margin-top:4px">${esc(s.estado)}</div></td>
-      <td class="num">${eur0(c.bruto)}</td><td class="num v-malo strong">${eur0(c.comis)}</td><td class="num v-artist">${eur0(c.neto)}</td>
-      <td><span class="pill ${coCls}">${co.estado||"pendiente"}</span></td>
-      <td><span class="pill ${li.estado==="liquidado"?"ok":""}">${li.estado||"pendiente"}</span></td></tr>`}).join("")}</tbody></table>`
-  :`<div class="empty"><p>No hay shows con estos filtros.</p><button class="btn primary" data-act="new-show">Nuevo show</button></div>`}
-  ${pag.boton}
-  </div></div>`;
+  ${grupos.length?grupos.map(g=>`
+    <div class="fe-grupo">
+      <div class="fe-mes"><b>${esc(nomMes(g.k))}</b>
+        <span class="n">${g.filas.length} ${g.filas.length===1?"fecha":"fechas"}</span>
+        ${g.suma?`<span class="cache"><b>${eur0(g.suma)}</b><span>caché del mes</span></span>`:""}</div>
+      <div class="fe-tabla">
+        <div class="fe-cab"><div></div><div></div><div>Show</div><div>Estado</div>
+          <div style="text-align:right">Caché</div><div style="text-align:right">Comisión ${esc(nombreAgencia())}</div>
+          <div style="text-align:right">Neto clientes</div>
+          <div style="text-align:center">Cobro</div><div style="text-align:center">Liquidación</div></div>
+        ${g.filas.map(s=>{
+          const c=calc(s),idx=ESTADOS.indexOf(s.estado),cancel=s.estado==="cancelado",ca=catDe(s.clienteId);
+          const co=s.cobro||{},li=s.liq||{};
+          const coCls=co.estado==="cobrado"?"ok":(co.fechaPrevista&&co.fechaPrevista<hoy()?"alerta":"");
+          const d=s.fecha?new Date(s.fecha+"T12:00:00"):null;
+          return `<div class="fe-fila click${cancel?" cancel":""}" data-show="${s.id}" style="--c:${ca.color}">
+            <div class="fe-dia"><b>${s.fecha?s.fecha.slice(8,10):"—"}</b><span>${d?AG_DIAS[d.getDay()]:""}</span></div>
+            <div class="fe-barra"></div>
+            <div class="fe-show">
+              <div class="t1">${esc(nomCliente(s.clienteId))}</div>
+              <div class="t2"><span>${esc(nomPromotor(s.promotorId))}${s.ciudad?" · "+esc(s.ciudad):""}</span>
+                ${colabsDe(s).length?`<span class="colab-mark" title="Con: ${esc(colabsDe(s).map(nomPromotor).join(", "))}">+${colabsDe(s).length}</span>`:""}
+                ${plano(s.notas)?`<button type="button" class="nota-mark" data-act="nota-show" data-id="${s.id}"
+                  data-asomo-show="${s.id}" aria-label="Notas de esta fecha">notas</button>`:""}</div>
+            </div>
+            <div class="fe-est-cel" data-est="${s.id}" title="Cambiar estado">
+              <div class="pipe">${[0,1,2,3].map(i=>`<span class="${cancel?"dead":(i<=idx?"on":"")}"></span>`).join("")}</div>
+              <div class="fe-est fe-est-fila"><span>${esc(s.estado)}</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></div>
+              ${FE_MENU===s.id?`<div class="fe-menu">${ESTADOS.map(e=>
+                `<button type="button" data-poner="${s.id}" data-estado="${e}" class="${e===s.estado?"on":""}${e==="cancelado"?" cancel":""}"><i></i>${e}</button>`).join("")}</div>`:""}
+            </div>
+            <div class="fe-num" data-lab="Caché">${eur0(c.bruto)}</div>
+            <div class="fe-num comis" data-lab="Comisión">${eur0(c.comis)}<div class="pct">${s.comisionPct!=null?n(s.comisionPct)+" %":""}</div></div>
+            <div class="fe-num neto" data-lab="Neto">${eur0(c.neto)}</div>
+            <div class="fe-pill ${coCls}" data-lab="Cobro" data-cobro="${s.id}" title="Marcar cobrado / pendiente">${esc(co.estado||"pendiente")}</div>
+            <div class="fe-pill ${li.estado==="liquidado"?"ok":""}" data-lab="Liquidación" data-liq="${s.id}" title="Marcar liquidado / pendiente">${esc(li.estado||"pendiente")}</div>
+          </div>`}).join("")}
+      </div>
+    </div>`).join("")
+  :`<div class="card"><div class="empty"><p>No hay fechas con estos filtros.</p><button class="btn primary" data-act="new-show">+ Nueva fecha</button></div></div>`}
+  ${pag.boton}`;
 
-  document.getElementById("q").addEventListener("input",e=>{filtro.q=e.target.value;render();
-    const i=document.getElementById("q");i.focus();i.setSelectionRange(i.value.length,i.value.length)});
+  /* Cambiar estado, cobro y liquidacion desde la propia fila, como la maqueta.
+     Todos paran la propagacion: si no, el clic abre ademas la ficha del show. */
+  el.querySelectorAll("[data-est]").forEach(c=>c.addEventListener("click",e=>{
+    e.stopPropagation();
+    FE_MENU=FE_MENU===c.dataset.est?null:c.dataset.est;
+    render();
+  }));
+  el.querySelectorAll("[data-poner]").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation();
+    const sh=DB.shows.find(x=>x.id===b.dataset.poner);
+    if(sh){sh.estado=b.dataset.estado;DB.shows=DB.shows.map(x=>x.id===sh.id?sh:x);touch()}
+    FE_MENU=null;render();
+  }));
+  el.querySelectorAll("[data-cobro]").forEach(p=>p.addEventListener("click",e=>{
+    e.stopPropagation();
+    const sh=DB.shows.find(x=>x.id===p.dataset.cobro);if(!sh)return;
+    const ya=(sh.cobro||{}).estado==="cobrado";
+    sh.cobro=Object.assign({},sh.cobro||{},{estado:ya?"pendiente":"cobrado"});
+    if(!ya&&!sh.cobro.fechaCobro)sh.cobro.fechaCobro=hoy();
+    DB.shows=DB.shows.map(x=>x.id===sh.id?sh:x);touch();render();
+  }));
+  el.querySelectorAll("[data-liq]").forEach(p=>p.addEventListener("click",e=>{
+    e.stopPropagation();
+    bolsilloTogglePagoShow(p.dataset.liq);render();
+  }));
+
+  /* «Mes»: rejilla por año con cuantas fechas hay en cada uno. */
+  const btnMes=document.getElementById("feMes");
+  if(btnMes)btnMes.addEventListener("click",e=>{
+    e.stopPropagation();
+    const ya=document.getElementById("feMeses");
+    if(ya){ya.remove();return}
+    const cuenta={};
+    DB.shows.forEach(x=>{const k=(x.fecha||"").slice(0,7);if(k)cuenta[k]=(cuenta[k]||0)+1});
+    const anios=[...new Set(Object.keys(cuenta).map(k=>k.slice(0,4)))].sort().reverse();
+    const caja=document.createElement("div");
+    caja.className="fe-meses";caja.id="feMeses";
+    caja.innerHTML=anios.map(a=>`<div class="anio">${a}</div><div class="rej">${
+      AG_MESES.map((nm,i)=>{const k=a+"-"+String(i+1).padStart(2,"0"),n=cuenta[k]||0;
+        return `<button type="button" ${n?`data-mes="${k}"`:"disabled"} class="${filtro.showMes===k?"on":""}">
+          ${nm.slice(0,3)}<span class="n">${n||""}</span></button>`}).join("")}</div>`).join("");
+    document.body.appendChild(caja);
+    const r=btnMes.getBoundingClientRect();
+    caja.style.top=Math.round(r.bottom+8)+"px";
+    caja.style.left=Math.round(Math.min(r.left,window.innerWidth-286))+"px";
+    caja.addEventListener("click",ev=>{
+      const b=ev.target.closest("[data-mes]");if(!b)return;
+      filtro.showMes=filtro.showMes===b.dataset.mes?"":b.dataset.mes;
+      filtro.estado="";filtro.verAntiguos=false;caja.remove();render();
+    });
+    const fuera=ev=>{if(!caja.contains(ev.target)&&ev.target!==btnMes){caja.remove();document.removeEventListener("pointerdown",fuera,true)}};
+    document.addEventListener("pointerdown",fuera,true);
+  });
+
+  el.querySelectorAll("[data-fe]").forEach(b=>b.addEventListener("click",()=>{
+    const v=b.dataset.fe;
+    if(v==="todos"){filtro.estado="";filtro.verAntiguos=false;filtro.showMes=""}
+    else if(v==="pasados"){filtro.verAntiguos=!filtro.verAntiguos;filtro.estado=""}
+    else {filtro.estado=filtro.estado===v?"":v;filtro.verAntiguos=false}
+    render();
+  }));
   document.getElementById("fa").addEventListener("change",e=>{filtro.cliente=e.target.value;render()});
   buscable("fa");
-  document.getElementById("fe").addEventListener("change",e=>{filtro.estado=e.target.value;render()});
-  document.getElementById("ordShows").addEventListener("change",e=>{filtro.ordenShows=e.target.value;render()});
-  document.getElementById("verAnt").addEventListener("change",e=>{filtro.verAntiguos=e.target.checked;render()});
-  const va=document.getElementById("verAntLink");
-  if(va)va.addEventListener("click",e=>{e.preventDefault();filtro.verAntiguos=true;render()});
-  const c=document.getElementById("clr");if(c)c.addEventListener("click",()=>{filtro.q="";filtro.cliente="";filtro.estado="";filtro.verAntiguos=false;render()});
 }
 
 /* ════════ PRODUCCIONES PROPIAS · rentabilidad ════════ */
@@ -5244,7 +5728,7 @@ function crearFichaExterno(nombre){
   touch();
 }
 function viewEventos(el,ta){
-  ta.innerHTML=`<button class="btn primary" data-act="new-prod">Nueva producción</button>`;
+  ta.innerHTML=`<button class="btn primary" data-act="new-prod">+ Nueva producción</button>`;
   document.getElementById("viewSub").textContent="Hard ticket";
   const list=DB.producciones.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
   if(!list.length){
@@ -5323,6 +5807,8 @@ function viewEventos(el,ta){
 }
 /* ── Detalle de una producción, en modal (handoff §5). Editar abre el formulario. ── */
 function modalProd(id){
+  if(esArtistaPortal())return;          // ver la nota del delegador de clics
+
   const p=DB.producciones.find(x=>x.id===id);if(!p)return;
   const c=calcProd(p);
   const ent=(p.entradas||[]);
@@ -6472,7 +6958,7 @@ function sumaEnRango(mapa,rango){return Object.entries(mapa).filter(([k])=>k>=ra
 
 function viewMisCanciones(el,ta){
   /* El Catálogo enseña lo que distribuye MALO; lo de fuera va en su pestaña. */
-  ta.innerHTML=`<button class="btn primary" data-act="new-cancion">Nueva canción</button>`;
+  ta.innerHTML=`<button class="btn primary" data-act="new-cancion">+ Añadir canción</button>`;
   /* Preferencias guardadas (agrupacion, filtro, periodo...). Solo la primera vez
      que se entra en la vista: despues manda lo que toque el usuario. */
   if(!window.__cancionPrefLeida){
@@ -6535,7 +7021,11 @@ function viewMisCanciones(el,ta){
     return;
   }
 
-  const sinCerrar=list0.filter(c=>Math.abs(sumaParticipantesPct(c.id)-100)>0.01);
+  /* Como en el panel (panelAlertas): una cancion SIN reparto no es un reparto
+     que no cuadra, es uno que falta — suma 0 y sin esta comprobacion entraba
+     en la cuenta. Con los datos de verdad el panel decia 13 y esta celda 58,
+     y es la misma pregunta: el que va a arreglarlo no sabe a cual creer. */
+  const sinCerrar=list0.filter(c=>participantesDe(c.id).length&&Math.abs(sumaParticipantesPct(c.id)-100)>0.01);
   const brutoTotal=list.reduce((a,c)=>a+dinero(c),0);
   const poolTotal=list.reduce((a,c)=>a+poolDe(c),0);
   const conIngresos=list.filter(c=>dinero(c)>0).length;
@@ -6615,7 +7105,8 @@ function viewMisCanciones(el,ta){
     const b=dinero(c), suma=sumaParticipantesPct(c.id), ca=catDe(c.artistaId);
     const tit=tituloConCreditos(c)||"(sin título)";
     const img=portadaDe(c,150);
-    return `<button type="button" class="cn-card" data-cancion="${c.id}" style="--c:${ca.color}"
+    const abreCn=!esArtistaPortal();
+    return `<button type="button" class="cn-card${abreCn?"":" quieto"}"${abreCn?` data-cancion="${c.id}"`:""} style="--c:${ca.color}"
       aria-label="${esc(tit)} · ${b?eur0(b)+" generados":"sin ingresos en este periodo"}">
       <div class="cn-art">
         ${img
@@ -6712,7 +7203,8 @@ function viewMisCanciones(el,ta){
   <table><thead><tr><th>Título</th><th>Artista</th><th>Release</th><th class="num">${conRango?"En el periodo":"Ha generado"}</th><th class="num">A repartir</th><th class="num">Reparto</th></tr></thead>
   <tbody>${(()=>{
     const fila=c=>{const b=dinero(c),suma=sumaParticipantesPct(c.id),ca=catDe(c.artistaId),img=portadaDe(c,32);
-      return `<tr class="click" data-cancion="${c.id}" style="--c:${ca.color}">
+      const abreFila=!esArtistaPortal();
+      return `<tr ${abreFila?`class="click" data-cancion="${c.id}"`:""} style="--c:${ca.color}">
       <td class="strong"><span style="display:flex;align-items:center;gap:8px">${img?`<img src="${esc(img)}" alt="" loading="lazy" onerror="this.remove()" style="width:30px;height:30px;object-fit:cover;border-radius:4px;flex:none">`:""}<span>${esc(tituloConCreditos(c)||"(sin título)")}${c.isrc?`<div class="dim tiny">${esc(c.isrc)}</div>`:""}</span></span></td>
       <td><span style="display:flex;align-items:center;gap:7px"><span class="cdot"></span>${esc(nomCliente(c.artistaId))}</span></td>
       <td class="dim">${esRelease(c)?esc(releaseDe(c)):`<span class="tiny">suelta</span>`}</td>
@@ -6759,6 +7251,8 @@ function viewMisCanciones(el,ta){
 }
 
 function formCancion(id){
+  if(esArtistaPortal())return;          // ver la nota del delegador de clics
+
   const c=id?(DB.canciones||[]).find(x=>x.id===id):null;
   const o=c||{id:uid("can"),titulo:"",artistaId:(cliente(filtro.cancionArtista)||DB.clientes[0]||{}).id||"",fechaLanzamiento:"",isrc:"",
     distribuidora:"ADA",feeDistribucionPct:30,mgmtPct:21,cuentaPortal:"",notas:""};
@@ -7043,6 +7537,16 @@ function saveCancion(isNew){
   if(!c.artistaId){toast("Elige de qué artista es");return}
   const participantes=c._participantes.map(p=>({...p,cancionId:c.id}));
   const ingresos=c._ingresos.map(i=>({...i,cancionId:c.id}));
+  /* cancion_ingresos.mes es «date not null». Vaciar el campo de mes guardaba
+     "" y, a partir de ahi, TODOS los guardados de la app fallaban con
+     «invalid input syntax for type date»: save() sube todas las tablas juntas,
+     asi que el error saltaba aunque estuvieras editando un show. Y un ingreso
+     sin mes tampoco sirve: no entra en ningun rango, no lo cuenta nadie. No
+     vale meterlo en VACIO_NO_TEXTO porque la columna es NOT NULL y no hay
+     fecha «neutra» que poner; se avisa aqui, que es donde se puede arreglar. */
+  const sinMes=ingresos.filter(i=>!String(i.mes||"").trim()).length;
+  if(sinMes){toast(sinMes===1?"Hay una línea de ingresos sin mes"
+    :`Hay ${sinMes} líneas de ingresos sin mes`);return}
   delete c._participantes;delete c._ingresos;
   if(isNew)DB.canciones.push(c); else DB.canciones=DB.canciones.map(x=>x.id===c.id?c:x);
   DB.cancionParticipantes=(DB.cancionParticipantes||[]).filter(p=>p.cancionId!==c.id).concat(participantes);
@@ -7281,7 +7785,7 @@ function viewBolsillo(el,ta){
       <div class="card" style="margin:0"><header><h3>${portal?"Tus próximas fechas":"Próximas fechas"}</h3></header><div class="body flush">
         ${prox.length?`<table><tbody>${prox.map(s=>{
           const imp=netoArtistaEnShow(s,cli);
-          return `<tr class="click" data-show="${s.id}">
+          return `<tr ${portal?"":`class="click" data-show="${s.id}"`}>
             <td class="tiny dim" style="font-family:var(--mono);white-space:nowrap">${fecha(s.fecha)}</td>
             <td><b>${esc(nomPromotor(s.promotorId)!=="—"?nomPromotor(s.promotorId):(s.ciudad||"Show"))}</b>${s.ciudad?`<div class="tiny dim">${esc(s.ciudad)}</div>`:""}</td>
             <td><span class="pill ${AG_PILL[s.estado]||""}">${esc(s.estado)}</span></td>
@@ -7314,7 +7818,7 @@ function viewBolsillo(el,ta){
   }else if(tabAct==="shows"){
     cuerpo=`<div class="card" style="margin:0"><div class="body flush">
       ${D.shFilas.length?`<table><thead><tr><th>Fecha</th><th>Show</th><th>Estado</th><th class="num">${portal?"Cobrarás":"Su parte"}</th><th>Pago</th></tr></thead>
-      <tbody>${D.shFilas.map(f=>`<tr class="click" data-show="${f.s.id}">
+      <tbody>${D.shFilas.map(f=>`<tr ${portal?"":`class="click" data-show="${f.s.id}"`}>
         <td class="tiny dim" style="font-family:var(--mono);white-space:nowrap">${fecha(f.s.fecha)}</td>
         <td><b>${esc(nomPromotor(f.s.promotorId)!=="—"?nomPromotor(f.s.promotorId):(f.s.ciudad||"Show"))}</b>${f.s.ciudad?`<div class="tiny dim">${esc(f.s.ciudad)}</div>`:""}</td>
         <td><span class="pill ${AG_PILL[f.s.estado]||""}">${esc(f.s.estado)}</span></td>
@@ -7331,7 +7835,7 @@ function viewBolsillo(el,ta){
     }).filter(Boolean).filter(x=>x.bruto>0).sort((a,b)=>b.neto-a.neto);
     cuerpo=`<div class="card" style="margin:0"><div class="body flush">
       ${porCancion.length?`<table><thead><tr><th>Canción</th><th class="num">Tu reparto</th><th class="num">Generado (bruto)</th><th class="num">${portal?"Te queda":"Le queda"}</th></tr></thead>
-      <tbody>${porCancion.map(x=>`<tr class="click" data-cancion="${x.cn.id}">
+      <tbody>${porCancion.map(x=>`<tr ${portal?"":`class="click" data-cancion="${x.cn.id}"`}>
         <td class="strong">${esc(tituloConCreditos(x.cn))}</td>
         <td class="num dim">${n(x.p.pct)}%</td>
         <td class="num">${eur0(x.bruto)}</td>
@@ -7801,12 +8305,6 @@ function viewRedes(el,ta){
     .slice().sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,5);
   const COLORES5=["var(--serie-1)","var(--serie-2)","var(--serie-3)","var(--serie-4)","var(--serie-5)"];
 
-  /* Escala con paso redondo (1, 2 o 5 por decada) en vez de min-max pelado:
-     asi las cinco lineas de la rejilla caen en cifras que se pueden leer. */
-  const pasoBonito=r=>{
-    const b=Math.pow(10,Math.floor(Math.log10(r||1)));
-    return [1,2,2.5,5,10].map(m=>b*m).find(p=>p*4>=r)||b*10;
-  };
   const redK=v=>v>=1000?Math.round(v/1000)+"K":String(Math.round(v));
   const MES_CORTO=["ene","feb","mar","abr","may","jun","jul","ago","sept","oct","nov","dic"];
   const diaMes=t=>{const d=new Date(t);return d.getDate()+" "+MES_CORTO[d.getMonth()]};
@@ -7814,27 +8312,32 @@ function viewRedes(el,ta){
   const series5=top5.map(f=>redesSerie90(f.c.id));
   const VENT=redesVentana(series5);
   /* El rotulo dice los dias que de verdad cubren las tomas, no 90 a secas. */
-  const tituloGrafica=VENT?`Los cinco mayores · ${VENT.dias===1?"un día":VENT.dias+" días"}`
-                          :"Los cinco mayores · 90 días";
+  /* El rotulo de la maqueta dice QUE suma y de cuanto tiempo: «Seguidores
+     (Instagram + TikTok + YouTube) · ultimos 90 dias». Aqui las redes son las
+     que de verdad tienen datos, y los dias los que cubren las tomas. */
+  const tituloGrafica=VENT
+    ?`Seguidores (${plataformas.map(r=>REDES[r].label).join(" + ")}) · últimos ${VENT.dias===1?"día":VENT.dias+" días"}`
+    :"Seguidores · últimos 90 días";
 
   const grafica=(()=>{
     if(top5.length<1||!VENT)return "";
     const W=600,H=180;                     // el viewBox se estira: preserveAspectRatio="none"
     const todas=[].concat(...series5).map(p=>p.total);
     if(!todas.length)return "";
-    const min0=Math.min(...todas),max0=Math.max(...todas);
-    const paso=pasoBonito(max0-min0||max0||1);
-    const lo=Math.floor(min0/paso)*paso, hi=Math.max(lo+paso,Math.ceil(max0/paso)*paso);
+    /* Escala como la maqueta (redGridY): del minimo al maximo exactos, cinco
+       lineas repartidas en cuartos y 4px de aire arriba y abajo. Nada de
+       redondear a cifras bonitas: eso metia el 0 en la escala —el minimo del
+       roster son 27K y el maximo 373K— y aplastaba las cinco lineas abajo. */
+    const lo=Math.min(...todas), hi=Math.max(...todas), rg=(hi-lo)||1;
     const d0=VENT.a,dw=VENT.w;
-    const yDe=v=>H-(v-lo)/(hi-lo)*H;
+    const yDe=v=>H-(v-lo)/rg*(H-8)-4;
     /* 8 de margen a cada lado: con los puntos dibujados, los de los extremos
        quedaban partidos por el borde del lienzo. */
     const MX=8, xDe=f=>MX+(new Date(f).getTime()-d0)/dw*(W-MX*2);
-    /* Cinco lineas de rejilla, del paso de arriba. La de abajo hace de eje. */
-    const ticks=[];for(let v=lo;v<=hi+.001;v+=paso)ticks.push(v);
+    const ticks=[0,.25,.5,.75,1].map(f=>lo+f*rg);
     const rejilla=ticks.map(v=>`<line x1="0" x2="${W}" y1="${yDe(v).toFixed(1)}" y2="${yDe(v).toFixed(1)}"
       stroke="var(--rule)" stroke-width="1" vector-effect="non-scaling-stroke"/>`).join("");
-    const ejeY=ticks.map(v=>`<span style="top:${yDe(v).toFixed(1)}px">${redK(v)}</span>`).join("");
+    const ejeY=ticks.map(v=>`<span style="top:${yDe(v).toFixed(1)}px">${redK(Math.round(v))}</span>`).join("");
     const lineas=top5.map((f,i)=>{
       const pts=series5[i].map(p=>`${xDe(p.fecha).toFixed(1)},${yDe(p.total).toFixed(1)}`).join(" ");
       /* vector-effect: sin el, al estirar el viewBox el trazo engorda de un lado */
@@ -7870,6 +8373,31 @@ function viewRedes(el,ta){
     </div>`;
   })();
 
+  /* Cabecera del diseño v6, con los mismos componentes que el panel. Las tres
+     cifras son las del prototipo y salen de los datos que ya hay:
+     · seguidores totales = la suma de los totales de cada artista
+     · oyentes de Spotify = extra.oyentesMensuales de la ultima toma (es un
+       campo del modelo, REDES_META, no una estimacion)
+     · crecimiento 30 dias = sobre el total del roster, no la media de los
+       porcentajes de cada uno, que daria otro numero
+     El «+ Conectar cuenta» del prototipo se queda fuera a proposito: aqui
+     conectar es cosa de cada artista (su enlace de Instagram o «+ Añadir
+     dato» en su ficha), no hay accion global que poner detras. */
+  const segTotal=filas.reduce((a,f)=>a+(f.total||0),0);
+  const oyentes=artistas.reduce((a,c)=>{
+    const u=ultimoSnapshot(c.id,"spotify");
+    const e=u&&u.extra&&typeof u.extra==="object"?u.extra:{};
+    return a+n(e.oyentesMensuales);
+  },0);
+  const con30=filas.filter(f=>f.v30);
+  const abs30=con30.reduce((a,f)=>a+f.v30.abs,0);
+  const base30=con30.reduce((a,f)=>a+((f.total||0)-f.v30.abs),0);
+  const cre30=(con30.length&&base30>0)?abs30/base30*100:null;
+  (()=>{ const m=document.getElementById("cabMinis");
+    if(m)m.innerHTML=`<div class="m"><div class="lab">Seguidores totales</div><div class="v">${kAbrev(segTotal).toUpperCase()}</div></div>
+      ${oyentes?`<div class="m"><div class="lab">Oyentes Spotify / mes</div><div class="v">${kAbrev(oyentes).toUpperCase()}</div></div>`:""}
+      <div class="m"><div class="lab">Crecimiento 30 días</div><div class="v">${cre30==null?"—":(cre30>0?"+":"")+cre30.toFixed(1).replace(".",",")+" %"}</div></div>`; })();
+
   const avisos=redesAvisos();
   const movs=filas.filter(f=>f.v30&&f.v30.abs!==0).slice()
     .sort((a,b)=>b.v30.abs-a.v30.abs);
@@ -7891,6 +8419,10 @@ function viewRedes(el,ta){
   ${avisos.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
     ${avisos.map(a=>`<button type="button" class="rd-aviso ${a.tipo}" data-act="redes-art" data-id="${a.cliId}">${a.tipo==="up"?"▲":"▼"} ${esc(a.t)}</button>`).join("")}
   </div>`:""}
+  <div class="chips" style="margin-bottom:14px">
+    <button class="chip ${!filtro.redesTab?"on":""}" data-rdtab="">Todas <span class="n">${filas.length}</span></button>
+    ${plataformas.map(r=>`<button class="chip ${filtro.redesTab===r?"on":""}" data-rdtab="${r}">${REDES[r].label} <span class="n">${cuenta(r)}</span></button>`).join("")}
+  </div>
   ${grafica?`<div class="rd-grid" style="margin-bottom:16px">
     <div class="card" style="margin:0"><header><h3>${esc(tituloGrafica)}</h3></header><div class="body">${grafica}</div></div>
     <div class="card rd-mueve" style="margin:0"><header><h3>Quién se mueve · 30 días</h3></header><div class="body">
@@ -7898,10 +8430,6 @@ function viewRedes(el,ta){
       ${bajan.length?`<div class="grupo">Bajan</div>`+bajan.map(f=>`<div class="m" data-act="redes-art" data-id="${f.c.id}">${avatarHTML(f.c,22)}<span class="nom">${esc(f.c.nombre||f.c.nombreReal)}</span><span class="tot">${redK(f.total||0)}</span><span class="v" style="color:var(--alert)">−${f.v30.pct!=null?Math.abs(f.v30.pct).toFixed(1)+"%":Math.abs(f.v30.abs).toLocaleString("es-ES")}</span></div>`).join(""):""}
     </div></div>
   </div>`:""}
-  <div class="chips">
-    <button class="chip ${!filtro.redesTab?"on":""}" data-rdtab="">Todas</button>
-    ${plataformas.map(r=>`<button class="chip ${filtro.redesTab===r?"on":""}" data-rdtab="${r}">${REDES[r].label} <span style="opacity:.65">${cuenta(r)}</span></button>`).join("")}
-  </div>
   <div class="card"><div class="body flush">
     ${filas.length?`<table><thead><tr>
       ${cab("nombre","Artista")}
@@ -7909,15 +8437,20 @@ function viewRedes(el,ta){
       ${cab("total","Total",1)}${cab("v30","30 días",1)}${cab("eng","Engagement",1)}<th>90 días</th>
     </tr></thead>
     <tbody>${filas.map((f,ix)=>`<tr class="click" data-act="redes-art" data-id="${f.c.id}">
-      <td><span style="display:inline-flex;align-items:center;gap:9px">${avatarHTML(f.c,26)}<b>${esc(f.c.nombre||f.c.nombreReal)}</b></span></td>
+      <td><span style="display:inline-flex;align-items:center;gap:9px">${avatarHTML(f.c,26)}
+        <span><b style="display:block">${esc(f.c.nombre||f.c.nombreReal)}</b>
+        <span class="tiny dim">${esc((CATEGORIAS[f.c.categoria]||CATEGORIAS.artista).label)}</span></span></span></td>
       ${redsVisibles.map(r=>{
         const pr=f.porRed[r];
-        if(pr.seg!=null)return `<td class="num">${pr.seg.toLocaleString("es-ES")}${varHTML(pr.v)}</td>`;
+        if(pr.seg!=null)return `<td class="num">${redK(pr.seg)}${varHTML(pr.v)}</td>`;
         if(pr.handle)return `<td class="num"><a href="${esc(redUrl(r,pr.handle))}" target="_blank" rel="noopener" class="tiny" onclick="event.stopPropagation()" title="Perfil enlazado, sin cuenta conectada">perfil ↗</a></td>`;
         return `<td class="num dim">—</td>`;
       }).join("")}
-      <td class="num strong">${f.total!=null?f.total.toLocaleString("es-ES"):"—"}</td>
-      <td class="num">${f.v30?varHTML(f.v30):'<span class="dim">—</span>'}</td>
+      <td class="num strong">${f.total!=null?redK(f.total):"—"}</td>
+      ${""/* La maqueta pone la variacion a 30 dias como pastilla, verde o rosa */}
+      <td class="num">${f.v30&&f.v30.pct!=null
+        ?`<span class="rd-p30 ${f.v30.pct>=0?"up":"down"}">${f.v30.pct>=0?"+":"−"}${Math.abs(f.v30.pct).toFixed(1)}%</span>`
+        :'<span class="dim">—</span>'}</td>
       <td class="num">${f.eng!=null?f.eng.toFixed(1)+"%":'<span class="dim">—</span>'}</td>
       <td style="width:96px">${redesSparkline(f.c.id,88,26,"var(--malo)")}</td>
     </tr>`).join("")}</tbody></table>`
@@ -8106,7 +8639,7 @@ function saveRedSnapshot(clienteId){
 
 /* ════════ CLIENTES ════════ */
 function viewClientes(el,ta){
-  ta.innerHTML=`<button class="btn primary" data-act="new-cliente">Nuevo cliente</button>`;
+  ta.innerHTML=`<button class="btn primary" data-act="new-cliente">+ Nuevo cliente</button>`;
   if(!DB.clientes.length){
     el.innerHTML=`<div class="card"><div class="empty"><p>Sin clientes todavía. La ficha guarda categoría, comisiones, datos fiscales, redes, calendario y notas.</p><button class="btn primary" data-act="new-cliente">Añadir cliente</button></div></div>`;return;
   }
@@ -8182,7 +8715,7 @@ function viewClientes(el,ta){
 
 /* ════════ PROMOTORES ════════ */
 function viewContactos(el,ta){
-  ta.innerHTML=`<button class="btn primary" data-act="new-promotor">Nuevo contacto</button>`;
+  ta.innerHTML=`<button class="btn primary" data-act="new-promotor">+ Nuevo contacto</button>`;
   if(!DB.promotores.length){
     el.innerHTML=`<div class="card"><div class="empty"><p>Sin contactos todavía. Aquí se acumulan salas, promotores, fiestas, festivales, agencias y medios, con su histórico de pagos.</p><button class="btn primary" data-act="new-promotor">Añadir contacto</button></div></div>`;return;
   }
@@ -9436,7 +9969,7 @@ async function recargaSoporte(){
 
 function viewSoporte(el,ta){
   const portal=esArtistaPortal();
-  ta.innerHTML=`<button class="btn primary" data-act="new-ticket">Nueva incidencia</button>`;
+  ta.innerHTML=`<button class="btn primary" data-act="new-ticket">+ Abrir incidencia</button>`;
   if(DB.sinSoporte){
     el.innerHTML=`<div class="card"><div class="empty"><p><strong>Falta ejecutar el SQL de Soporte.</strong><br>
       Pide al desarrollador que ejecute <code>supabase/soporte.sql</code> y recarga.</p></div></div>`;
@@ -10330,7 +10863,7 @@ function elegirContactoPlaza(taskId){
 const PRIORIDADES={alta:{label:"Alta",color:"#ED5564"},normal:{label:"Normal",color:"#8A94B0"},baja:{label:"Baja",color:"#34D399"}};
 
 function viewEquipo(el,ta){
-  ta.innerHTML=`<button class="btn primary sm" data-act="new-tarea">Nueva tarea</button>`;
+  ta.innerHTML=`<button class="btn primary sm" data-act="new-tarea">+ Nueva tarea</button>`;
   const pend=DB.tareas.filter(t=>!t.hecha);
   const hechas=DB.tareas.filter(t=>t.hecha).sort((a,b)=>(b.hechaEn||"").localeCompare(a.hechaEn||"")).slice(0,15);
   const orden={alta:0,normal:1,baja:2};
@@ -14308,6 +14841,8 @@ function saveShowRapido(det){
   else{closeModal();toast("Show guardado")}
 }
 function formShow(id,comoNuevo){
+  if(esArtistaPortal())return;          // ver la nota del delegador de clics
+
   if(!DB.clientes.length){toast("Primero da de alta un cliente");return}
   const esNuevo=!id||!!comoNuevo;
   /* El cliente por defecto hereda el contexto: si el calendario o la lista de
@@ -14928,13 +15463,7 @@ document.addEventListener("click",e=>{
     if(act==="redes-art")return modalRedesArtista(el.dataset.id);
     if(act==="redes-tab"){RD_TAB=el.dataset.tab;pintaModalRedes();return}
     if(act==="redes-pdf")return informeRedesPDF(el.dataset.id);
-    if(act==="avisos"){
-      if(VIEW!=="panel"){VIEW="panel";render()}
-      const c=document.getElementById("p5atencion");
-      if(c){c.scrollIntoView({behavior:"smooth",block:"start"});
-        c.style.transition="box-shadow .3s";c.style.boxShadow="0 0 0 3px color-mix(in srgb,#E8622C 55%,transparent)";
-        setTimeout(()=>{c.style.boxShadow=""},1600)}
-      return}
+    if(act==="avisos"){ abreAvisos(el); return }
     if(act==="new-tarea")return formTarea(null);
     if(act==="new-medio")return formMedios(null);
     if(act==="new-ticket")return formTicket();
@@ -15086,6 +15615,18 @@ document.addEventListener("click",e=>{
   if(el.dataset.marticulo)return formMerchArticulo(el.dataset.marticulo);
   if(el.dataset.medio)return formMedios(el.dataset.medio);
   if(el.dataset.ticket)return fichaTicket(el.dataset.ticket);
+  /* El portal del artista NO abre fichas de la oficina. La de show son 36
+     campos con el % de comision de MALO, la base de la comision, el
+     contratante, las facturas emitida y recibida y la fecha de cobro; la de
+     produccion ensena el line-up con el cache de sus companeros. Nada de eso
+     es del portal, que esta hecho justo para no mostrarlo. Escribir ya estaba
+     cortado (save() sale antes para el rol artista, y RLS lo remataria), pero
+     el formulario se abria igual y se leia entero.
+     La guarda va aqui porque es por donde pasan TODOS los clics; ademas las
+     filas del portal dejan de parecer pulsables, y formShow() y modalProd()
+     tienen la suya por si alguien las llama desde otro sitio. */
+  if(esArtistaPortal()&&(el.dataset.show||el.dataset.prod||el.dataset.cliente
+    ||el.dataset.promotor||el.dataset.cancion))return;
   if(el.dataset.prod)return modalProd(el.dataset.prod);
   if(el.dataset.show){
     const tr=el.closest("tr.click");
